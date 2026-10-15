@@ -143,6 +143,8 @@ def convert(geo_path, anim_path, tex_path, name, anim_map):
 
 
 def main(a):
+    if len(a) != 7:
+        sys.exit(__doc__)
     geo_p, anim_p, tex_p, name, out_bb, out_br, amap = a
     anim_map = dict(p.split('=') for p in amap.split(','))
     bb, geo, br_anims, png = convert(geo_p, anim_p, tex_p, name, anim_map)
