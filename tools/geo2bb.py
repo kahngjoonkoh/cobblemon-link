@@ -1,8 +1,10 @@
 """Cobblemon Bedrock geo + animation -> Blockbench .bbmodel (for BetterModel)
 and a matching Bedrock input folder (for GeyserModelEngine).
 
-usage: geo2bb.py GEO ANIM TEXTURE NAME OUT_BBMODEL OUT_BEDROCK_DIR ANIM_MAP
+usage: geo2bb.py GEO ANIM TEXTURE NAME OUT_JAVA_DIR OUT_BEDROCK_DIR ANIM_MAP [SCALE]
   ANIM_MAP: comma list src=dst, e.g. ground_idle=idle,ground_walk=walk
+  SCALE: Cobblemon species baseScale (default 1)
+For every species at once see build_all.py.
 """
 import base64, json, math, os, re, sys, uuid
 
@@ -10,18 +12,30 @@ import base64, json, math, os, re, sys, uuid
 # keyframes are copied raw, same as Blockbench does for bedrock files.
 
 
-SAFE = re.compile(r'^[0-9.+\-*/() ,a-z_]*$')
+SAFE = re.compile(r'^[0-9.+\-*/() ,<>=!&|?:a-z_]*$')
+FUNCS = {'sin', 'cos', 'abs', 'clamp', 'min', 'max', 'mod', 'pow', 'sqrt', 'round', 'ceil', 'floor', 'pi', 'anim_t'}
+# riding/sound/temp queries are 0 when a Pokémon just stands or walks
+OTHER_QUERY = re.compile(r'\b(?:q|query|v|variable|t|temp|c|context)\.(?!anim_time\b)[a-z_.]+(?:\([^()]*\))?')
+
+
+def clean(expr):
+    """Lower-case, canonical q.anim_time, every other query/variable -> 0. Shared by Java bake and Bedrock copy."""
+    e = expr.lower().replace('query.anim_time', 'q.anim_time')
+    return OTHER_QUERY.sub('0', e)
 
 
 def molang(expr, t):
-    """Evaluate Cobblemon's sin/cos-of-anim_time molang. Bedrock trig is in degrees.
-    ponytail: only q.anim_time + math.sin/cos/abs; anything else raises, add when a model needs it."""
-    e = expr.lower().replace('query.', 'q.').replace('q.anim_time', 't').replace('math.', '')
-    if not SAFE.match(e) or set(re.findall(r'[a-z_]+', e)) - {'sin', 'cos', 'abs', 't'}:
+    """Evaluate Cobblemon's anim_time molang. Bedrock trig is in degrees.
+    ponytail: math functions + q.anim_time only; anything else raises (caller drops that channel)."""
+    e = clean(expr).replace('q.anim_time', 'anim_t').replace('math.', '')
+    if not SAFE.match(e) or set(re.findall(r'[a-z_]+', e)) - FUNCS:
         raise ValueError('unsupported molang: ' + expr)
-    env = {'sin': lambda d: math.sin(math.radians(d)), 'cos': lambda d: math.cos(math.radians(d)),
-           'abs': abs, 't': t, '__builtins__': {}}
-    return eval(e, env)  # input validated above: digits, operators, sin/cos/abs/t only
+    rad = math.radians
+    env = {'sin': lambda d: math.sin(rad(d)), 'cos': lambda d: math.cos(rad(d)), 'abs': abs,
+           'clamp': lambda v, lo, hi: max(lo, min(hi, v)), 'min': min, 'max': max, 'mod': math.fmod,
+           'pow': pow, 'sqrt': math.sqrt, 'round': round, 'ceil': math.ceil, 'floor': math.floor,
+           'pi': math.pi, 'anim_t': t, '__builtins__': {}}
+    return eval(e, env)  # input validated above: digits, operators, whitelisted names only
 
 
 def num(x, t):
@@ -62,12 +76,14 @@ def per_face(uvd):
     return out
 
 
-def convert(geo_path, anim_path, tex_path, name, anim_map):
-    geo = json.load(open(geo_path))['minecraft:geometry'][0]
+def convert(geo, anims, png, name, scale=1.0):
+    """geo: one minecraft:geometry entry. anims: {dst_name: bedrock animation dict}.
+    Returns (bbmodel, bedrock geo file, bedrock animation file, dropped channels)."""
     tw, th = geo['description']['texture_width'], geo['description']['texture_height']
+    sc = lambda v: [x * scale for x in v]
     elements, groups, children = [], {}, {}
     for b in geo['bones']:
-        g = {'name': b['name'], 'origin': neg_x(b.get('pivot', [0, 0, 0])),
+        g = {'name': b['name'], 'origin': sc(neg_x(b.get('pivot', [0, 0, 0]))),
              'rotation': [-r if i < 2 else r for i, r in enumerate(b.get('rotation', [0, 0, 0]))],
              'uuid': uid(), 'export': True, 'visibility': True, 'children': []}
         groups[b['name']] = g
@@ -77,16 +93,15 @@ def convert(geo_path, anim_path, tex_path, name, anim_map):
             frm = [-(o[0] + s[0]), o[1], o[2]]
             box = isinstance(c.get('uv', [0, 0]), list)
             mirror = c.get('mirror', b.get('mirror', False))
+            # UVs come from the unscaled size; geometry is scaled after (Java side only)
             faces = box_faces(*c.get('uv', [0, 0]), s, mirror) if box else per_face(c['uv'])
             rot = c.get('rotation', [0, 0, 0])
-            el = {'name': b['name'], 'type': 'cube', 'uuid': uid(), 'box_uv': box,
-                  'from': frm, 'to': [frm[0] + s[0], frm[1] + s[1], frm[2] + s[2]],
-                  'origin': neg_x(c.get('pivot', [0, 0, 0])),
-                  'rotation': [-rot[0], -rot[1], rot[2]], 'inflate': c.get('inflate', 0),
+            el = {'name': b['name'], 'type': 'cube', 'uuid': uid(), 'box_uv': False,
+                  'from': sc(frm), 'to': sc([frm[0] + s[0], frm[1] + s[1], frm[2] + s[2]]),
+                  'origin': sc(neg_x(c.get('pivot', [0, 0, 0]))),
+                  'rotation': [-rot[0], -rot[1], rot[2]], 'inflate': c.get('inflate', 0) * scale,
                   'faces': {k: {'uv': v, 'texture': 0} for k, v in faces.items()},
                   'export': True, 'visibility': True}
-            if box:
-                el['uv_offset'] = c.get('uv', [0, 0])
             elements.append(el)
             g['children'].append(el['uuid'])
 
@@ -96,12 +111,9 @@ def convert(geo_path, anim_path, tex_path, name, anim_map):
         return g
     outliner = [tree(n) for n in children.get(None, [])]
 
-    anims_src = json.load(open(anim_path))['animations']
-    bb_anims, br_anims = [], {}
-    for src, dst in anim_map.items():
-        key = next(k for k in anims_src if k.endswith('.' + src))
-        a = anims_src[key]
-        br_anims[dst] = a
+    bb_anims, br_anims, dropped = [], {}, []
+    for dst, a in anims.items():
+        length = a.get('animation_length', 1.0)
         animators = {}
         for bone, chans in a.get('bones', {}).items():
             if bone not in groups:
@@ -111,50 +123,82 @@ def convert(geo_path, anim_path, tex_path, name, anim_map):
                 if ch not in ('rotation', 'position', 'scale'):
                     continue
                 frames = val if isinstance(val, dict) and not {'post', 'pre'} & set(val) else {'0.0': val}
-                length = a.get('animation_length', 1.0)
-                if len(frames) == 1 and 'q.' in json.dumps(frames).replace('query.', 'q.'):
+                if len(frames) == 1 and 'anim_time' in json.dumps(frames):
                     # constant molang channel -> bake 20 samples/s over the clip
                     kv = next(iter(frames.values()))
                     frames = {str(i / 20): kv for i in range(int(length * 20) + 1)}
-                for t, kv in frames.items():
-                    interp = 'linear'
-                    if isinstance(kv, dict):
-                        interp = kv.get('lerp_mode', 'linear')
-                        kv = kv.get('post', kv.get('pre'))
-                    if not isinstance(kv, list):
-                        kv = [kv] * 3
-                    kv = [num(x, float(t)) for x in kv]
-                    kfs.append({'channel': ch, 'uuid': uid(), 'time': float(t), 'interpolation': interp,
-                                'data_points': [dict(zip('xyz', kv))]})
+                try:
+                    chan_kfs = []
+                    for t, kv in frames.items():
+                        interp = 'linear'
+                        if isinstance(kv, dict):
+                            interp = kv.get('lerp_mode', 'linear')
+                            kv = kv.get('post', kv.get('pre'))
+                        if not isinstance(kv, list):
+                            kv = [kv] * 3
+                        kv = [num(x, float(t)) * (scale if ch == 'position' else 1) for x in kv]
+                        if not all(isinstance(x, (int, float)) and math.isfinite(x) for x in kv):
+                            raise ValueError(kv)  # e.g. grafaiai has a list nested inside a vector
+                        chan_kfs.append({'channel': ch, 'uuid': uid(), 'time': float(t), 'interpolation': interp,
+                                         'data_points': [dict(zip('xyz', kv))]})
+                    kfs += chan_kfs
+                except Exception:  # ponytail: odd molang -> channel dropped on Java, still exact on Bedrock
+                    dropped.append(f'{dst}:{bone}.{ch}')
             animators[groups[bone]['uuid']] = {'name': bone, 'type': 'bone', 'keyframes': kfs}
         bb_anims.append({'uuid': uid(), 'name': dst, 'loop': 'loop' if a.get('loop') else 'once',
-                         'override': False, 'length': a.get('animation_length', 1.0), 'snapping': 24,
-                         'animators': animators})
+                         'override': False, 'length': length, 'snapping': 24, 'animators': animators})
+        # Bedrock plays the original molang natively; strip cobblemon-only queries, sounds, particles
+        br = {k: a[k] for k in ('loop', 'animation_length') if k in a}
+        br['bones'] = json.loads(json.dumps(a.get('bones', {})),
+                                 object_hook=lambda d: {k: clean(v) if isinstance(v, str) else
+                                                        [clean(x) if isinstance(x, str) else x for x in v]
+                                                        if isinstance(v, list) else v for k, v in d.items()})
+        br_anims[dst] = br
 
-    png = open(tex_path, 'rb').read()
-    bb = {'meta': {'format_version': '4.10', 'model_format': 'free', 'box_uv': True},
+    bb = {'meta': {'format_version': '4.10', 'model_format': 'free', 'box_uv': False},
           'name': name, 'resolution': {'width': tw, 'height': th},
           'elements': elements, 'outliner': outliner,
           'textures': [{'name': name + '.png', 'id': '0', 'uuid': uid(), 'width': tw, 'height': th,
                         'uv_width': tw, 'uv_height': th, 'render_mode': 'default',
                         'source': 'data:image/png;base64,' + base64.b64encode(png).decode()}],
           'animations': bb_anims}
-    return bb, geo, br_anims, png
+
+    # Bedrock: box UV depends on cube size, so scale through a wrapper bone instead of resizing cubes
+    geo = json.loads(json.dumps(geo))
+    geo['description']['identifier'] = 'geometry.' + name
+    if scale != 1:
+        for b in geo['bones']:
+            b.setdefault('parent', 'cl_scale')
+        geo['bones'].insert(0, {'name': 'cl_scale', 'pivot': [0, 0, 0]})
+        for br in br_anims.values():
+            br['bones']['cl_scale'] = {'scale': scale}
+    return (bb, {'format_version': '1.12.0', 'minecraft:geometry': [geo]},
+            {'format_version': '1.8.0', 'animations': br_anims},  # plain keys: what GeyserModelEngine reads
+            dropped)
+
+
+def write(name, bb, br_geo, br_anim, png, out_java, out_bedrock):
+    os.makedirs(out_java, exist_ok=True)
+    json.dump(bb, open(f'{out_java}/{name}.bbmodel', 'w'))
+    d = f'{out_bedrock}/{name}'
+    os.makedirs(d, exist_ok=True)
+    json.dump(br_geo, open(f'{d}/{name}.geo.json', 'w'))
+    json.dump(br_anim, open(f'{d}/{name}.animation.json', 'w'))
+    open(f'{d}/{name}.png', 'wb').write(png)
 
 
 def main(a):
-    if len(a) != 7:
+    if len(a) not in (7, 8):
         sys.exit(__doc__)
-    geo_p, anim_p, tex_p, name, out_bb, out_br, amap = a
-    anim_map = dict(p.split('=') for p in amap.split(','))
-    bb, geo, br_anims, png = convert(geo_p, anim_p, tex_p, name, anim_map)
-    json.dump(bb, open(out_bb, 'w'))
-    os.makedirs(out_br, exist_ok=True)
-    geo['description']['identifier'] = 'geometry.' + name
-    json.dump({'format_version': '1.12.0', 'minecraft:geometry': [geo]}, open(f'{out_br}/{name}.geo.json', 'w'))
-    json.dump({'format_version': '1.8.0', 'animations': br_anims}, open(f'{out_br}/{name}.animation.json', 'w'))
-    open(f'{out_br}/{name}.png', 'wb').write(png)
-    print(len(bb['elements']), 'cubes,', len(geo['bones']), 'bones,', [x['name'] for x in bb['animations']])
+    geo_p, anim_p, tex_p, name, out_java, out_bedrock, amap = a[:7]
+    src = json.load(open(anim_p))['animations']
+    anims = {dst: next(v for k, v in src.items() if k.endswith('.' + s))
+             for s, dst in (p.split('=') for p in amap.split(','))}
+    geo = json.load(open(geo_p))['minecraft:geometry'][0]
+    png = open(tex_p, 'rb').read()
+    bb, g, an, dropped = convert(geo, anims, png, name, float(a[7]) if len(a) == 8 else 1.0)
+    write(name, bb, g, an, png, out_java, out_bedrock)
+    print(len(bb['elements']), 'cubes,', [x['name'] for x in bb['animations']], 'dropped:', dropped)
 
 
 def demo():
@@ -169,6 +213,18 @@ def demo():
         raise AssertionError('unsafe molang accepted')
     except ValueError:
         pass
+    assert molang('math.clamp(q.r.velocity_y(2)*7+q.anim_time, 0, 1)', 0.5) == 0.5  # riding query -> 0
+    # scale: Java geometry shrinks, UVs keep the unscaled layout, Bedrock gets a wrapper bone
+    geo = {'description': {'texture_width': 16, 'texture_height': 16},
+           'bones': [{'name': 'body', 'pivot': [0, 4, 0], 'cubes': [{'origin': [0, 0, 0], 'size': [2, 2, 2], 'uv': [0, 0]}]}]}
+    anim = {'loop': True, 'bones': {'body': {'position': [0, 'math.sin(q.anim_time*90)*2', 0]}}}
+    bb, g, an, dropped = convert(geo, {'idle': anim}, b'', 'x', 0.5)
+    el = bb['elements'][0]
+    assert el['to'] == [0, 1, 1] and el['faces']['north']['uv'] == [2, 2, 4, 4] and not dropped
+    assert bb['animations'][0]['animators'][bb['outliner'][0]['uuid']]['keyframes'][20]['data_points'][0]['y'] == 1.0
+    bad = {'loop': True, 'bones': {'body': {'rotation': [[1, 2], 0, 0]}}}
+    assert convert(geo, {'idle': bad}, b'', 'x')[3] == ['idle:body.rotation']
+    assert g['minecraft:geometry'][0]['bones'][1]['parent'] == 'cl_scale' and an['animations']['idle']['bones']['cl_scale']
 
 
 if __name__ == '__main__':

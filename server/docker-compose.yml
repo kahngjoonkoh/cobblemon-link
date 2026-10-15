@@ -1,7 +1,11 @@
-# Prototype server: Paper 26.3 + BetterModel (Java models) + Geyser/GeyserModelEngine (Bedrock models).
+# Paper 26.3 + BetterModel (Java models) + Geyser/GeyserModelEngine (Bedrock models).
 #   ./setup.sh && docker compose up -d     # first boot generates configs
 #   docker compose down && ./setup.sh && docker compose up -d
-# Then in game (op): /bm spawn pikachu
+# Then in game (op): /bm spawn <species>, e.g. /bm spawn pikachu
+# Optional .env next to this file:
+#   PACK_URL=https://your.host/build.zip   public URL of data/plugins/BetterModel/build.zip for Java players
+#   PACK_BIND=0.0.0.0                       let the bundled pack server listen beyond localhost
+#   MEMORY=3G
 
 services:
   mc:
@@ -12,12 +16,12 @@ services:
       TYPE: PAPER
       VERSION: "26.3"
       PAPER_BUILD: "190"
-      MEMORY: 3G
+      MEMORY: ${MEMORY:-3G}
       ONLINE_MODE: "TRUE"        # bench/ used FALSE for a bot client; never expose an offline server
       LEVEL_TYPE: minecraft:flat
       # BetterModel builds plugins/BetterModel/build.zip; Java clients download it from here.
-      # ponytail: localhost only works for a client on this machine; real players need a public URL.
-      RESOURCE_PACK: "http://127.0.0.1:8099/build.zip"
+      # The default only works for a client on this machine; real players need PACK_URL.
+      RESOURCE_PACK: ${PACK_URL:-http://127.0.0.1:8099/build.zip}
       RESOURCE_PACK_ENFORCE: "TRUE"
     volumes:
       - ./data:/data
@@ -25,6 +29,7 @@ services:
       - "127.0.0.1:25566:25565"     # Java
       - "19133:19132/udp"           # Bedrock (Geyser); 19133 so it can sit beside a normal server
     restart: unless-stopped
+    stop_grace_period: 2m          # default 10s kills Paper mid-save and corrupts a fresh world
 
   pack:
     image: python:3.13-alpine
@@ -34,5 +39,5 @@ services:
     volumes:
       - ./data/plugins/BetterModel:/pack:ro
     ports:
-      - "127.0.0.1:8099:8099"
+      - "${PACK_BIND:-127.0.0.1}:8099:8099"
     restart: unless-stopped

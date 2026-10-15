@@ -18,25 +18,31 @@ This repo tests a third approach:
 - **Bedrock:** [GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine) turns the same models into native Bedrock custom entities. Geyser pushes the Bedrock pack automatically.
 - **Models** are Cobblemon's own. They are already in Bedrock geometry format and are converted for Java by [`tools/geo2bb.py`](tools/geo2bb.py).
 
-## Current state: visual prototype
+## Current state: all species, visuals only
+
+Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/cobblemon/-/commit/910551ee70bd2853532ea782a20420fef475ce4b) (2026-10-15, after 1.8.2), pinned in [`COBBLEMON_COMMIT`](COBBLEMON_COMMIT).
 
 | | Status |
 |---|---|
-| Cobblemon Pikachu model and idle animation on **vanilla Java 26.3** | ✅ verified (screenshots below) |
-| Resource pack sent automatically to Java clients | ✅ verified |
-| Bedrock pack generated and custom entity registered (`modelengine:pikachu`) | ✅ verified in server log |
-| Model visible on a **Bedrock** client | ⏳ needs a device test |
-| Species scale (Pikachu renders 2× too big) | ❌ not applied yet |
-| Look-at, blink and battle animations | ❌ only `idle` and `walk` converted |
-| Gameplay (spawning, catching, battles, party, PC) | ❌ not started |
+| **901 species** (every base form Cobblemon has a model for) converted, 0 failures | ✅ |
+| Rendered on **vanilla Java 26.3** (resource pack, one "Proceed" click) | ✅ verified: Pikachu, Bulbasaur, Charizard, Gengar, Snorlax, Wailord |
+| Rendered on **Bedrock** (Galaxy S25, Bedrock 1.26.51, pack pushed by Geyser) | ✅ verified: Pikachu |
+| Species scale (Cobblemon `baseScale`) | ✅ applied |
+| Idle and walk animations | ✅ taken from each species' Cobblemon poser |
+| Regional forms, shinies, look-at, blink and battle animations | ❌ not yet |
+| Gameplay (spawning, catching, battles, party, PC) | ❌ not started. `/bm spawn <species>` only |
+
+![six species on vanilla Java](docs/screenshots/java-vanilla-lineup.png)
+
+*Wailord, Snorlax, Gengar, Charizard, Bulbasaur and Pikachu on an unmodded Java 26.3 client.*
 
 | Cobblemon mod (Fabric client) | This repo (vanilla Java client) |
 |---|---|
 | ![Cobblemon mod](docs/screenshots/cobblemon-mod-reference.png) | ![cobblemon-link](docs/screenshots/java-vanilla-pikachu-front.png) |
 
-Idle animation on vanilla Java, four frames 0.5 s apart:
+The Pikachu comparison was taken before the species scale was applied.
 
-![idle frames](docs/screenshots/java-vanilla-idle-frames.png)
+**Download sizes for players** (once, then cached): Java resource pack about 35 MB, Bedrock pack about 16 MB.
 
 ## Server load
 
@@ -53,51 +59,64 @@ The main thread does well. The cost is moved to async threads that stream bone a
 
 You need Docker. Accept the [Minecraft EULA](https://aka.ms/MinecraftEULA) before running.
 
+1. Download `cobblemon-link-<version>.zip` from [Releases](https://github.com/kahngjoonkoh/cobblemon-link/releases) and unzip it.
+2. Start the server:
+   ```bash
+   cd cobblemon-link-<version>/server
+   ./setup.sh                       # downloads the pinned, hash-checked plugins and installs the models
+   docker compose up -d             # first boot generates configs (takes about a minute)
+   docker compose down && ./setup.sh && docker compose up -d
+   ```
+3. Connect. Java: `<host>:25566` (bound to localhost by default; edit `ports` to expose it). Bedrock: `<host>:19133`.
+4. Make yourself op (`docker exec cobblemon-link-mc rcon-cli op <name>`), then run `/bm spawn charizard`. Any name from `assets/species.tsv` works.
+   `/bm spawn` puts the model on a vanilla husk, which is hostile, and the model is lost on restart. It is a viewer, not gameplay.
+
+**Java players outside this machine** need a public URL for the resource pack. Put `build.zip` (in `server/data/plugins/BetterModel/`) somewhere public and set `PACK_URL=https://.../build.zip` in `server/.env`. Or set `PACK_BIND=0.0.0.0` to expose the bundled pack server on port 8099. Bedrock players need nothing: Geyser sends their pack.
+
+Bedrock players join through Floodgate with a `.` prefix, so op them by that name (for example `.Steve`) **while they are online**. Opping them before their first join saves the wrong ID.
+
+### Build from source
+
 ```bash
-cd server
-./setup.sh                       # downloads the pinned, hash-checked plugins and installs models
-docker compose up -d             # first boot generates configs
-docker compose down && ./setup.sh && docker compose up -d
+tools/build.sh                    # fetch the pinned Cobblemon commit, convert into assets/
+tools/build.sh --zip v0.1.0       # also write dist/cobblemon-link-v0.1.0.zip
 ```
 
-- Java: `localhost:25566`. Bedrock: `<host>:19133`.
-- As an op, run `/bm spawn pikachu`.
-- The resource-pack URL in `docker-compose.yml` is `127.0.0.1`, which only works for a client on the same machine. For real players, host `build.zip` at a public URL.
+Needs `bash`, `curl`, `python3` and `zip`. To move to a newer Cobblemon, put its commit SHA in `COBBLEMON_COMMIT` and rebuild. `assets/species.tsv` lists each species with its scale, animations and status.
 
 ## Repo layout
 
 ```
-assets/    converted Cobblemon models (CC BY-NC 3.0, see assets/README.md)
-tools/     geo2bb.py: Cobblemon Bedrock geo + animation -> BetterModel .bbmodel + Bedrock input folder
+assets/    converted Cobblemon models (built, not committed; CC BY-NC 3.0, see assets/README.md)
+tools/     build.sh (fetch + convert + zip), fetch_cobblemon.sh, build_all.py (all species), geo2bb.py (one model)
 server/    docker-compose + setup.sh for the prototype server (Paper 26.3)
 bench/     load benchmark scripts, raw results and screenshots
 docs/      screenshots, including PokeDemo on vanilla clients for comparison
 ```
 
-Convert another species:
+Convert a single model by hand:
 
 ```bash
 python3 tools/geo2bb.py <geo.json> <animation.json> <texture.png> <name> \
-  assets/java/<name>.bbmodel assets/bedrock/<name> ground_idle=idle,ground_walk=walk
+  <java_out_dir> <bedrock_out_dir> ground_idle=idle,ground_walk=walk [scale]
 ```
 
 ## Roadmap
 
-1. Bedrock device test.
-2. Apply the species scale and convert the look, blink and quirk animations.
-3. Bulk-convert species from a pinned Cobblemon release.
-4. Gameplay plugin: spawning, catching, party and PC, with battles on [Pokémon Showdown](https://github.com/smogon/pokemon-showdown) (MIT), which is what Cobblemon uses.
-5. Measure network bandwidth per viewer, since bone streaming goes through tunnels and mobile data.
+1. Gameplay plugin: spawning with per-player caps (about 8–10, see Server load), catching, party and PC. Battles on [Pokémon Showdown](https://github.com/smogon/pokemon-showdown) (MIT), which is what Cobblemon uses.
+2. Regional forms, shinies and the look, blink and quirk animations.
+3. Measure network bandwidth per viewer, since bone streaming goes through tunnels and mobile data.
 
 ## Attribution
 
 - **[Cobblemon](https://gitlab.com/cable-mc/cobblemon)** by the Cobblemon team and contributors.
-  - All Pokémon models, animations and textures in `assets/` are adapted from Cobblemon 1.8.2 under **CC BY-NC 3.0**.
+  - All Pokémon models, animations and textures in `assets/` (and in release zips) are adapted from Cobblemon under **CC BY-NC 3.0**.
   - Cobblemon's code is **MPL-2.0**. No Cobblemon code is included yet. Any MPL file copied in future keeps its license header.
 - **[PokeDemo](https://modrinth.com/plugin/pokedemo)** ([source](https://github.com/nn2048/PokedemoProject), **GPL-3.0**) by PtrMC / nn2048.
   - It inspired the Paper-plugin approach and was studied as a reference.
   - No PokeDemo code or assets are included. Its screenshots in `docs/` only document how it looks on vanilla clients.
-- **[BetterModel](https://github.com/toxicity188/BetterModel)** (Java model rendering) and **[GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine)** / **[GeyserUtils](https://github.com/GeyserExtensionists/GeyserUtils)** (Bedrock bridge) are runtime dependencies. They are downloaded by `server/setup.sh` and not redistributed here.
+- **[BetterModel](https://github.com/toxicity188/BetterModel)** (Java model rendering) is a runtime dependency, downloaded by `server/setup.sh` and not redistributed.
+- **[GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine)** and **[GeyserUtils](https://github.com/GeyserExtensionists/GeyserUtils)** (Bedrock bridge, both MIT, © zimzaza4) only publish a moving `latest` build. The exact tested jars are mirrored unmodified, with their licenses, on the [`deps-2026-10-15`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-15) release.
 - **[Geyser and Floodgate](https://geysermc.org)**, **[packetevents](https://github.com/retrooper/packetevents)** and **[Paper](https://papermc.io)** are also runtime dependencies and are not redistributed.
 
 ## License

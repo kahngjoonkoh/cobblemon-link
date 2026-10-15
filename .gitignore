@@ -1,3 +1,7 @@
 server/data/
 *.jar
 __pycache__/
+assets/java/
+assets/bedrock/
+assets/species.tsv
+dist/
