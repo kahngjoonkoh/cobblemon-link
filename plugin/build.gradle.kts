@@ -1,7 +1,7 @@
 plugins { java }
 
 group = "io.github.kahngjoonkoh"
-version = "0.2.0"
+version = "0.3.0"
 
 repositories {
     mavenCentral()
@@ -18,5 +18,5 @@ dependencies {
 java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
 
 tasks.test { useJUnitPlatform() }
-tasks.processResources { filesMatching("paper-plugin.yml") { expand("version" to version) } }
+tasks.processResources { inputs.property("version", version); filesMatching("paper-plugin.yml") { expand("version" to version) } }
 tasks.jar { archiveFileName = "cobblemon-link-${version}.jar" }

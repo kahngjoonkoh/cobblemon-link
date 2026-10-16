@@ -17,13 +17,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.body.DialogBody;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
+import java.time.Duration;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 /**
  * One wild battle. Showdown (sim/server.js) runs the rules; this class is the menu, the chat log and the bookkeeping.
@@ -40,6 +47,9 @@ final class Battle {
     private PrintWriter out;
     private JsonObject request, state;
     private boolean over;
+    private final List<String> turnLog = new ArrayList<>();
+    private final BossBar wildBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
+    private final BossBar ownBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.GREEN, BossBar.Overlay.NOTCHED_10);
 
     Battle(CobblemonLink pl, Player player, Entity wildEntity, Mon wild) {
         this.pl = pl;
@@ -105,7 +115,9 @@ final class Battle {
             case "log" -> {
                 for (JsonElement l : msg.getAsJsonArray("lines")) {
                     String text = narrate(l.getAsString());
-                    if (text != null) player.sendMessage(Component.text(text, NamedTextColor.YELLOW));
+                    if (text == null) continue;
+                    player.sendMessage(Component.text(text, NamedTextColor.YELLOW));
+                    if (!text.startsWith("—")) turnLog.add(text);
                 }
             }
             case "state" -> {
@@ -113,6 +125,7 @@ final class Battle {
                 JsonArray p1 = state.getAsJsonArray("p1");
                 for (int i = 0; i < p1.size(); i++)
                     if (p1.get(i).getAsJsonObject().get("active").getAsBoolean()) participants.add(order.get(i));
+                updateBars();
             }
             case "end" -> finish(msg.get("winner").isJsonNull() ? null : msg.get("winner").getAsString(), false);
             case "error" -> {
@@ -123,25 +136,16 @@ final class Battle {
         }
     }
 
+    /**
+     * Vanilla dialog screen: drawn by the client, so no inventory traffic. Geyser shows it as a Bedrock form.
+     * The body repeats this turn's log, since the screen covers chat.
+     */
     void openMenu() {
         if (over || request == null) return;
-        Menu m = new Menu(27, "Wild " + wild.name(pl.dex) + "  Lv." + wild.level);
         JsonArray side = request.getAsJsonObject("side").getAsJsonArray("pokemon");
         boolean forceSwitch = request.has("forceSwitch");
         JsonObject active = forceSwitch ? null : request.getAsJsonArray("active").get(0).getAsJsonObject();
-
-        for (JsonElement el : side) {
-            JsonObject p = el.getAsJsonObject();
-            if (p.get("active").getAsBoolean())
-                m.set(0, Menu.icon(Material.LIME_DYE, "Your " + p.get("details").getAsString(), List.of("HP " + p.get("condition").getAsString())), null);
-        }
-        if (state != null) {
-            JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
-            String status = w.get("status").getAsString();
-            m.set(8, Menu.icon(Material.RED_DYE, "Wild " + wild.name(pl.dex) + "  Lv." + wild.level,
-                    List.of("HP " + Math.round(100.0 * w.get("hp").getAsInt() / w.get("maxhp").getAsInt()) + "%"
-                            + (status.isEmpty() ? "" : "  " + status.toUpperCase()))), null);
-        }
+        List<ActionButton> buttons = new ArrayList<>();
         if (active != null) {
             JsonArray moves = active.getAsJsonArray("moves");
             for (int i = 0; i < moves.size(); i++) {
@@ -149,15 +153,15 @@ final class Battle {
                 boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
                 String pp = mv.has("pp") ? "PP " + mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
                 String choice = "move " + (i + 1);
-                m.set(10 + i, Menu.icon(disabled ? Material.GRAY_DYE : Material.PAPER, mv.get("move").getAsString(),
-                        List.of(pp)), disabled ? null : e -> choose(choice));
+                buttons.add(button(Component.text(mv.get("move").getAsString(), disabled ? NamedTextColor.DARK_GRAY : NamedTextColor.WHITE),
+                        pp, disabled ? null : () -> choose(choice)));
             }
-            int balls = pl.countBalls(player);
-            m.set(15, Menu.icon(Material.SNOWBALL, "Throw Poké Ball", List.of("You have " + balls)), e -> throwBall());
-            m.set(16, Menu.icon(Material.FEATHER, "Run", List.of()), e -> {
+            if (moves.size() % 2 == 1) buttons.add(button(Component.empty(), "", null)); // keeps the grid 2 wide
+            buttons.add(button(Component.text("Throw Poké Ball", NamedTextColor.RED), "You have " + pl.countBalls(player), this::throwBall));
+            buttons.add(button(Component.text("Run", NamedTextColor.GRAY), "", () -> {
                 player.sendMessage(Component.text("Got away safely!", NamedTextColor.YELLOW));
                 finish(null, false);
-            });
+            }));
         }
         boolean trapped = active != null && active.has("trapped") && active.get("trapped").getAsBoolean();
         for (int i = 0; i < side.size() && !trapped; i++) {
@@ -165,14 +169,75 @@ final class Battle {
             String cond = p.get("condition").getAsString();
             if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
             String choice = "switch " + (i + 1);
-            m.set(18 + i, Menu.icon(Material.LIGHT_BLUE_DYE, "Switch to " + p.get("details").getAsString().split(",")[0],
-                    List.of("HP " + cond)), e -> choose(choice));
+            buttons.add(button(Component.text("Switch: " + p.get("details").getAsString().split(",")[0], NamedTextColor.AQUA),
+                    "HP " + cond, () -> choose(choice)));
         }
-        player.openInventory(m.getInventory());
+        Component log = Component.text(turnLog.isEmpty() ? "What will you do?" : String.join("\n", turnLog));
+        turnLog.clear();
+        List<DialogBody> body = new ArrayList<>();
+        if (state != null) { // the dialog title covers the boss bars, so HP is repeated here
+            JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
+            body.add(DialogBody.plainMessage(hpLine("Wild " + wild.name(pl.dex) + " Lv." + wild.level, w, false), 300));
+            JsonArray p1 = state.getAsJsonArray("p1");
+            for (int i = 0; i < p1.size(); i++) {
+                JsonObject p = p1.get(i).getAsJsonObject();
+                Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(i));
+                if (p.get("active").getAsBoolean()) body.add(DialogBody.plainMessage(hpLine(m.name(pl.dex) + " Lv." + m.level, p, true), 300));
+            }
+        }
+        body.add(DialogBody.plainMessage(log, 300));
+        String title = forceSwitch ? "Choose your next Pokémon" : "Wild " + wild.name(pl.dex) + "  Lv." + wild.level;
+        player.showDialog(Dialog.create(f -> f.empty()
+                .base(DialogBase.builder(Component.text(title)).canCloseWithEscape(true)
+                        .body(body).build())
+                .type(DialogType.multiAction(buttons).columns(2).build())));
+    }
+
+    /** Clicking closes the screen, so a null (greyed-out) action just reopens it. */
+    private ActionButton button(Component label, String tooltip, Runnable action) {
+        Runnable run = action != null ? action : this::openMenu;
+        var b = ActionButton.builder(label).width(150).action(DialogAction.customClick((resp, who) -> onMain(() -> { if (!over) run.run(); }),
+                ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build()));
+        if (!tooltip.isEmpty()) b.tooltip(Component.text(tooltip));
+        return b.build();
+    }
+
+    /** Boss bars: HP for both sides, visible outside the menu. */
+    private void updateBars() {
+        JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
+        String status = w.get("status").getAsString();
+        wildBar.name(Component.text("Wild " + wild.name(pl.dex) + "  Lv." + wild.level + (status.isEmpty() ? "" : "  " + status.toUpperCase())));
+        wildBar.progress(ratio(w));
+        JsonArray p1 = state.getAsJsonArray("p1");
+        for (int i = 0; i < p1.size(); i++) {
+            JsonObject p = p1.get(i).getAsJsonObject();
+            if (!p.get("active").getAsBoolean()) continue;
+            Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(i));
+            ownBar.name(Component.text(m.name(pl.dex) + "  Lv." + m.level + "   " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() + " HP"));
+            ownBar.progress(ratio(p));
+        }
+        player.showBossBar(wildBar);
+        player.showBossBar(ownBar);
+    }
+
+    /** "Pikachu Lv.12  ██████░░░░  30/35" — numbers only for your own side, like the main games. */
+    private static Component hpLine(String name, JsonObject p, boolean numbers) {
+        float r = ratio(p);
+        int filled = Math.round(r * 20);
+        NamedTextColor c = r > 0.5f ? NamedTextColor.GREEN : r > 0.2f ? NamedTextColor.GOLD : NamedTextColor.RED;
+        String status = p.get("status").getAsString();
+        return Component.text(name + "  ")
+                .append(Component.text("|".repeat(filled), c))
+                .append(Component.text("|".repeat(20 - filled), NamedTextColor.DARK_GRAY))
+                .append(Component.text(numbers ? "  " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : ""))
+                .append(Component.text(status.isEmpty() ? "" : "  " + status.toUpperCase(), NamedTextColor.LIGHT_PURPLE));
+    }
+
+    private static float ratio(JsonObject p) {
+        return Math.clamp((float) p.get("hp").getAsInt() / Math.max(1, p.get("maxhp").getAsInt()), 0f, 1f);
     }
 
     private void choose(String choice) {
-        player.closeInventory();
         if (out != null) out.println("{\"choose\":\"" + choice + "\"}");
     }
 
@@ -182,7 +247,6 @@ final class Battle {
             player.sendMessage(Component.text("You have no Poké Balls.", NamedTextColor.RED));
             return;
         }
-        player.closeInventory();
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
         if (state != null) {
@@ -197,6 +261,7 @@ final class Battle {
             finish(null, true);
         } else {
             player.sendMessage(Component.text("Oh no! The Pokémon broke free!", NamedTextColor.YELLOW));
+            turnLog.add("Oh no! The Pokémon broke free!");
             openMenu();
         }
     }
@@ -208,7 +273,9 @@ final class Battle {
         try {
             if (socket != null) socket.close();
         } catch (IOException ignored) {}
-        if (player.getOpenInventory().getTopInventory().getHolder() instanceof Menu) player.closeInventory();
+        player.closeDialog();
+        player.hideBossBar(wildBar);
+        player.hideBossBar(ownBar);
 
         List<Mon> party = pl.store.get(player.getUniqueId()).party;
         if (state != null) {

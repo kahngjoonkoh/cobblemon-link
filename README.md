@@ -25,13 +25,13 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 ### Gameplay (v0.2)
 
-Everything below was played through on a vanilla Java 26.3 client. The menus are chest menus, which Geyser shows to Bedrock players, but **the gameplay hasn't been tested on a Bedrock device yet**.
+Everything below was played through on a vanilla Java 26.3 client. The battle menu is a vanilla dialog screen (Geyser shows it to Bedrock players as a form); party, PC and starter are chest menus, but **the gameplay hasn't been tested on a Bedrock device yet**.
 
 | Feature | How it works |
 |---|---|
 | **Starter** | `/starter` opens a menu of all 27 starters (Gen 1–9). You get the starter at Lv.5 plus 5 Poké Balls. |
 | **Wild spawns** | Built from Cobblemon's spawn pools: 1,066 entries for 579 species. They are checked against biome (Cobblemon's biome tags, shipped as a datapack), time of day, rain, sky light and height. A rarity bucket is picked with Cobblemon's weights, and wild Pokémon are capped per player (default 8). |
-| **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. The menu offers moves with PP, switching, Poké Ball and Run. Turns are narrated in chat. Wild Pokémon pick random moves. |
+| **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. A dialog screen shows both HP bars and the last turn's log, with buttons for moves (PP on hover), switching, Poké Ball and Run. Boss bars keep both HP bars on screen while the menu is closed. Wild Pokémon pick random moves. |
 | **Catching** | Throw a Poké Ball at a wild Pokémon, or use one from the battle menu. Uses the main-series catch formula: catch rate, HP left, and status bonuses. |
 | **Party and PC** | `/party` (6 slots; click to make lead, shift-click to send to PC) and `/pc` (pages of 45). HP carries over between battles. |
 | **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned automatically while there's room. Level-based evolutions (310 species) happen at the right level. |
