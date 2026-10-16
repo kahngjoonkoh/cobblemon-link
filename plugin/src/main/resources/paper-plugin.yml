@@ -1,0 +1,16 @@
+name: CobblemonLink
+version: '${version}'
+main: io.github.kahngjoonkoh.cobblemonlink.CobblemonLink
+api-version: '1.21.4'
+description: Cobblemon-style Pokémon gameplay for vanilla Java and Bedrock clients
+website: https://github.com/kahngjoonkoh/cobblemon-link
+dependencies:
+  server:
+    BetterModel:
+      load: BEFORE
+      required: true
+      join-classpath: true
+permissions:
+  cobblemonlink.admin:
+    description: /pokegive, /pokespawn, /pokeheal, /pokeballs
+    default: op

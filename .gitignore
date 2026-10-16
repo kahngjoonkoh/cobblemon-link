@@ -5,3 +5,10 @@ assets/java/
 assets/bedrock/
 assets/species.tsv
 dist/
+assets/gamedata.json
+assets/datapack/
+plugin/build/
+plugin/.gradle/
+plugin/.gradle-home/
+sim/node_modules/
+server/.env

@@ -1,0 +1,52 @@
+package io.github.kahngjoonkoh.cobblemonlink;
+
+/** Main-series formulas Cobblemon also follows. Pure functions, unit-tested. */
+final class Rules {
+    private Rules() {}
+
+    /** Total experience needed to reach level n in the given Cobblemon experience group. */
+    static long expFor(String group, int n) {
+        long c = (long) n * n * n;
+        long v = switch (group) {
+            case "fast" -> 4 * c / 5;
+            case "medium_slow" -> 6 * c / 5 - 15L * n * n + 100L * n - 140;
+            case "slow" -> 5 * c / 4;
+            case "erratic" -> n < 50 ? c * (100 - n) / 50 : n < 68 ? c * (150 - n) / 100
+                    : n < 98 ? c * ((1911 - 10L * n) / 3) / 500 : c * (160 - n) / 100;
+            case "fluctuating" -> n < 15 ? c * ((n + 1) / 3 + 24) / 50 : n < 36 ? c * (n + 14) / 50
+                    : c * (n / 2 + 32) / 50;
+            default -> c; // medium_fast
+        };
+        return Math.max(0, v);
+    }
+
+    /** Gen 5+ experience for defeating a wild Pokémon (no trainer/item bonuses). */
+    static long expGain(int baseExp, int foeLevel, int ownLevel) {
+        double scale = Math.pow((2.0 * foeLevel + 10) / (foeLevel + ownLevel + 10), 2.5);
+        return (long) Math.floor(baseExp * foeLevel / 5.0 * scale) + 1;
+    }
+
+    /**
+     * Chance one Poké Ball catches: the gen 3-4 modified catch rate, as a single roll.
+     * ponytail: single roll instead of four shake checks; same expected odds within a few percent.
+     */
+    static double catchChance(int catchRate, int hp, int maxHp, String status) {
+        double bonus = switch (status) {
+            case "slp", "frz" -> 2.5;
+            case "par", "brn", "psn", "tox" -> 1.5;
+            default -> 1.0;
+        };
+        double a = (3.0 * maxHp - 2.0 * hp) * catchRate * bonus / (3.0 * maxHp);
+        return Math.min(1.0, a / 255.0);
+    }
+
+    /** HP stat (no EVs, which this plugin doesn't award yet). */
+    static int maxHp(int base, int iv, int level) {
+        return (2 * base + iv) * level / 100 + level + 10;
+    }
+
+    /** Non-HP stat, before nature. */
+    static int stat(int base, int iv, int level) {
+        return (2 * base + iv) * level / 100 + 5;
+    }
+}

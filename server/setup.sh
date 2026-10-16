@@ -30,6 +30,14 @@ Geyser-Spigot/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/
 EOF
 
 [ -d ../assets/java ] || { echo "no models in ../assets: run tools/build.sh, or use a release zip" >&2; exit 1; }
+# gameplay plugin: prebuilt in release zips, or built by tools/build.sh from plugin/
+jar=
+for f in ../plugin/cobblemon-link.jar ../plugin/build/libs/cobblemon-link-*.jar; do [ -f "$f" ] && { jar=$f; break; }; done
+[ -n "$jar" ] || { echo "no plugin jar: run tools/build.sh, or use a release zip" >&2; exit 1; }
+rm -f "$D"/plugins/cobblemon-link*.jar
+cp "$jar" "$D/plugins/cobblemon-link.jar"
+mkdir -p "$D/plugins/CobblemonLink"
+cp ../assets/gamedata.json "$D/plugins/CobblemonLink/"
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"

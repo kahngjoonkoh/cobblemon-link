@@ -1,0 +1,9 @@
+{
+  "name": "cobblemon-link-sim",
+  "private": true,
+  "description": "Pokémon Showdown battle sidecar for the cobblemon-link plugin",
+  "license": "MPL-2.0",
+  "dependencies": {
+    "pokemon-showdown": "0.11.11"
+  }
+}

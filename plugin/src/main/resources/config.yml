@@ -1,0 +1,21 @@
+# Showdown battle sidecar (sim/ in the repo; the "sim" service in server/docker-compose.yml)
+sim:
+  host: sim
+  port: 9000
+
+spawning:
+  interval-ticks: 100        # one spawn attempt per player every 5 s
+  per-player-cap: 8          # wild Pokémon within count-radius of a player; each costs server CPU (see bench/)
+  count-radius: 48
+  min-distance: 16
+  max-distance: 40
+  despawn-distance: 72       # removed when no player is this close
+  lifetime-seconds: 600
+  buckets:                   # Cobblemon's default rarity weights
+    common: 94.4
+    uncommon: 5.0
+    rare: 0.5
+    ultra-rare: 0.1
+
+battle:
+  max-distance: 24           # walking further away flees the battle
