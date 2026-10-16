@@ -24,8 +24,8 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 | | Status |
 |---|---|
-| **901 species** (every base form Cobblemon has a model for) converted, 0 failures | ✅ |
-| Rendered on **vanilla Java 26.3** (resource pack, one "Proceed" click) | ✅ verified: Pikachu, Bulbasaur, Charizard, Gengar, Snorlax, Wailord |
+| **901 species** (every base form Cobblemon has a model for) converted, 0 failures | ✅ (3 species lose one or two animation channels to typos in Cobblemon's own files; see [assets/README](assets/README.md)) |
+| Rendered on **vanilla Java 26.3** (resource pack, one "Proceed" click) | ✅ verified: Pikachu, Bulbasaur, Charizard, Gengar, Snorlax, Wailord, plus the repaired Grafaiai, Milotic, Corviknight, Clamperl, Ampharos and Incineroar |
 | Rendered on **Bedrock** (Galaxy S25, Bedrock 1.26.51, pack pushed by Geyser) | ✅ verified: Pikachu |
 | Species scale (Cobblemon `baseScale`) | ✅ applied |
 | Idle and walk animations | ✅ taken from each species' Cobblemon poser |
@@ -74,6 +74,8 @@ You need Docker. Accept the [Minecraft EULA](https://aka.ms/MinecraftEULA) befor
 **Java players outside this machine** need a public URL for the resource pack. Put `build.zip` (in `server/data/plugins/BetterModel/`) somewhere public and set `PACK_URL=https://.../build.zip` in `server/.env`. Or set `PACK_BIND=0.0.0.0` to expose the bundled pack server on port 8099. Bedrock players need nothing: Geyser sends their pack.
 
 Bedrock players join through Floodgate with a `.` prefix, so op them by that name (for example `.Steve`) **while they are online**. Opping them before their first join saves the wrong ID.
+
+**Stopping:** use `docker compose stop` or `docker compose down`. The server saves the world and exits within seconds. Don't use `docker kill`, which skips the save.
 
 ### Build from source
 

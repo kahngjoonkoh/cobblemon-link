@@ -20,3 +20,12 @@ For each species, the base-form model, texture and poser are taken from Cobblemo
 | `bedrock/<species>/*.png` | Unchanged. |
 
 All other animations, forms, shiny textures and emissive layers are dropped.
+
+### Repairs to Cobblemon's animation data
+
+Applied to both the Java and Bedrock outputs:
+
+- **Decimal commas.** `4,46` outside a function call is read as `4.46`. Grafaiai's `hair2` bone has `...*4,46`, and its sibling `hair` bone has `...*4.46`.
+- **Bare names become 0.** This covers `NaN` (an export artifact in 15 species, such as Milotic and Incineroar) and Clamperl's undefined `speed`. Molang itself evaluates unknown names to 0, so the result matches the mod.
+
+**Left as-is.** These are real typos with no single obvious fix: Cyndaquil (unbalanced parentheses), Togetic (`-0.0.5`) and Ursaluna (`0.532.5`). Each drops 2 Java channels, and Bedrock gets the original text.

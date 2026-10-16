@@ -6,22 +6,39 @@ usage: geo2bb.py GEO ANIM TEXTURE NAME OUT_JAVA_DIR OUT_BEDROCK_DIR ANIM_MAP [SC
   SCALE: Cobblemon species baseScale (default 1)
 For every species at once see build_all.py.
 """
-import base64, json, math, os, re, sys, uuid
+import base64, json, math, os, random, re, sys, uuid, zlib
 
 # ponytail: mirrors Blockbench's own bedrock importer (x negated, rx/ry negated);
 # keyframes are copied raw, same as Blockbench does for bedrock files.
 
 
 SAFE = re.compile(r'^[0-9.+\-*/() ,<>=!&|?:a-z_]*$')
-FUNCS = {'sin', 'cos', 'abs', 'clamp', 'min', 'max', 'mod', 'pow', 'sqrt', 'round', 'ceil', 'floor', 'pi', 'anim_t'}
+FUNCS = {'sin', 'cos', 'abs', 'clamp', 'min', 'max', 'mod', 'pow', 'sqrt', 'round', 'ceil', 'floor', 'pi', 'anim_t',
+         'exp', 'random', 'random_integer'}
 # riding/sound/temp queries are 0 when a Pokémon just stands or walks
 OTHER_QUERY = re.compile(r'\b(?:q|query|v|variable|t|temp|c|context)\.(?!anim_time\b)[a-z_.]+(?:\([^()]*\))?')
 
 
+BARE_NAME = re.compile(r'(?<![.\w])[a-z_]\w*\b(?!\s*[.(])')
+
+
+def decimal_commas(e):
+    """'4,46' outside any function call is a typo for 4.46 (grafaiai: sibling bone says 4.46)."""
+    out, depth = [], 0
+    for i, ch in enumerate(e):
+        depth += (ch == '(') - (ch == ')')
+        if ch == ',' and depth == 0 and 0 < i < len(e) - 1 and e[i - 1].isdigit() and e[i + 1].isdigit():
+            ch = '.'
+        out.append(ch)
+    return ''.join(out)
+
+
 def clean(expr):
     """Lower-case, canonical q.anim_time, every other query/variable -> 0. Shared by Java bake and Bedrock copy."""
-    e = expr.lower().replace('query.anim_time', 'q.anim_time')
-    return OTHER_QUERY.sub('0', e)
+    e = decimal_commas(expr.lower().replace('query.anim_time', 'q.anim_time'))
+    e = OTHER_QUERY.sub('0', e)
+    # bare names like NaN (Blockbench export bug) or an undefined `speed` are 0 in molang, as in the mod
+    return BARE_NAME.sub('0', e)
 
 
 def molang(expr, t):
@@ -34,7 +51,10 @@ def molang(expr, t):
     env = {'sin': lambda d: math.sin(rad(d)), 'cos': lambda d: math.cos(rad(d)), 'abs': abs,
            'clamp': lambda v, lo, hi: max(lo, min(hi, v)), 'min': min, 'max': max, 'mod': math.fmod,
            'pow': pow, 'sqrt': math.sqrt, 'round': round, 'ceil': math.ceil, 'floor': math.floor,
-           'pi': math.pi, 'anim_t': t, '__builtins__': {}}
+           'pi': math.pi, 'anim_t': t, 'exp': math.exp, '__builtins__': {}}
+    r = random.Random(zlib.crc32(f'{expr}@{t}'.encode()))  # reproducible builds
+    env['random'] = r.uniform
+    env['random_integer'] = r.randint
     return eval(e, env)  # input validated above: digits, operators, whitelisted names only
 
 
@@ -214,6 +234,10 @@ def demo():
     except ValueError:
         pass
     assert molang('math.clamp(q.r.velocity_y(2)*7+q.anim_time, 0, 1)', 0.5) == 0.5  # riding query -> 0
+    assert clean('0+math.sin(q.anim_time*90*3-130)*4,46') == '0+math.sin(q.anim_time*90*3-130)*4.46'
+    assert clean('math.clamp(1,2,3)') == 'math.clamp(1,2,3)'  # argument commas untouched
+    assert clean('NaN-math.sin(q.anim_time*90*speed)') == '0-math.sin(q.anim_time*90*0)'
+    assert molang('NaN+math.exp(0)+math.random(1,1)', 0) == 2
     # scale: Java geometry shrinks, UVs keep the unscaled layout, Bedrock gets a wrapper bone
     geo = {'description': {'texture_width': 16, 'texture_height': 16},
            'bones': [{'name': 'body', 'pivot': [0, 4, 0], 'cubes': [{'origin': [0, 0, 0], 'size': [2, 2, 2], 'uv': [0, 0]}]}]}

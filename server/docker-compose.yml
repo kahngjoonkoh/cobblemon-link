@@ -29,7 +29,11 @@ services:
       - "127.0.0.1:25566:25565"     # Java
       - "19133:19132/udp"           # Bedrock (Geyser); 19133 so it can sit beside a normal server
     restart: unless-stopped
-    stop_grace_period: 2m          # default 10s kills Paper mid-save and corrupts a fresh world
+    # Safe shutdown: mc-server-runner stops Paper by typing "stop" on its console, which needs
+    # stdin + tty. Without them the stop is never read and the server is SIGKILLed (corrupt worlds).
+    stdin_open: true
+    tty: true
+    stop_grace_period: 2m          # > mc-server-runner's 60s stop window, so Docker never kills first
 
   pack:
     image: python:3.13-alpine
