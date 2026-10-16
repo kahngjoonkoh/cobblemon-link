@@ -3,7 +3,12 @@ package io.github.kahngjoonkoh.cobblemonlink;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,6 +17,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
+import net.kyori.adventure.resource.ResourcePackInfo;
+import net.kyori.adventure.resource.ResourcePackRequest;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -51,6 +58,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Dex dex;
     Store store;
     Spawner spawner;
+    private ResourcePackInfo uiPack;
 
     @Override
     public void onEnable() {
@@ -77,6 +85,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, spawner::cleanup, 200, 200);
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
         registerCommands();
+        loadUiPack();
         getLogger().info(dex.species.size() + " species, " + dex.spawns.size() + " spawn entries loaded");
     }
 
@@ -125,8 +134,30 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     // ---- events ----
 
+    /**
+     * setup.sh puts the UI pack next to BetterModel's build.zip, so it is served from the same place:
+     * its URL is the server resource pack's URL with the file name swapped.
+     */
+    private void loadUiPack() {
+        Path zip = getDataFolder().toPath().resolveSibling("BetterModel").resolve("cobblemon-link-ui.zip");
+        String main = getServer().getResourcePack();
+        if (!Files.exists(zip) || main == null || main.isEmpty()) {
+            getLogger().warning("No UI pack (" + zip + ") or no server resource pack: Java battle menus use plain text.");
+            return;
+        }
+        try {
+            byte[] sha1 = MessageDigest.getInstance("SHA-1").digest(Files.readAllBytes(zip));
+            uiPack = ResourcePackInfo.resourcePackInfo(UUID.nameUUIDFromBytes(sha1),
+                    URI.create(main).resolve("cobblemon-link-ui.zip"), HexFormat.of().formatHex(sha1));
+        } catch (IOException | NoSuchAlgorithmException e) {
+            getLogger().warning("UI pack unreadable: " + e);
+        }
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
+        if (uiPack != null && !Ui.bedrock(e.getPlayer()))
+            e.getPlayer().sendResourcePacks(ResourcePackRequest.resourcePackRequest().packs(uiPack).replace(false).required(true));
         Store.Data d = store.get(e.getPlayer().getUniqueId());
         if (d.party.isEmpty() && d.pc.isEmpty())
             e.getPlayer().sendMessage(Component.text("Welcome! Pick your first Pokémon with /starter", NamedTextColor.GOLD));

@@ -25,13 +25,13 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 ### Gameplay (v0.2)
 
-Everything below was played through on a vanilla Java 26.3 client. The battle menu is a vanilla dialog screen (Geyser shows it to Bedrock players as a form); party, PC and starter are chest menus, but **the gameplay hasn't been tested on a Bedrock device yet**.
+Everything below was played through on a vanilla Java 26.3 client. The battle menu is a vanilla dialog screen: Java players see Cobblemon's battle tiles (drawn by the client from a small resource pack, `assets/ui-pack.zip`), and Geyser shows Bedrock players the same menu as a plain-text form. Party, PC and starter are chest menus. **The gameplay hasn't been tested on a Bedrock device yet.**
 
 | Feature | How it works |
 |---|---|
 | **Starter** | `/starter` opens a menu of all 27 starters (Gen 1–9). You get the starter at Lv.5 plus 5 Poké Balls. |
 | **Wild spawns** | Built from Cobblemon's spawn pools: 1,066 entries for 579 species. They are checked against biome (Cobblemon's biome tags, shipped as a datapack), time of day, rain, sky light and height. A rarity bucket is picked with Cobblemon's weights, and wild Pokémon are capped per player (default 8). |
-| **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. A dialog screen shows both HP bars and the last turn's log, with buttons for moves (PP on hover), switching, Poké Ball and Run. Boss bars keep both HP bars on screen while the menu is closed. Wild Pokémon pick random moves. |
+| **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. Cobblemon's flow: Fight / Switch / Poké Ball / Run, then type-coloured move tiles with PP, or the party. The menu shows both HP bars, type icons and the last turn's log; boss bars keep the HP on screen while it's closed. Wild Pokémon pick random moves. |
 | **Catching** | Throw a Poké Ball at a wild Pokémon, or use one from the battle menu. Uses the main-series catch formula: catch rate, HP left, and status bonuses. |
 | **Party and PC** | `/party` (6 slots; click to make lead, shift-click to send to PC) and `/pc` (pages of 45). HP carries over between battles. |
 | **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned automatically while there's room. Level-based evolutions (310 species) happen at the right level. |
@@ -40,9 +40,9 @@ Everything below was played through on a vanilla Java 26.3 client. The battle me
 
 Not yet: trainers and gyms, items and held items, stone, trade and friendship evolutions, choosing which move to forget, water, flying and cave spawns, regional forms and shinies, sending out your own Pokémon in the world, and PvP battles.
 
-| Battle menu | Battle log |
+| Battle menu | Fight |
 |---|---|
-| ![battle menu](docs/screenshots/gameplay-battle-menu.png) | ![battle log](docs/screenshots/gameplay-battle-log.png) |
+| ![battle menu](docs/screenshots/gameplay-battle-menu.png) | ![fight](docs/screenshots/gameplay-battle-log.png) |
 | **Party** | **Catching** |
 | ![party](docs/screenshots/gameplay-party.png) | ![catch](docs/screenshots/gameplay-catch.png) |
 
@@ -117,7 +117,7 @@ Needs `bash`, `curl`, `python3`, `zip` and Docker (the plugin builds with Gradle
 ```
 plugin/    the Paper plugin (Java 25): spawning, battles, catching, party/PC, EXP. Tests: plugin/src/test
 sim/       Pokémon Showdown battle sidecar (Node), with a self-check in sim/test.js
-assets/    built, not committed: models (CC BY-NC 3.0), gamedata.json and biome-tag datapack (MPL-2.0)
+assets/    built, not committed: models and ui-pack.zip (CC BY-NC 3.0), gamedata.json and biome-tag datapack (MPL-2.0)
 tools/     build.sh (fetch + convert + build + zip), fetch_cobblemon.sh, build_all.py (models),
            build_data.py (gameplay data), geo2bb.py (one model)
 server/    docker-compose + setup.sh (Paper 26.3 + plugins + sidecar)
@@ -142,7 +142,7 @@ python3 tools/geo2bb.py <geo.json> <animation.json> <texture.png> <name> \
 ## Attribution
 
 - **[Cobblemon](https://gitlab.com/cable-mc/cobblemon)** by the Cobblemon team and contributors.
-  - All Pokémon models, animations and textures in `assets/` (and in release zips) are adapted from Cobblemon under **CC BY-NC 3.0**.
+  - All Pokémon models, animations and textures in `assets/` (and in release zips) are adapted from Cobblemon under **CC BY-NC 3.0**, as is the battle GUI art (move, menu and party tiles, type icons) in `assets/ui-pack.zip`.
   - Cobblemon's repository is **MPL-2.0**. `assets/gamedata.json` (species stats, learnsets, evolutions, spawn pools, English names) and the biome-tag datapack are derived from Cobblemon's data files under MPL-2.0. No Cobblemon code is included.
 - **[PokeDemo](https://modrinth.com/plugin/pokedemo)** ([source](https://github.com/nn2048/PokedemoProject), **GPL-3.0**) by PtrMC / nn2048.
   - It inspired the Paper-plugin approach and was studied as a reference.
@@ -155,6 +155,6 @@ python3 tools/geo2bb.py <geo.json> <animation.json> <texture.png> <name> \
 ## License
 
 - **Code** (`plugin/`, `sim/`, `tools/`, `server/`, `bench/`): [MPL-2.0](LICENSE). It was chosen to stay compatible with Cobblemon's code license.
-- **Models, animations and textures** (`assets/java`, `assets/bedrock`): [CC BY-NC 3.0](assets/LICENSE-CC-BY-NC-3.0.txt), inherited from Cobblemon. **Non-commercial use only.**
+- **Models, animations and textures** (`assets/java`, `assets/bedrock`, `assets/ui-pack.zip`): [CC BY-NC 3.0](assets/LICENSE-CC-BY-NC-3.0.txt), inherited from Cobblemon. **Non-commercial use only.**
 - **Game data** (`assets/gamedata.json`, `assets/datapack`): MPL-2.0, derived from Cobblemon's data.
 - Screenshots in `docs/` and `bench/` show third-party content and are included for documentation only.

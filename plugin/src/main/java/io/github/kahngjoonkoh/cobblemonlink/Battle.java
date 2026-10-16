@@ -137,66 +137,114 @@ final class Battle {
     }
 
     /**
-     * Vanilla dialog screen: drawn by the client, so no inventory traffic. Geyser shows it as a Bedrock form.
-     * The body repeats this turn's log, since the screen covers chat.
+     * Cobblemon's flow: Fight / Switch / Bag / Run, then the moves or the party. Vanilla dialog screens, drawn by the
+     * client; Java players see Cobblemon's tile art from the UI pack, Bedrock players (Geyser turns dialogs into forms) plain text.
      */
     void openMenu() {
         if (over || request == null) return;
-        JsonArray side = request.getAsJsonObject("side").getAsJsonArray("pokemon");
-        boolean forceSwitch = request.has("forceSwitch");
-        JsonObject active = forceSwitch ? null : request.getAsJsonArray("active").get(0).getAsJsonObject();
-        List<ActionButton> buttons = new ArrayList<>();
-        if (active != null) {
-            JsonArray moves = active.getAsJsonArray("moves");
-            for (int i = 0; i < moves.size(); i++) {
-                JsonObject mv = moves.get(i).getAsJsonObject();
-                boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
-                String pp = mv.has("pp") ? "PP " + mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
-                String choice = "move " + (i + 1);
-                buttons.add(button(Component.text(mv.get("move").getAsString(), disabled ? NamedTextColor.DARK_GRAY : NamedTextColor.WHITE),
-                        pp, disabled ? null : () -> choose(choice)));
-            }
-            if (moves.size() % 2 == 1) buttons.add(button(Component.empty(), "", null)); // keeps the grid 2 wide
-            buttons.add(button(Component.text("Throw Poké Ball", NamedTextColor.RED), "You have " + pl.countBalls(player), this::throwBall));
-            buttons.add(button(Component.text("Run", NamedTextColor.GRAY), "", () -> {
-                player.sendMessage(Component.text("Got away safely!", NamedTextColor.YELLOW));
-                finish(null, false);
-            }));
+        if (request.has("forceSwitch")) {
+            openSwitch(false);
+            return;
         }
-        boolean trapped = active != null && active.has("trapped") && active.get("trapped").getAsBoolean();
-        for (int i = 0; i < side.size() && !trapped; i++) {
+        JsonObject active = request.getAsJsonArray("active").get(0).getAsJsonObject();
+        boolean trapped = active.has("trapped") && active.get("trapped").getAsBoolean();
+        List<ActionButton> buttons = new ArrayList<>(List.of(
+                menuButton(0, "Fight", "", this::openFight),
+                menuButton(1, "Switch", trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true)),
+                menuButton(2, "Poké Ball", "You have " + pl.countBalls(player), this::throwBall),
+                menuButton(3, "Run", "", () -> {
+                    player.sendMessage(Component.text("Got away safely!", NamedTextColor.YELLOW));
+                    finish(null, false);
+                })));
+        List<DialogBody> body = info();
+        List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of("What will you do?") : turnLog);
+        while (log.size() < 4) log.add(" "); // fixed height, so the buttons don't move between turns
+        body.add(DialogBody.plainMessage(Component.text(String.join("\n", log)), 300));
+        turnLog.clear();
+        show("Wild " + wild.name(pl.dex) + "  Lv." + wild.level, body, buttons);
+    }
+
+    private void openFight() {
+        JsonArray moves = request.getAsJsonArray("active").get(0).getAsJsonObject().getAsJsonArray("moves");
+        List<ActionButton> buttons = new ArrayList<>();
+        for (int i = 0; i < moves.size(); i++) {
+            JsonObject mv = moves.get(i).getAsJsonObject();
+            boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
+            String name = mv.get("move").getAsString(), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
+            String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
+            String choice = "move " + (i + 1);
+            Component label = Ui.bedrock(player) ? Component.text(name + "  (" + pp + ")") : Ui.moveTile(name, type, pp, disabled);
+            buttons.add(button(label, Ui.MOVE_W + 4, pl.dex.label("type", type) + "  PP " + pp, disabled ? this::openFight : () -> choose(choice)));
+        }
+        buttons.add(button(Component.text("Back"), 100, "", this::openMenu));
+        show("Fight", info(), buttons);
+    }
+
+    /** cancellable = false when a fainted Pokémon must be replaced. */
+    private void openSwitch(boolean cancellable) {
+        JsonArray side = request.getAsJsonObject("side").getAsJsonArray("pokemon");
+        List<ActionButton> buttons = new ArrayList<>();
+        for (int i = 0; i < side.size(); i++) {
             JsonObject p = side.get(i).getAsJsonObject();
             String cond = p.get("condition").getAsString();
             if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
             String choice = "switch " + (i + 1);
-            buttons.add(button(Component.text("Switch: " + p.get("details").getAsString().split(",")[0], NamedTextColor.AQUA),
-                    "HP " + cond, () -> choose(choice)));
+            Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
+            String name = m.name(pl.dex) + " Lv." + m.level, hp = cond.split(" ")[0];
+            Component label = Ui.bedrock(player) ? Component.text(name + "  (" + hp + ")")
+                    : Ui.partyTile(pl.dex.get(m.species).types, name, hp);
+            buttons.add(button(label, Ui.MOVE_W + 4, "HP " + hp, () -> choose(choice)));
         }
-        Component log = Component.text(turnLog.isEmpty() ? "What will you do?" : String.join("\n", turnLog));
-        turnLog.clear();
-        List<DialogBody> body = new ArrayList<>();
-        if (state != null) { // the dialog title covers the boss bars, so HP is repeated here
-            JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
-            body.add(DialogBody.plainMessage(hpLine("Wild " + wild.name(pl.dex) + " Lv." + wild.level, w, false), 300));
-            JsonArray p1 = state.getAsJsonArray("p1");
-            for (int i = 0; i < p1.size(); i++) {
-                JsonObject p = p1.get(i).getAsJsonObject();
-                Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(i));
-                if (p.get("active").getAsBoolean()) body.add(DialogBody.plainMessage(hpLine(m.name(pl.dex) + " Lv." + m.level, p, true), 300));
-            }
+        List<DialogBody> body = info();
+        if (cancellable) buttons.add(button(Component.text("Back"), 100, "", this::openMenu));
+        else if (!turnLog.isEmpty()) { // what fainted, since the screen covers chat
+            body.add(DialogBody.plainMessage(Component.text(String.join("\n", turnLog)), 300));
+            turnLog.clear();
         }
-        body.add(DialogBody.plainMessage(log, 300));
-        String title = forceSwitch ? "Choose your next Pokémon" : "Wild " + wild.name(pl.dex) + "  Lv." + wild.level;
+        show(cancellable ? "Switch" : "Choose your next Pokémon", body, buttons);
+    }
+
+    private void show(String title, List<DialogBody> body, List<ActionButton> buttons) {
         player.showDialog(Dialog.create(f -> f.empty()
-                .base(DialogBase.builder(Component.text(title)).canCloseWithEscape(true)
-                        .body(body).build())
+                .base(DialogBase.builder(Component.text(title)).canCloseWithEscape(true).body(body).build())
                 .type(DialogType.multiAction(buttons).columns(2).build())));
     }
 
-    /** Clicking closes the screen, so a null (greyed-out) action just reopens it. */
-    private ActionButton button(Component label, String tooltip, Runnable action) {
-        Runnable run = action != null ? action : this::openMenu;
-        var b = ActionButton.builder(label).width(150).action(DialogAction.customClick((resp, who) -> onMain(() -> { if (!over) run.run(); }),
+    /** HP of both sides; the dialog title covers the boss bars, so it's repeated here. */
+    private List<DialogBody> info() {
+        List<DialogBody> body = new ArrayList<>();
+        if (state == null) return body;
+        JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
+        body.add(DialogBody.plainMessage(infoLine(wild, w, false), 300));
+        JsonArray p1 = state.getAsJsonArray("p1");
+        for (int i = 0; i < p1.size(); i++) {
+            JsonObject p = p1.get(i).getAsJsonObject();
+            if (p.get("active").getAsBoolean())
+                body.add(DialogBody.plainMessage(infoLine(pl.store.get(player.getUniqueId()).party.get(order.get(i)), p, true), 300));
+        }
+        return body;
+    }
+
+    /** Numbers only for your own side, like the main games. */
+    private Component infoLine(Mon m, JsonObject p, boolean own) {
+        String name = (own ? "" : "Wild ") + m.name(pl.dex) + " Lv." + m.level;
+        String hp = own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : "";
+        String status = p.get("status").getAsString();
+        if (!Ui.bedrock(player)) return Ui.info(name, pl.dex.get(m.species).types, ratio(p), hp, status);
+        int filled = Math.round(ratio(p) * 20);
+        return Component.text(name + "  ").append(Component.text("|".repeat(filled), NamedTextColor.GREEN))
+                .append(Component.text("|".repeat(20 - filled), NamedTextColor.DARK_GRAY))
+                .append(Component.text((hp.isEmpty() ? "" : "  " + hp) + (status.isEmpty() ? "" : "  " + status.toUpperCase())));
+    }
+
+    private ActionButton menuButton(int tile, String label, String tooltip, Runnable action) {
+        Component c = Ui.bedrock(player) ? Component.text(label) : Ui.menuTile(tile, label);
+        return button(c, Ui.MENU_W + 4, tooltip, action != null ? action : this::openMenu);
+    }
+
+    /** Clicking closes the screen; actions that don't end the turn reopen a screen themselves. */
+    private ActionButton button(Component label, int width, String tooltip, Runnable action) {
+        var b = ActionButton.builder(label).width(width).action(DialogAction.customClick((resp, who) -> onMain(() -> { if (!over) action.run(); }),
                 ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build()));
         if (!tooltip.isEmpty()) b.tooltip(Component.text(tooltip));
         return b.build();
@@ -218,19 +266,6 @@ final class Battle {
         }
         player.showBossBar(wildBar);
         player.showBossBar(ownBar);
-    }
-
-    /** "Pikachu Lv.12  ██████░░░░  30/35" — numbers only for your own side, like the main games. */
-    private static Component hpLine(String name, JsonObject p, boolean numbers) {
-        float r = ratio(p);
-        int filled = Math.round(r * 20);
-        NamedTextColor c = r > 0.5f ? NamedTextColor.GREEN : r > 0.2f ? NamedTextColor.GOLD : NamedTextColor.RED;
-        String status = p.get("status").getAsString();
-        return Component.text(name + "  ")
-                .append(Component.text("|".repeat(filled), c))
-                .append(Component.text("|".repeat(20 - filled), NamedTextColor.DARK_GRAY))
-                .append(Component.text(numbers ? "  " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : ""))
-                .append(Component.text(status.isEmpty() ? "" : "  " + status.toUpperCase(), NamedTextColor.LIGHT_PURPLE));
     }
 
     private static float ratio(JsonObject p) {

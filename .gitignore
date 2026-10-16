@@ -12,3 +12,4 @@ plugin/.gradle/
 plugin/.gradle-home/
 sim/node_modules/
 server/.env
+assets/ui-pack.zip

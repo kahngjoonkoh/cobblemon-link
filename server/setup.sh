@@ -38,6 +38,8 @@ rm -f "$D"/plugins/cobblemon-link*.jar
 cp "$jar" "$D/plugins/cobblemon-link.jar"
 mkdir -p "$D/plugins/CobblemonLink"
 cp ../assets/gamedata.json "$D/plugins/CobblemonLink/"
+# Java battle-menu art; the pack server serves it next to BetterModel's build.zip
+cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"

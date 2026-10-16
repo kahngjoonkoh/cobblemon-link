@@ -5,7 +5,7 @@
 // p2 (the wild Pokémon) picks random legal moves. Sets use Showdown's PokemonSet shape.
 'use strict';
 const net = require('net');
-const { BattleStream, getPlayerStreams, Teams } = require('pokemon-showdown');
+const { BattleStream, Dex, getPlayerStreams, Teams } = require('pokemon-showdown');
 const { RandomPlayerAI } = require('pokemon-showdown/dist/sim/tools/random-player-ai');
 
 const PORT = +(process.env.PORT || 9000);
@@ -26,7 +26,14 @@ function startBattle(sock, init) {
   (async () => {
     for await (const chunk of streams.p1) {
       for (const line of chunk.split('\n')) {
-        if (line.startsWith('|request|') && line.length > 9) send({ type: 'request', request: JSON.parse(line.slice(9)) });
+        if (line.startsWith('|request|') && line.length > 9) {
+          const request = JSON.parse(line.slice(9));
+          // move types, for the type-coloured move tiles
+          for (const a of request.active || []) for (const m of a.moves) m.type = Dex.moves.get(m.id).type.toLowerCase();
+          // side.pokemon is in Showdown's switch-reordered order; slot = position in the team we sent
+          if (request.side) request.side.pokemon.forEach((p, i) => { p.slot = stream.battle.p1.pokemon[i].clSlot; });
+          send({ type: 'request', request });
+        }
         else if (line.startsWith('|error|')) send({ type: 'error', message: line.slice(7) });
       }
     }
