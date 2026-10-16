@@ -25,6 +25,8 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 ### Gameplay (v0.2)
 
+How this compares with Cobblemon 1.8.2, feature by feature: [docs/COVERAGE.md](docs/COVERAGE.md).
+
 Everything below was played through on a vanilla Java 26.3 client. The battle menu is a vanilla dialog screen: Java players see Cobblemon's battle tiles (drawn by the client from a small resource pack, `assets/ui-pack.zip`), and Geyser shows Bedrock players the same menu as a plain-text form. Party, PC and starter are chest menus. **The gameplay hasn't been tested on a Bedrock device yet.**
 
 | Feature | How it works |
