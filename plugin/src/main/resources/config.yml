@@ -3,19 +3,33 @@ sim:
   host: sim
   port: 9000
 
-spawning:
-  interval-ticks: 100        # one spawn attempt per player every 5 s
-  per-player-cap: 8          # wild Pokémon within count-radius of a player; each costs server CPU (see bench/)
-  count-radius: 48
-  min-distance: 16
-  max-distance: 40
-  despawn-distance: 72       # removed when no player is this close
-  lifetime-seconds: 600
-  buckets:                   # Cobblemon's default rarity weights
-    common: 94.4
+spawning:                    # Cobblemon's defaults (CobblemonConfig, BestSpawnerConfig)
+  interval-ticks: 20         # ticksBetweenSpawnAttempts: one pass per player per second
+  zone-diameter: 8           # spawningZoneDiameter
+  zone-height: 16            # spawningZoneHeight
+  min-distance: 16           # minimumSpawningZoneDistanceFromPlayer
+  max-distance: 64           # maximumSpawningZoneDistanceFromPlayer
+  max-per-pass: 8            # maximumSpawnsPerPass
+  per-chunk: 1               # pokemonPerChunk, over the 3x3 chunks around the zone
+  entity-spacing: 8          # minimumDistanceBetweenEntities
+  despawn-near: 32           # despawnerNearDistance: never despawns closer to a player
+  despawn-far: 96            # despawnerFarDistance: always despawns further away (once old enough)
+  despawn-min-age-ticks: 600
+  despawn-max-age-ticks: 3600
+  buckets:                   # worldBuckets
+    common: 94.05
     uncommon: 5.0
     rare: 0.5
-    ultra-rare: 0.1
+    ultra-rare: 0.2
+    boss: 0.25
+
+starter:
+  level: 10                  # Cobblemon's starters are level 10
+  balls: 0                   # Poké Balls given with the starter (Cobblemon gives none)
+  random-pokemon: false      # true: the starter choice also offers one random wild Pokémon (rolled once per player)
+
+pc:
+  boxes: 40                  # boxes of 30 in each player's PC (Cobblemon's defaultBoxCount)
 
 battle:
   max-distance: 24           # walking further away flees the battle

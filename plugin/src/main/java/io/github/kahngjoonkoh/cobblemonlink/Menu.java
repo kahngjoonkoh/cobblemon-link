@@ -31,7 +31,15 @@ final class Menu implements InventoryHolder {
     private final Inventory inv;
     private final Map<Integer, Consumer<InventoryClickEvent>> actions = new HashMap<>();
 
-    Menu(int size, String title) { inv = Bukkit.createInventory(this, size, Component.text(title)); }
+    Menu(int size, String title) { this(size, Component.text(title)); }
+
+    Menu(int size, Component title) { inv = Bukkit.createInventory(this, size, title); }
+
+    /** A click on a raw slot of the whole view, the player's inventory included (StarterScreen's buttons). */
+    Menu on(int rawSlot, Consumer<InventoryClickEvent> action) {
+        actions.put(rawSlot, action);
+        return this;
+    }
 
     Menu set(int slot, ItemStack item, Consumer<InventoryClickEvent> action) {
         inv.setItem(slot, item);
@@ -49,8 +57,17 @@ final class Menu implements InventoryHolder {
 
     static Material typeIcon(String type) { return TYPE_ICON.getOrDefault(type, Material.WHITE_WOOL); }
 
-    static ItemStack icon(Material m, String name, List<String> lore) {
-        ItemStack it = new ItemStack(m);
+    /** The species' portrait (UI pack item model; Geyser maps it for Bedrock), or `fallback` without the pack. */
+    static ItemStack speciesItem(String species, Material fallback) {
+        if (!Ui.portraits.containsKey(species)) return new ItemStack(fallback);
+        ItemStack it = new ItemStack(Material.PAPER);
+        it.editMeta(meta -> meta.setItemModel(new org.bukkit.NamespacedKey("cobblemonlink", "portrait/" + species)));
+        return it;
+    }
+
+    static ItemStack icon(Material m, String name, List<String> lore) { return icon(new ItemStack(m), name, lore); }
+
+    static ItemStack icon(ItemStack it, String name, List<String> lore) {
         it.editMeta(meta -> {
             meta.customName(Component.text(name).decoration(TextDecoration.ITALIC, false));
             meta.lore(lore.stream().map(l -> (Component) Component.text(l, NamedTextColor.GRAY)
@@ -60,7 +77,8 @@ final class Menu implements InventoryHolder {
     }
 
     static ItemStack monIcon(Dex dex, Mon m, String... extra) {
-        Dex.Species s = dex.get(m.species);
+        Dex.Species s = dex.of(m);
+        Dex.Form form = dex.form(m.species, m.allAspects());
         List<String> lore = new ArrayList<>();
         lore.add("HP " + m.hp(dex) + "/" + m.maxHp(dex) + (m.fainted(dex) ? "  (fainted)" : ""));
         lore.add(String.join(" / ", s.types.stream().map(t -> dex.label("type", t)).toList())
@@ -68,9 +86,11 @@ final class Menu implements InventoryHolder {
         lore.add("Moves: " + String.join(", ", m.moves.stream().map(mv -> dex.label("move", mv)).toList()));
         long next = m.level >= 100 ? 0 : Rules.expFor(s.expGroup, m.level + 1) - m.exp;
         lore.add("EXP to next level: " + next);
+        if (form != null) lore.add(form.name + " Form");
+        if (m.shiny) lore.add("★ Shiny");
         lore.addAll(List.of(extra));
         String g = m.gender.equals("M") ? " ♂" : m.gender.equals("F") ? " ♀" : "";
-        return icon(m.fainted(dex) ? Material.BARRIER : typeIcon(s.types.getFirst()),
+        return icon(m.fainted(dex) ? new ItemStack(Material.BARRIER) : speciesItem(m.model(dex), typeIcon(s.types.getFirst())),
                 m.name(dex) + g + "  Lv." + m.level, lore);
     }
 }

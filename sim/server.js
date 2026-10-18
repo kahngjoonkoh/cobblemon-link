@@ -51,6 +51,9 @@ function startBattle(sock, init) {
     }
   })().catch(e => send({ type: 'error', message: String(e) }));
 
+  // Cobblemon forms battle as Showdown formes (raichualola); a form Showdown doesn't have (Cobblemon-only, e.g.
+  // valencian) battles as its base species
+  for (const set of [...init.p1, ...init.p2]) if (set.baseSpecies && !Dex.species.get(set.species).exists) set.species = set.baseSpecies;
   streams.omniscient.write(`>start ${JSON.stringify({ formatid: FORMAT })}`);
   streams.omniscient.write(`>player p1 ${JSON.stringify({ name: 'Player', team: Teams.pack(init.p1) })}`);
   // persisted HP has to be in place before p2 joins, because joining starts the battle

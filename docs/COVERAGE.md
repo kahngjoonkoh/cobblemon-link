@@ -17,14 +17,14 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | Biomes and biome tags | ✓ | Checked through Cobblemon's biome tags, shipped as a datapack | ✅ |
 | Time of day, rain, Y level, sky light | ✓ | Checked | ✅ |
 | Structures, moon phase, nearby or base blocks, slime chunks, block light, thunder | ✓ | Entries with these conditions are skipped (`structures` alone is 314 entries) | ❌ |
-| Rarity buckets | common 94.05, uncommon 5, rare 0.5, ultra-rare 0.2 | 94.4 / 5 / 0.5 / 0.1 (`config.yml`) | 🟡 |
-| Spawn level | Party's highest level ±5, limited to the spawn's level range | Uniform over the spawn's level range | 🟡 |
-| Caps | 1 per chunk, up to 8 per pass, every 20 ticks, 8 blocks apart, 16–64 blocks from the player | 8 per player within 48 blocks, one attempt every 5 s, 16–40 blocks away | 🟡 |
-| Despawn | 32/96 near/far distance, 600–3600 tick age | 72 blocks, or 600 s | 🟡 |
+| Rarity buckets | common 94.05, uncommon 5, rare 0.5, ultra-rare 0.2, boss 0.25; one bucket per pass | Same (`config.yml`) | ✅ |
+| Spawn level | Party's highest level ±5, limited to the spawn's level range | Same rule (`Rules.levelRange`, tested) | ✅ |
+| Caps | 1 per chunk, up to 8 per pass, every 20 ticks, 8 blocks apart, 16–64 blocks from the player | Same: an 8×16×8 zone 16–64 blocks out (ahead of a moving player), 1 per chunk over the 3×3 chunks around it, up to 8 per pass, 8 blocks apart | ✅ |
+| Despawn | 32/96 near/far distance, 600–3600 tick age | Same rule (CobblemonAgingDespawner), checked every 10 s | ✅ |
 | Herds (`pokemon-herd`, alpha leads) | ✓ | — | ❌ |
 | Alpha Pokémon (1.8.0) | ✓ | — | ❌ |
-| Shinies | 1/8192 | — | ❌ |
-| Regional forms and other aspects | ✓ | Form tags are dropped, so the base form spawns | ❌ |
+| Shinies | 1/8192 | 1/8192 (`Mon.shinyRate`), with Cobblemon's shiny textures and portraits | ✅ |
+| Regional forms and other aspects | ✓ | Spawn properties (alolan, flower=white, region_bias=hisui), species features with their defaults, gender; forms battle with their own types, stats, abilities and moves | ✅ |
 | Gender | ✓ | From the species' male ratio | ✅ |
 | Influences (Sweet Incense, Poké Snacks, Saccharine log, Habitat Block, bait) | ✓ | — | ❌ |
 | Wild Pokémon model and animations | ✓ | Cobblemon's models: BetterModel on Java, GeyserModelEngine on Bedrock | ✅ |
@@ -67,14 +67,14 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | Ball types | 30+ (Great, Ultra, Quick, Dusk, Net, Heal…) plus ancient balls | One Poké Ball (×1), crafted from red dye, button and iron ingot | ❌ |
 | Apricorn ball crafting | ✓ | — | ❌ |
 | Can't catch owned or busy Pokémon | ✓ | ✓ (wild only, not while it's in someone's battle) | ✅ |
-| Pokédex (seen / caught) | ✓ | — | ❌ |
+| Pokédex (seen / caught) | ✓ | `/pokedex`: seen (met in battle) and caught, Cobblemon's Pokédex screen (Bedrock, client mod; a chest on vanilla Java) with picture, types and entry; no search, forms or info tabs | 🟡 |
 
 ## Pokémon data and progression
 
 | Feature | Cobblemon 1.8.2 | cobblemon-link | |
 |---|---|---|---|
 | Species, base stats, types, catch rate, EXP groups | ✓ | From Cobblemon's species files (896 species) | ✅ |
-| Level-up moves | ✓ | ✓; a 5th move is announced but not learned (no move-replace menu yet) | 🟡 |
+| Level-up moves | ✓ | ✓; a 5th move asks which move to forget after the battle | ✅ |
 | Benched moves / relearning | ✓ | — | ❌ |
 | TMs, TM Machine, Type Gems (1.8.0) | ✓ | — | ❌ |
 | Natures | ✓ (mints change them) | Random nature; no mints | 🟡 |
@@ -83,14 +83,14 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | Level evolutions | ✓ | ✓ (310 species) | ✅ |
 | Other evolutions (stones, trade, friendship, held item, time, biome, move, …) | ✓ | — | ❌ |
 | Party of 6 | ✓ | ✓ | ✅ |
-| PC | 40 boxes × 30, PC block | `/pc`: unlimited pages of 45 (chest menu) | 🟡 |
+| PC | 40 boxes × 30, PC block | Cobblemon's PC screen (Java; a chest of icons on Bedrock): 40 boxes × 30, move/swap, sort, type filter, release, box names and wallpapers; no PC block | 🟡 |
 | Healing | Healing Machine; slow passive healing; fainted Pokémon recover after a while | Sleeping in a bed heals the party | 🟡 |
-| Starter selection | Starter screen | `/starter`: all 27 starters, Lv5 + 5 Poké Balls | ✅ |
+| Starter selection | Starter screen | `/starter`: Cobblemon's screen (Java: over a chest; Bedrock: a form), all 27 starters, Lv10, once per player | ✅ |
 | Sending out, following, riding, shoulder mounting | ✓ | — | ❌ |
 | Pasture | ✓ | — | ❌ |
 | Breeding / daycare | Not in 1.8.2 | — | ✅ (none in either) |
 | Size variation, babies | ✓ | — | ❌ |
-| Summary screen (stats, moves, friendship, held item) | Mod screen | `/party` chest menu: HP, types, nature, ability, moves, EXP to the next level | 🟡 ➖ |
+| Summary screen (stats, moves, friendship, held item) | Mod screen | Cobblemon's Summary (Bedrock, client mod; a dialog on vanilla Java): Info, Moves, Stats (with IVs and nature), party switching, send out / lead / to PC; no friendship, held items, nickname or move types | 🟡 |
 
 ## Commands
 
@@ -105,7 +105,8 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | `/spawnpokemonfrompool`, `/checkspawn`, `/spawnallpokemon` | — | ❌ |
 | `/pokemonedit`, `/levelup`, `/teach`, `/held_item`, `/friendship`, `/takepokemon`, `/pctake` | — | ❌ |
 | `/pokebox`, `/pokeboxall`, `/boxcount`, `/renamebox`, `/clearparty`, `/clearpc`, `/pcsearch` | Shift-click in `/party` sends one to the PC | ❌ |
-| `/pokedex`, `/givetm`, `/technicalmachine`, marks | — | ❌ |
+| `/pokedex` | `/pokedex` (any player) | ✅ |
+| `/givetm`, `/technicalmachine`, marks | — | ❌ |
 | NPC commands (`/spawnnpc`, `/npcedit`, `/opendialogue`, …) | — | ❌ |
 | — | `/party`, `/battle` (reopen the menu), `/pokeballs` (admin) | extra |
 
@@ -119,9 +120,9 @@ None of these exist yet in cobblemon-link apart from the Poké Ball:
 
 ## Suggested order
 
-1. **Quick alignments:** EXP ×2, bucket weights, spawn level from party level, a failed throw making the Pokémon flee, and a ball in battle using a turn.
+1. **Quick alignments:** EXP ×2, a failed throw making the Pokémon flee, and a ball in battle using a turn.
 2. **Capture:** Cobblemon's capture formula with shakes, then the main ball types (Great, Ultra, Quick, Dusk, Net, Heal…) as custom items.
-3. **Spawning:** caves (`canSeeSky: false`), water spawns, structures and moon phase. Then shinies and regional forms.
-4. **Battling:** bag items (potions, revives), held items, EVs and friendship, a move-replace menu, and sending out your own Pokémon into the battle.
-5. **Progression:** stone, trade and friendship evolutions; the Healing Machine and PC blocks; a Pokédex.
+3. **Spawning:** caves (`canSeeSky: false`), water spawns, structures and moon phase.
+4. **Battling:** bag items (potions, revives), held items, EVs and friendship, and sending out your own Pokémon into the battle.
+5. **Progression:** stone, trade and friendship evolutions; the Healing Machine and PC blocks.
 6. **Later:** PvP challenges, NPC trainers, TMs, fishing, the remaining blocks and structures.

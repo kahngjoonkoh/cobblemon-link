@@ -9,41 +9,102 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-/** Party (max 6) and PC per player, one JSON file each under plugins/CobblemonLink/players. */
+/** Party (max 6) and PC (Cobblemon's boxes of 30) per player, one JSON file each under plugins/CobblemonLink/players. */
 final class Store {
-    static final int PARTY = 6;
+    static final int PARTY = 6, BOX = 30;
     static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    /** A PC box: its name (null = "Box n"), its wallpaper (an index of PcScreen.WALLPAPERS, -1 = Cobblemon's teal), 30 slots. */
+    static final class Box {
+        String name;
+        int wallpaper = -1;
+        Mon[] slots = new Mon[BOX];
+    }
 
     static final class Data {
         List<Mon> party = new ArrayList<>();
-        List<Mon> pc = new ArrayList<>();
+        List<Box> boxes = new ArrayList<>();
+        Set<String> wallpapers = new HashSet<>(); // unlocked ones (Cobblemon's ids: biome_cave, pokemon_alpha, ...)
+        Set<String> seen = new HashSet<>(), caught = new HashSet<>(); // Pokédex: species ids
+        List<Mon> pc; // saves from before boxes: moved into them on load
+
+        int pcCount() {
+            int n = 0;
+            for (Box b : boxes) for (Mon m : b.slots) if (m != null) n++;
+            return n;
+        }
+
+        /** Into the first free box slot; false if every box is full. */
+        boolean toPc(Mon mon) {
+            for (Box b : boxes)
+                for (int i = 0; i < BOX; i++)
+                    if (b.slots[i] == null) {
+                        b.slots[i] = mon;
+                        return true;
+                    }
+            return false;
+        }
+
+        boolean empty() { return party.isEmpty() && pcCount() == 0; }
     }
 
     private final Path dir;
+    private final int boxes;
     private final Map<UUID, Data> cache = new HashMap<>();
 
-    Store(Path dir) { this.dir = dir; }
+    /** boxes: Cobblemon's defaultBoxCount (config pc.boxes). */
+    Store(Path dir, int boxes) {
+        this.dir = dir;
+        this.boxes = boxes;
+    }
 
     Data get(UUID player) {
         return cache.computeIfAbsent(player, u -> {
             Path f = dir.resolve(u + ".json");
             try {
-                return Files.exists(f) ? GSON.fromJson(Files.readString(f), Data.class) : new Data();
+                return fill(Files.exists(f) ? GSON.fromJson(Files.readString(f), Data.class) : new Data(), boxes);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         });
     }
 
+    /** At least n boxes; an old save's PC list moved into them. */
+    static Data fill(Data d, int n) {
+        while (d.boxes.size() < n) d.boxes.add(new Box());
+        if (d.seen == null) d.seen = new HashSet<>();
+        if (d.caught == null) d.caught = new HashSet<>();
+        if (d.pc != null) {
+            d.pc.forEach(m -> { if (!d.toPc(m)) spill(d, m); });
+            d.pc = null;
+        }
+        d.party.forEach(m -> d.caught.add(m.species)); // saves from before the Pokédex
+        for (Box b : d.boxes) for (Mon m : b.slots) if (m != null) d.caught.add(m.species);
+        d.seen.addAll(d.caught);
+        return d;
+    }
+
+    /** ponytail: a full PC gets one more box rather than losing the Pokémon; Cobblemon refuses the catch instead. */
+    private static void spill(Data d, Mon m) {
+        Box extra = new Box();
+        extra.slots[0] = m;
+        d.boxes.add(extra);
+    }
+
     /** Adds to the party, or the PC when the party is full. Returns true if it went to the party. */
     boolean give(UUID player, Mon mon) {
         Data d = get(player);
+        d.seen.add(mon.species);
+        d.caught.add(mon.species);
         boolean toParty = d.party.size() < PARTY;
-        (toParty ? d.party : d.pc).add(mon);
+        if (toParty) d.party.add(mon);
+        else if (!d.toPc(mon)) spill(d, mon);
         save(player);
         return toParty;
     }

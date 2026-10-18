@@ -1,0 +1,254 @@
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/GeyserModelEngine.java b/paper/src/main/java/re/imc/geysermodelengine/GeyserModelEngine.java
+index eb45dc9..b25dcbb 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/GeyserModelEngine.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/GeyserModelEngine.java
+@@ -85,7 +85,7 @@ public class GeyserModelEngine extends JavaPlugin {
+     private void loadRunnables() {
+         this.schedulerPool = Executors.newScheduledThreadPool(configManager.getConfig().getInt("models.thread-pool-size", 4));
+         this.schedulerPool.scheduleAtFixedRate(new UpdateTaskRunnable(this), 10, configManager.getConfig().getLong("models.entity-position-update-period", 35), TimeUnit.MILLISECONDS);
+-        this.schedulerPool.scheduleAtFixedRate(new BedrockMountControlRunnable(this), 1, 1, TimeUnit.MILLISECONDS);
++        this.schedulerPool.scheduleAtFixedRate(new BedrockMountControlRunnable(this), 1, configManager.getConfig().getLong("models.mount-control-period", 50), TimeUnit.MILLISECONDS);
+     }
+ 
+     public ConfigManager getConfigManager() {
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/EntityTaskManager.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/EntityTaskManager.java
+index e9cbdf7..4f470e3 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/EntityTaskManager.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/EntityTaskManager.java
+@@ -25,6 +25,8 @@ public class EntityTaskManager {
+ 
+     private PropertyHandler propertyHandler;
+ 
++    private volatile List<Player> bedrockPlayers = Collections.emptyList();
++
+     public EntityTaskManager(GeyserModelEngine plugin) {
+         this.plugin = plugin;
+ 
+@@ -40,10 +42,22 @@ public class EntityTaskManager {
+         }
+     }
+ 
+-    public void checkViewers(EntityData model, Set<Player> viewers) {
++    /**
++     * Refreshes the cached list of Bedrock players. Called once per global update cycle instead of
++     * scanning the online player list from every per-entity task.
++     */
++    public void refreshBedrockPlayers() {
++        List<Player> players = new ArrayList<>();
++
+         for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+-            if (!BedrockUtils.isBedrockPlayer(onlinePlayer)) continue;
++            if (BedrockUtils.isBedrockPlayer(onlinePlayer)) players.add(onlinePlayer);
++        }
+ 
++        bedrockPlayers = players;
++    }
++
++    public void checkViewers(EntityData model, Set<Player> viewers) {
++        for (Player onlinePlayer : bedrockPlayers) {
+             if (canSee(onlinePlayer, model.getEntity(), model.getModelInstance())) {
+                 if (!viewers.contains(onlinePlayer)) {
+                     viewers.add(onlinePlayer);
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/ModelManager.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/ModelManager.java
+index c7c1c79..2f21bdf 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/ModelManager.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/ModelManager.java
+@@ -20,7 +20,7 @@ public class ModelManager {
+ 
+     private ModelHandler modelHandler;
+ 
+-    private final HashSet<UUID> playerJoinedCache = new HashSet<>();
++    private final Set<UUID> playerJoinedCache = ConcurrentHashMap.newKeySet();
+ 
+     private final ConcurrentHashMap<Integer, Model> modelEntitiesCache = new ConcurrentHashMap<>();
+     private final ConcurrentHashMap<Integer, Map<Model, EntityData>> entitiesCache = new ConcurrentHashMap<>();
+@@ -74,7 +74,7 @@ public class ModelManager {
+         return modelHandler;
+     }
+ 
+-    public HashSet<UUID> getPlayerJoinedCache() {
++    public Set<UUID> getPlayerJoinedCache() {
+         return playerJoinedCache;
+     }
+ 
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/BetterModelPropertyHandler.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/BetterModelPropertyHandler.java
+index 519c43a..fbea8af 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/BetterModelPropertyHandler.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/BetterModelPropertyHandler.java
+@@ -30,11 +30,18 @@ public class BetterModelPropertyHandler implements PropertyHandler {
+ 
+     @Override
+     public void sendScale(EntityData entityData, Collection<Player> players, float lastScale, boolean firstSend) {
++        if (players.isEmpty()) return;
++
+         BetterModelEntityData betterModelEntityData = (BetterModelEntityData) entityData;
+         Tracker tracker = (Tracker) betterModelEntityData.getModelInstance();
+         ModelScaler scaler = tracker.scaler();
+         var scale = scaler.scale(tracker);
++
++        if (!firstSend && scale == lastScale) return;
++
+         players.forEach(player -> EntityUtils.sendCustomScale(player, betterModelEntityData.getEntity().getEntityId(), scale));
++
++        betterModelEntityData.getEntityTask().setLastScale(scale);
+     }
+ 
+     @Override
+@@ -44,17 +51,18 @@ public class BetterModelPropertyHandler implements PropertyHandler {
+         BetterModelEntityData betterModelEntityData = (BetterModelEntityData) entityData;
+ 
+         Color color = new Color(0xFFFFFF);
+-        if (betterModelEntityData.isHurt()) color = new Color(betterModelEntityData.getEntityTracker().damageTintValue());
+-
+-        if (firstSend) {
+-            if (color.equals(lastColor)) return;
++        if (betterModelEntityData.isHurt()) {
++            color = new Color(betterModelEntityData.getEntityTracker().damageTintValue());
++            betterModelEntityData.setHurt(false);
+         }
+ 
++        if (!firstSend && color.equals(lastColor)) return;
++
+         for (Player player : players) {
+             EntityUtils.sendCustomColor(player, betterModelEntityData.getEntity().getEntityId(), color);
+         }
+ 
+-        betterModelEntityData.setHurt(false);
++        betterModelEntityData.getEntityTask().setLastColor(color);
+     }
+ 
+     @Override
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/ModelEnginePropertyHandler.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/ModelEnginePropertyHandler.java
+index c766c3a..1174435 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/ModelEnginePropertyHandler.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/propertyhandler/ModelEnginePropertyHandler.java
+@@ -45,6 +45,8 @@ public class ModelEnginePropertyHandler implements PropertyHandler {
+             }
+ 
+             players.forEach(player -> EntityUtils.sendCustomScale(player, modelEngineEntityData.getEntity().getEntityId(), average));
++
++            modelEngineEntityData.getEntityTask().setLastScale(average);
+         } catch (Exception err) {
+             throw new RuntimeException(err);
+         }
+@@ -60,6 +62,8 @@ public class ModelEnginePropertyHandler implements PropertyHandler {
+         if (!firstSend && color.equals(lastColor)) return;
+ 
+         players.forEach(player -> EntityUtils.sendCustomColor(player, data.getEntity().getEntityId(), color));
++
++        data.getEntityTask().setLastColor(color);
+     }
+ 
+     @Override
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/BetterModelTaskHandler.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/BetterModelTaskHandler.java
+index 1b4c922..2174cc3 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/BetterModelTaskHandler.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/BetterModelTaskHandler.java
+@@ -50,7 +50,7 @@ public class BetterModelTaskHandler implements TaskHandler {
+             } catch (Throwable err) {
+                 err.printStackTrace();
+             }
+-        }, 0, 20, TimeUnit.MILLISECONDS);
++        }, 0, plugin.getConfigManager().getConfig().getLong("models.entity-update-period", 20), TimeUnit.MILLISECONDS);
+     }
+ 
+     @Override
+@@ -83,6 +83,12 @@ public class BetterModelTaskHandler implements TaskHandler {
+         }
+ 
+         tick++;
++
++        // The first scale/color send after spawn is fired once, and the Geyser side silently drops it
++        // if the custom entity is not registered yet. Force a resend every ~2s so a model that missed
++        // that window recovers instead of staying at default scale / no tint forever.
++        boolean forceSync = tick % 100 == 0;
++
+         if (tick > 400) {
+             tick = 0;
+             plugin.getEntityTaskManager().sendHitBoxToAll(entityData);
+@@ -90,8 +96,8 @@ public class BetterModelTaskHandler implements TaskHandler {
+ 
+         if (viewers.isEmpty()) return;
+ 
+-        plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, viewers, lastScale, false);
+-        plugin.getEntityTaskManager().getPropertyHandler().sendColor(entityData, viewers, lastColor, false);
++        plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, viewers, lastScale, forceSync);
++        plugin.getEntityTaskManager().getPropertyHandler().sendColor(entityData, viewers, lastColor, forceSync);
+     }
+ 
+     @Override
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/ModelEngineTaskHandler.java b/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/ModelEngineTaskHandler.java
+index 4f5d63b..29ccc8f 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/ModelEngineTaskHandler.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/managers/model/taskshandler/ModelEngineTaskHandler.java
+@@ -50,7 +50,7 @@ public class ModelEngineTaskHandler implements TaskHandler {
+             } catch (Throwable err) {
+                 err.printStackTrace();
+             }
+-        }, 0, 20, TimeUnit.MILLISECONDS);
++        }, 0, plugin.getConfigManager().getConfig().getLong("models.entity-update-period", 20), TimeUnit.MILLISECONDS);
+     }
+ 
+     @Override
+@@ -87,6 +87,12 @@ public class ModelEngineTaskHandler implements TaskHandler {
+         }
+ 
+         tick++;
++
++        // The first scale/color send after spawn is fired once, and the Geyser side silently drops it
++        // if the custom entity is not registered yet. Force a resend every ~2s so a model that missed
++        // that window recovers instead of staying at default scale / no tint forever.
++        boolean forceSync = tick % 100 == 0;
++
+         if (tick > 400) {
+             tick = 0;
+             plugin.getEntityTaskManager().sendHitBoxToAll(entityData);
+@@ -94,8 +100,8 @@ public class ModelEngineTaskHandler implements TaskHandler {
+ 
+         if (viewers.isEmpty()) return;
+ 
+-        plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, viewers, lastScale, false);
+-        plugin.getEntityTaskManager().getPropertyHandler().sendColor(entityData, viewers, lastColor, false);
++        plugin.getEntityTaskManager().getPropertyHandler().sendScale(entityData, viewers, lastScale, forceSync);
++        plugin.getEntityTaskManager().getPropertyHandler().sendColor(entityData, viewers, lastColor, forceSync);
+     }
+ 
+     @Override
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/runnables/BedrockMountControlRunnable.java b/paper/src/main/java/re/imc/geysermodelengine/runnables/BedrockMountControlRunnable.java
+index 3f55d56..8702d08 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/runnables/BedrockMountControlRunnable.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/runnables/BedrockMountControlRunnable.java
+@@ -24,6 +24,7 @@ public class BedrockMountControlRunnable implements Runnable {
+     public void run() {
+         for (UUID playerUUID : plugin.getModelManager().getPlayerJoinedCache()) {
+             Player player = Bukkit.getPlayer(playerUUID);
++            if (player == null) continue;
+ 
+             float pitch = player.getLocation().getPitch();
+             Pair<ActiveModel, Mount> seat = plugin.getModelManager().getDriversCache().get(player.getUniqueId());
+diff --git a/paper/src/main/java/re/imc/geysermodelengine/runnables/UpdateTaskRunnable.java b/paper/src/main/java/re/imc/geysermodelengine/runnables/UpdateTaskRunnable.java
+index a6fa609..61db721 100644
+--- a/paper/src/main/java/re/imc/geysermodelengine/runnables/UpdateTaskRunnable.java
++++ b/paper/src/main/java/re/imc/geysermodelengine/runnables/UpdateTaskRunnable.java
+@@ -17,6 +17,8 @@ public class UpdateTaskRunnable implements Runnable {
+ 
+     @Override
+     public void run() {
++        plugin.getEntityTaskManager().refreshBedrockPlayers();
++
+         ConcurrentHashMap<Integer, Map<Model, EntityData>> entitiesCache = plugin.getModelManager().getEntitiesCache();
+         if (entitiesCache.isEmpty()) return;
+ 
+diff --git a/paper/src/main/resources/config.yml b/paper/src/main/resources/config.yml
+index 6ea4665..9eefaf7 100644
+--- a/paper/src/main/resources/config.yml
++++ b/paper/src/main/resources/config.yml
+@@ -10,6 +10,8 @@ models:
+   custom-entity-sync-resend-interval: 40
+   custom-entity-sync-resend-count: 3
+   entity-position-update-period: 35 # ms
++  entity-update-period: 20 # ms
++  mount-control-period: 50 # ms
+   thread-pool-size: 4
+ 
+ options:

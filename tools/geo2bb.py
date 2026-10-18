@@ -96,6 +96,98 @@ def per_face(uvd):
     return out
 
 
+KEEP_BONE = re.compile(r'^(head|hitbox|shadow|mount|locator.*|seat.*|(h|hi|b|ob|p)_.*)$')
+
+
+def merge_still(g, moving):
+    """Java only: a group that no animation moves and that has no rotation of its own carries its cubes exactly where
+    its parent does, so its cubes join the parent's display. Halves displays (and packets) per model on average.
+    Bedrock keeps every bone (GeyserModelEngine's disable_part_visibility makes the bone lists independent)."""
+    kids = []
+    for c in g['children']:
+        if isinstance(c, str):
+            kids.append(c)
+            continue
+        c = merge_still(c, moving)
+        if c['name'] in moving or any(c.get('rotation', [0, 0, 0])) or KEEP_BONE.match(c['name']):
+            kids.append(c)
+        else:
+            kids += c['children']
+    g['children'] = kids
+    return g
+
+
+STEP = 0.05                                       # sample the true curves at 20 Hz (the server tick)
+TOLERANCE = {'rotation': 1.0, 'position': 0.05, 'scale': 0.01}  # degrees, model px, scale factor
+
+
+def curve(val, mul=1):
+    """One Bedrock channel as f(t) -> [x, y, z]: keyframes (linear or catmull-rom, pre/post) or one molang vector."""
+    def vec(kv, t):
+        kv = kv if isinstance(kv, list) else [kv] * 3
+        out = [num(x, t) * mul for x in kv]
+        if not all(isinstance(x, (int, float)) and math.isfinite(x) for x in out):
+            raise ValueError(kv)  # e.g. grafaiai has a list nested inside a vector
+        return out
+    frames = val if isinstance(val, dict) and not {'post', 'pre'} & set(val) else {'0.0': val}
+    keys = []
+    for t, kv in sorted(frames.items(), key=lambda kv: float(kv[0])):
+        mode = kv.get('lerp_mode', 'linear') if isinstance(kv, dict) else 'linear'
+        pre = kv.get('pre', kv.get('post')) if isinstance(kv, dict) else kv
+        post = kv.get('post', kv.get('pre')) if isinstance(kv, dict) else kv
+        keys.append((float(t), pre, post, mode))
+    if len(keys) == 1:  # a single value: constant, or molang of q.anim_time evaluated as time runs
+        kv = keys[0][2]
+        vec(kv, 0.0)
+        return lambda t: vec(kv, t)
+    vals = [(t, vec(pre, t), vec(post, t), mode) for t, pre, post, mode in keys]  # keyed molang: at its key time
+
+    def f(t):
+        if t <= vals[0][0]:
+            return vals[0][2]
+        if t >= vals[-1][0]:
+            return vals[-1][1]
+        i = max(j for j in range(len(vals)) if vals[j][0] <= t)
+        (t1, _, p1, m1), (t2, p2, _, m2) = vals[i], vals[i + 1]
+        u = (t - t1) / (t2 - t1)
+        if 'catmullrom' not in (m1, m2):
+            return [a + (b - a) * u for a, b in zip(p1, p2)]
+        p0 = vals[i - 1][2] if i > 0 else p1
+        p3 = vals[i + 2][1] if i + 2 < len(vals) else p2
+        return [0.5 * (2 * b + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (-a + 3 * b - 3 * c + d) * u ** 3)
+                for a, b, c, d in zip(p0, p1, p2, p3)]
+    return f
+
+
+def simplify(curves, length):
+    """Fewest keyframe times (shared by every bone, as BetterModel merges them) whose linear interpolation stays
+    within TOLERANCE of every channel's true curve at every tick: Douglas-Peucker over all channels at once.
+    BetterModel then sends a bone update only at these times and the client interpolates in between."""
+    n = max(1, round(length / STEP))
+    ts = [round(min(i * STEP, length), 4) for i in range(n + 1)]
+    samples = {k: {t: f(t) for t in ts} for k, f in curves.items()}
+    keep = {0, n}
+
+    def worst(a, b):
+        best, at = 1.0, None
+        for i in range(a + 1, b):
+            u = (ts[i] - ts[a]) / (ts[b] - ts[a])
+            for (bone, ch), sm in samples.items():
+                va, vb, vi = sm[ts[a]], sm[ts[b]], sm[ts[i]]
+                e = max(abs(x - (p + (q - p) * u)) for x, p, q in zip(vi, va, vb)) / TOLERANCE[ch]
+                if e > best:
+                    best, at = e, i
+        return at
+    stack = [(0, n)]
+    while stack:
+        a, b = stack.pop()
+        i = worst(a, b)
+        if i is not None:
+            keep.add(i)
+            stack += [(a, i), (i, b)]
+    return [ts[i] for i in sorted(keep)], samples
+
+
 def convert(geo, anims, png, name, scale=1.0):
     """geo: one minecraft:geometry entry. anims: {dst_name: bedrock animation dict}.
     Returns (bbmodel, bedrock geo file, bedrock animation file, dropped channels)."""
@@ -130,41 +222,29 @@ def convert(geo, anims, png, name, scale=1.0):
         g['children'] += [tree(c) for c in children.get(n, [])]
         return g
     outliner = [tree(n) for n in children.get(None, [])]
+    moving = {bone for an in anims.values() for bone in an.get('bones', {})}
+    outliner = [merge_still(g, moving) for g in outliner]
 
     bb_anims, br_anims, dropped = [], {}, []
     for dst, a in anims.items():
         length = a.get('animation_length', 1.0)
-        animators = {}
+        curves = {}  # (bone, channel) -> f(t) -> [x, y, z]
         for bone, chans in a.get('bones', {}).items():
             if bone not in groups:
                 continue
-            kfs = []
             for ch, val in chans.items():
                 if ch not in ('rotation', 'position', 'scale'):
                     continue
-                frames = val if isinstance(val, dict) and not {'post', 'pre'} & set(val) else {'0.0': val}
-                if len(frames) == 1 and 'anim_time' in json.dumps(frames):
-                    # constant molang channel -> bake 20 samples/s over the clip
-                    kv = next(iter(frames.values()))
-                    frames = {str(i / 20): kv for i in range(int(length * 20) + 1)}
                 try:
-                    chan_kfs = []
-                    for t, kv in frames.items():
-                        interp = 'linear'
-                        if isinstance(kv, dict):
-                            interp = kv.get('lerp_mode', 'linear')
-                            kv = kv.get('post', kv.get('pre'))
-                        if not isinstance(kv, list):
-                            kv = [kv] * 3
-                        kv = [num(x, float(t)) * (scale if ch == 'position' else 1) for x in kv]
-                        if not all(isinstance(x, (int, float)) and math.isfinite(x) for x in kv):
-                            raise ValueError(kv)  # e.g. grafaiai has a list nested inside a vector
-                        chan_kfs.append({'channel': ch, 'uuid': uid(), 'time': float(t), 'interpolation': interp,
-                                         'data_points': [dict(zip('xyz', kv))]})
-                    kfs += chan_kfs
+                    curves[(bone, ch)] = curve(val, scale if ch == 'position' else 1)
                 except Exception:  # ponytail: odd molang -> channel dropped on Java, still exact on Bedrock
                     dropped.append(f'{dst}:{bone}.{ch}')
-            animators[groups[bone]['uuid']] = {'name': bone, 'type': 'bone', 'keyframes': kfs}
+        times, samples = simplify(curves, length)
+        animators = {}
+        for (bone, ch) in curves:
+            kfs = [{'channel': ch, 'uuid': uid(), 'time': t, 'interpolation': 'linear',
+                    'data_points': [dict(zip('xyz', samples[(bone, ch)][t]))]} for t in times]
+            animators.setdefault(groups[bone]['uuid'], {'name': bone, 'type': 'bone', 'keyframes': []})['keyframes'] += kfs
         bb_anims.append({'uuid': uid(), 'name': dst, 'loop': 'loop' if a.get('loop') else 'once',
                          'override': False, 'length': length, 'snapping': 24, 'animators': animators})
         # Bedrock plays the original molang natively; strip cobblemon-only queries, sounds, particles
@@ -245,7 +325,24 @@ def demo():
     bb, g, an, dropped = convert(geo, {'idle': anim}, b'', 'x', 0.5)
     el = bb['elements'][0]
     assert el['to'] == [0, 1, 1] and el['faces']['north']['uv'] == [2, 2, 4, 4] and not dropped
-    assert bb['animations'][0]['animators'][bb['outliner'][0]['uuid']]['keyframes'][20]['data_points'][0]['y'] == 1.0
+    kfs = bb['animations'][0]['animators'][bb['outliner'][0]['uuid']]['keyframes']
+    assert len(kfs) < 21 and any(k['time'] == 1.0 and abs(k['data_points'][0]['y'] - 1.0) < 1e-9 for k in kfs)
+    # a straight ramp needs only its two ends; a sine needs a few, each tick within tolerance
+    times, _ = simplify({('b', 'position'): lambda t: [t, 0, 0]}, 2.0)
+    assert times == [0.0, 2.0], times
+    sine = lambda t: [math.sin(t * math.pi) * 10, 0, 0]
+    times, _ = simplify({('b', 'rotation'): sine}, 2.0)
+    for i in range(41):
+        t = i * 0.05
+        j = min(max(k for k in range(len(times)) if times[k] <= t + 1e-9), len(times) - 2)
+        u = (t - times[j]) / (times[j + 1] - times[j])
+        assert abs(sine(t)[0] - (sine(times[j])[0] + (sine(times[j + 1])[0] - sine(times[j])[0]) * u)) <= 1.0 + 1e-6
+    assert 4 < len(times) < 21, times
+    tree_ = {'name': 'root', 'children': [{'name': 'still', 'rotation': [0, 0, 0], 'children': ['c1']},
+                                          {'name': 'arm', 'rotation': [0, 0, 0], 'children': ['c2']},
+                                          {'name': 'tilted', 'rotation': [0, 10, 0], 'children': ['c3']}]}
+    merged = merge_still(tree_, {'arm'})
+    assert merged['children'][0] == 'c1' and [c['name'] for c in merged['children'][1:]] == ['arm', 'tilted'], merged
     bad = {'loop': True, 'bones': {'body': {'rotation': [[1, 2], 0, 0]}}}
     assert convert(geo, {'idle': bad}, b'', 'x')[3] == ['idle:body.rotation']
     assert g['minecraft:geometry'][0]['bones'][1]['parent'] == 'cl_scale' and an['animations']['idle']['bones']['cl_scale']

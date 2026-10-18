@@ -19,7 +19,10 @@ services:
       VERSION: "26.3"
       PAPER_BUILD: "190"
       MEMORY: ${MEMORY:-3G}
+      USE_AIKAR_FLAGS: "TRUE"        # G1 tuned for Minecraft's allocation pattern
+      JVM_XX_OPTS: "-XX:+UseCompactObjectHeaders"   # JDK 25 (JEP 519): smaller objects, less GC and cache traffic
       ONLINE_MODE: ${ONLINE_MODE:-TRUE}
+      MAX_PLAYERS: ${MAX_PLAYERS:-12}  # Java + Bedrock together; ~12 fits a 4-core host at Cobblemon spawn density (README)
       LEVEL_TYPE: minecraft:normal   # spawns are per biome; a flat world is all plains
       DATAPACKS: /datapacks/cobblemon-link   # Cobblemon biome tags used by the spawn pools
       # BetterModel builds plugins/BetterModel/build.zip; Java clients download it from here.

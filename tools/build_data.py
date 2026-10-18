@@ -5,12 +5,38 @@ usage: build_data.py COBBLEMON_RESOURCES OUT_DIR
   OUT_DIR/datapack/cobblemon-link  Cobblemon's biome tags, so Paper resolves #cobblemon:is_forest natively
 Only species that have a converted model (OUT_DIR/java/<name>.bbmodel) are included.
 """
-import glob, json, os, shutil, sys
+import glob, json, os, re, shutil, sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+import looks
 
 STATS = {'hp': 'hp', 'attack': 'atk', 'defence': 'def', 'special_attack': 'spa', 'special_defence': 'spd', 'speed': 'spe'}
 # spawn conditions the plugin checks; entries needing anything else (structures, snacks, fishing...) are skipped
 KNOWN_CONDITIONS = {'biomes', 'minSkyLight', 'maxSkyLight', 'canSeeSky', 'timeRange', 'minY', 'maxY', 'isRaining'}
 PACK_FORMAT = 121  # Minecraft 26.3 data pack format
+
+
+def fields(d):
+    """The battle-relevant fields a species (or a form, which overrides only what it lists) defines."""
+    out = {}
+    if 'primaryType' in d:
+        out['types'] = [t for t in (d.get('primaryType'), d.get('secondaryType')) if t]
+    if 'baseStats' in d:
+        out['baseStats'] = {STATS[k]: v for k, v in d['baseStats'].items()}
+    if 'abilities' in d:
+        out['abilities'] = [a for a in d['abilities'] if not a.startswith('h:')] or ['noability']
+    if 'moves' in d:
+        out['moves'] = sorted([int(lvl), move] for lvl, _, move in (m.partition(':') for m in d['moves']) if lvl.isdigit())
+    if 'evolutions' in d:
+        # ponytail: plain level-ups only; stones, trades, friendship etc. need items/UI that don't exist yet.
+        # The result keeps its own form through the Pokémon's aspects (raichu alolan -> the evolution's alolan form)
+        out['evolutions'] = [[e['requirements'][0]['minLevel'], e['result'].split()[0]] for e in d['evolutions']
+                             if e.get('variant') == 'level_up' and len(e.get('requirements', [])) == 1
+                             and e['requirements'][0].get('variant') == 'level']
+    for k, to in (('catchRate', 'catchRate'), ('maleRatio', 'maleRatio')):
+        if k in d:
+            out[to] = d[k]
+    return out
 
 
 def species(res, modeled):
@@ -20,47 +46,84 @@ def species(res, modeled):
         d = json.load(open(f))
         if not d.get('implemented') or sid not in modeled:
             continue
-        moves = []
-        for m in d.get('moves', []):
-            lvl, _, move = m.partition(':')
-            if lvl.isdigit():
-                moves.append([int(lvl), move])
-        evos = []
-        for e in d.get('evolutions', []):
-            req = e.get('requirements', [])
-            # ponytail: plain level-ups only; stones, trades, friendship etc. need items/UI that don't exist yet
-            if e.get('variant') == 'level_up' and len(req) == 1 and req[0].get('variant') == 'level':
-                evos.append([req[0]['minLevel'], e['result'].split()[0]])
-        out[sid] = {
-            'name': d['name'],
-            'types': [t for t in (d.get('primaryType'), d.get('secondaryType')) if t],
-            'baseStats': {STATS[k]: v for k, v in d['baseStats'].items()},
-            'abilities': [a for a in d.get('abilities', []) if not a.startswith('h:')] or ['noability'],
-            'catchRate': d.get('catchRate', 45),
-            'baseExp': d.get('baseExperienceYield', 50),
-            'expGroup': d.get('experienceGroup', 'medium_fast'),
-            'maleRatio': d.get('maleRatio', 0.5),
-            'moves': sorted(moves),
-            'evolutions': evos,
-        }
+        out[sid] = {'name': d['name'], 'catchRate': 45, 'maleRatio': 0.5, 'evolutions': [], 'moves': [],
+                    'dex': d.get('nationalPokedexNumber', 0), 'pokedex': (d.get('pokedex') or [None])[0],
+                    'baseExp': d.get('baseExperienceYield', 50), 'expGroup': d.get('experienceGroup', 'medium_fast'),
+                    **fields(d)}
+        # forms (regional and others): picked by the Pokémon's aspects; battle as Showdown's "<species><form>" id
+        forms = [{'name': fd['name'], 'aspects': fd.get('aspects', []),
+                  'showdown': sid + re.sub(r'[^a-z0-9]', '', fd['name'].lower()), **fields(fd)}
+                 for fd in d.get('forms', []) if fd.get('aspects') and not fd.get('battleOnly')]
+        if forms:
+            out[sid]['forms'] = forms
     return out
+
+
+def features(res, dex):
+    """Species features (choice/flag/weighted_choice) that give aspects, and which species have which."""
+    defs, assigned = looks.features(res)
+    used = {sid: [f for f in assigned.get(sid, []) if defs.get(f, {}).get('type') in ('choice', 'weighted_choice', 'flag')]
+            for sid in dex}
+    for sid, fs in used.items():
+        if fs:
+            dex[sid]['features'] = fs
+    keep = {f for fs in used.values() for f in fs}
+    return {f: {k: defs[f][k] for k in ('type', 'keys', 'default', 'choices', 'isAspect', 'aspectFormat') if k in defs[f]}
+            for f in sorted(keep)}
+
+
+def species_looks(res, dex, modeled):
+    """Per species, Cobblemon's resolver variations (aspects -> model / texture override, in order) and the converted
+    model name for every (model, texture) pair: the plugin layers them exactly like VaryingModelRepository."""
+    textures = []
+    for sid, rs in looks.resolvers(res).items():
+        if sid not in dex:
+            continue
+        var = []
+        for d in rs:
+            for v in d['variations']:
+                if 'model' not in v and 'texture' not in v:
+                    continue
+                t = None
+                if 'texture' in v:
+                    tj = json.dumps(v['texture'], sort_keys=True)
+                    if tj not in textures:
+                        textures.append(tj)
+                    t = textures.index(tj)
+                var.append([v.get('aspects', []), v.get('model'), t])
+        names = {}
+        for name, aspects, model, texture in looks.all_looks_for(res, sid):
+            if name in modeled:
+                names[f'{model}|{textures.index(json.dumps(texture, sort_keys=True))}'] = name
+        dex[sid]['looks'] = {'variations': var, 'models': names}
 
 
 def spawns(res, dex):
     out = []
     for f in sorted(glob.glob(f'{res}/data/cobblemon/spawn_pool_world/*.json')):
         for s in json.load(open(f)).get('spawns', []):
-            sid = ''.join((s.get('pokemon') or '').split()[:1])  # drop form aspects (region_bias=alola)
+            words = (s.get('pokemon') or '').split()
+            sid = words[0] if words else ''
             cond, anti = s.get('condition', {}), s.get('anticondition', {})
             if (s.get('type') != 'pokemon' or s.get('spawnablePositionType') != 'grounded' or sid not in dex
                     or set(cond) - KNOWN_CONDITIONS or set(anti) - {'biomes'} or not cond.get('biomes')):
                 continue
             lo, _, hi = str(s.get('level', '5-30')).partition('-')
-            out.append({'species': sid, 'bucket': s['bucket'], 'weight': s['weight'],
+            props = [w for w in words[1:] if w != sid]  # form/feature properties: alolan, flower=white, region_bias=hisui
+            out.append({'species': sid, 'bucket': s['bucket'], 'weight': s['weight'], **({'props': props} if props else {}),
                         'level': [int(lo), int(hi or lo)], 'biomes': cond['biomes'],
                         'antiBiomes': anti.get('biomes', []),
                         **{k: cond[k] for k in KNOWN_CONDITIONS - {'biomes'} if k in cond}})
     return out
+
+
+def pokedex_text(res, dex):
+    """The species' first Pokédex entry in English (the starter screen shows it), replacing its lang key."""
+    lang = json.load(open(f'{res}/assets/cobblemon/lang/en_us.json', encoding='utf-8'))
+    for s in dex.values():
+        key = s.pop('pokedex', None)
+        if key:
+            s['desc'] = lang.get(key, '')
 
 
 def names(res, dex):
@@ -76,6 +139,17 @@ def datapack(res, out):
     dp = f'{out}/datapack/cobblemon-link'
     shutil.rmtree(dp, ignore_errors=True)
     shutil.copytree(f'{res}/data/cobblemon/tags/worldgen/biome', f'{dp}/data/cobblemon/tags/worldgen/biome')
+    # the "Pokémon" dialog: Java's Quick Actions key (G) and a pause-menu button open it; its buttons are custom
+    # clicks the plugin handles (CobblemonLink.onQuickAction), so nobody has to type a command
+    button = lambda label, i: {'label': label, 'action': {'type': 'minecraft:custom', 'id': f'cobblemonlink:{i}'}}
+    os.makedirs(f'{dp}/data/cobblemonlink/dialog', exist_ok=True)
+    json.dump({'type': 'minecraft:multi_action', 'title': 'Pokémon', 'columns': 2, 'can_close_with_escape': True,
+               'actions': [button('Send out / Recall lead', 'lead'), button('Party', 'party'),
+                           button('PC', 'pc'), button('Back to battle', 'battle')]},
+              open(f'{dp}/data/cobblemonlink/dialog/pokemon.json', 'w'), indent=1)
+    for tag in ('quick_actions', 'pause_screen_additions'):
+        os.makedirs(f'{dp}/data/minecraft/tags/dialog', exist_ok=True)
+        json.dump({'values': ['cobblemonlink:pokemon']}, open(f'{dp}/data/minecraft/tags/dialog/{tag}.json', 'w'))
     json.dump({'pack': {'description': 'cobblemon-link: Cobblemon biome tags (MPL-2.0)',
                         'min_format': PACK_FORMAT, 'max_format': PACK_FORMAT + 100}},
               open(f'{dp}/pack.mcmeta', 'w'), indent=1)
@@ -87,9 +161,12 @@ def main(a):
     res, out = a
     modeled = {os.path.basename(p)[:-8] for p in glob.glob(f'{out}/java/*.bbmodel')}
     dex = species(res, modeled)
+    pokedex_text(res, dex)
+    feats = features(res, dex)
+    species_looks(res, dex, modeled)
     sp = spawns(res, dex)
-    json.dump({'species': dex, 'spawns': sp, 'names': names(res, dex)}, open(f'{out}/gamedata.json', 'w'),
-              separators=(',', ':'))
+    json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex)},
+              open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'grounded spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
 

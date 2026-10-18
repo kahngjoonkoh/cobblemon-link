@@ -1,5 +1,6 @@
 package io.github.kahngjoonkoh.cobblemonlink;
 
+import com.destroystokyo.paper.entity.ai.VanillaGoal;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.TypedKey;
@@ -29,15 +30,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataType;
 
 /**
- * Spawns wild Pokémon near players from Cobblemon's spawn pools, capped per player.
+ * Spawns wild Pokémon near players the way Cobblemon's PlayerSpawner does (defaults from CobblemonConfig): every
+ * second per player, an 8x16x8 zone 16-64 blocks away (ahead of a moving player), skipped while the 3x3 chunks
+ * around it already hold one Pokémon per chunk; up to 8 spawns per pass, each 8 blocks from any other entity; one
+ * rarity bucket per pass; levels from the party (PlayerLevelRangeInfluence); CobblemonAgingDespawner despawning.
  * A wild Pokémon is a silent pig (for vanilla wander AI and a hitbox) wearing the BetterModel model;
  * GeyserModelEngine shows the same model to Bedrock players.
- * ponytail: grounded spawns only; water, flying, cave and structure spawns need other carriers/checks.
+ * ponytail: grounded surface spawns only; water, flying, cave and structure spawns need other carriers/checks.
  */
 final class Spawner {
     private final CobblemonLink pl;
     private final Set<UUID> wild = new HashSet<>();
     private final Map<String, Boolean> biomeMatch = new HashMap<>();
+    private final Map<UUID, Location> lastPos = new HashMap<>();
     private final Registry<Biome> biomes = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
 
     Spawner(CobblemonLink pl) { this.pl = pl; }
@@ -50,27 +55,28 @@ final class Spawner {
     }
 
     void tick() {
-        int cap = pl.getConfig().getInt("spawning.per-player-cap");
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getGameMode() == GameMode.SPECTATOR || pl.battles.containsKey(p.getUniqueId())) continue;
-            int r = pl.getConfig().getInt("spawning.count-radius");
-            if (p.getWorld().getNearbyEntities(p.getLocation(), r, r, r, this::isWild).size() < cap) trySpawn(p);
+            Location was = lastPos.put(p.getUniqueId(), p.getLocation());
+            if (p.getGameMode() != GameMode.SPECTATOR) pass(p, was);
         }
+        lastPos.keySet().removeIf(u -> Bukkit.getPlayer(u) == null);
     }
 
+    /** CobblemonAgingDespawner, checked every 10 s. */
     void cleanup() {
-        int far = pl.getConfig().getInt("spawning.despawn-distance");
-        long maxAge = pl.getConfig().getLong("spawning.lifetime-seconds") * 20;
+        var c = pl.getConfig();
+        double near = c.getDouble("spawning.despawn-near"), far = c.getDouble("spawning.despawn-far");
+        int minAge = c.getInt("spawning.despawn-min-age-ticks"), maxAge = c.getInt("spawning.despawn-max-age-ticks");
         wild.removeIf(u -> {
             Entity e = Bukkit.getEntity(u);
             if (e == null || !e.isValid()) return true;
-            if (pl.inBattle(e)) return false;
-            boolean nobodyNear = e.getWorld().getNearbyPlayers(e.getLocation(), far).isEmpty();
-            if (nobodyNear || e.getTicksLived() > maxAge) {
-                e.remove();
-                return true;
-            }
-            return false;
+            int age = e.getTicksLived();
+            if (age < minAge || pl.inBattle(e)) return false;
+            double d = e.getWorld().getPlayers().stream().mapToDouble(p -> p.getLocation().distance(e.getLocation()))
+                    .min().orElse(Double.MAX_VALUE);
+            boolean gone = d >= near && (age > maxAge || d > far || age > (1 - (d - near) / (far - near)) * (maxAge - minAge));
+            if (gone) e.remove();
+            return gone;
         });
     }
 
@@ -82,22 +88,73 @@ final class Spawner {
         wild.clear();
     }
 
-    private void trySpawn(Player p) {
+    /** PlayerSpawner.getZoneInput + Spawner.calculateSpawnActionsForArea for one player. */
+    private void pass(Player p, Location was) {
+        var c = pl.getConfig();
         var rnd = ThreadLocalRandom.current();
-        int min = pl.getConfig().getInt("spawning.min-distance"), max = pl.getConfig().getInt("spawning.max-distance");
-        double angle = rnd.nextDouble(Math.PI * 2), dist = rnd.nextDouble(min, max);
+        int diameter = c.getInt("spawning.zone-diameter"), height = c.getInt("spawning.zone-height");
+        double r = rnd.nextDouble(c.getDouble("spawning.min-distance"), c.getDouble("spawning.max-distance"));
+        Location at = p.getLocation();
+        double dx = was == null ? 0 : (at.getX() - was.getX()) / c.getInt("spawning.interval-ticks");
+        double dz = was == null ? 0 : (at.getZ() - was.getZ()) / c.getInt("spawning.interval-ticks");
+        double theta = Math.hypot(dx, dz) < 0.1 || was == null || !was.getWorld().equals(at.getWorld())
+                ? rnd.nextDouble(2 * Math.PI)                                 // standing: anywhere around
+                : Math.atan2(dz, dx) + rnd.nextDouble(-Math.PI / 2, Math.PI / 2); // moving: ahead, +-90 degrees
         World w = p.getWorld();
-        int x = (int) Math.floor(p.getX() + Math.cos(angle) * dist), z = (int) Math.floor(p.getZ() + Math.sin(angle) * dist);
-        if (!w.isChunkLoaded(x >> 4, z >> 4)) return;
-        Block ground = w.getHighestBlockAt(x, z);
-        if (!ground.getType().isSolid()) return; // water, lava, leaves-only columns
-        Block at = ground.getRelative(0, 1, 0);
-        List<Dex.Spawn> fits = new ArrayList<>();
-        for (Dex.Spawn s : pl.dex.spawns) if (fits(s, at)) fits.add(s);
-        Dex.Spawn pick = pick(fits);
-        if (pick == null) return;
-        int level = rnd.nextInt(pick.level[0], pick.level[1] + 1);
-        spawn(at.getLocation().add(0.5, 0, 0.5), Mon.create(pl.dex, pick.species, level));
+        int bx = (int) Math.ceil(at.getX() + r * Math.cos(theta) - diameter / 2.0);
+        int bz = (int) Math.ceil(at.getZ() + r * Math.sin(theta) - diameter / 2.0);
+        int by = (int) Math.ceil(at.getY() - height / 2.0);
+        double cx = bx + diameter / 2.0, cz = bz + diameter / 2.0;
+        for (int x = (int) cx - 24 >> 4; x <= (int) cx + 24 >> 4; x++)                 // isBoxLoaded
+            for (int z = (int) cz - 24 >> 4; z <= (int) cz + 24 >> 4; z++) if (!w.isChunkLoaded(x, z)) return;
+        long nearby = w.getNearbyEntities(new Location(w, cx, at.getY(), cz), 24, 512, 24, this::isWild).size();
+        if (nearby / 9.0 >= c.getDouble("spawning.per-chunk")) return;               // 3x3 chunks, one each
+
+        double spacing = c.getDouble("spawning.entity-spacing");
+        List<Location> others = new ArrayList<>(w.getNearbyEntities(new Location(w, cx, at.getY(), cz),
+                diameter / 2.0 + spacing, height / 2.0 + spacing, diameter / 2.0 + spacing).stream()
+                .filter(e -> !e.equals(p)).map(Entity::getLocation).toList());
+        List<Block> spots = new ArrayList<>();
+        for (int x = bx; x < bx + diameter; x++)
+            for (int z = bz; z < bz + diameter; z++) {
+                Block ground = w.getHighestBlockAt(x, z);
+                if (ground.getY() < by - 1 || ground.getY() >= by + height - 1 || !ground.getType().isSolid()) continue;
+                Block spot = ground.getRelative(0, 1, 0);
+                Location l = spot.getLocation().add(0.5, 0, 0.5);
+                if (others.stream().noneMatch(o -> o.distance(l) < spacing)) spots.add(spot);
+            }
+        String bucket = bucket();
+        java.util.Collections.shuffle(spots);
+        int left = c.getInt("spawning.max-per-pass");
+        for (Block spot : spots) {
+            if (left == 0) break;
+            Location l = spot.getLocation().add(0.5, 0, 0.5);
+            if (others.stream().anyMatch(o -> o.distance(l) < spacing)) continue;   // SpawnDetail.onSelection
+            List<Dex.Spawn> fits = new ArrayList<>();
+            for (Dex.Spawn s : pl.dex.spawns) if (bucket.equals(s.bucket) && fits(s, spot)) fits.add(s);
+            if (fits.isEmpty()) continue;
+            double wsum = fits.stream().mapToDouble(s -> s.weight).sum(), roll = rnd.nextDouble(wsum);
+            Dex.Spawn pick = fits.getLast();
+            for (Dex.Spawn s : fits) if ((roll -= s.weight) <= 0) { pick = s; break; }
+            spawn(l, Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props));
+            others.add(l);
+            left--;
+        }
+    }
+
+    /** PlayerLevelRangeInfluence: the party's highest level +-5 (at least up to 10), inside the spawn's range. */
+    int level(Player p, int min, int max) {
+        int top = pl.store.get(p.getUniqueId()).party.stream().mapToInt(m -> m.level).max().orElse(0);
+        int[] r = Rules.levelRange(top, min, max);
+        return ThreadLocalRandom.current().nextInt(r[0], r[1] + 1);
+    }
+
+    /** One bucket per pass, from all of Cobblemon's world buckets (a pass with nothing in it spawns nothing). */
+    private String bucket() {
+        var buckets = pl.getConfig().getConfigurationSection("spawning.buckets");
+        double roll = ThreadLocalRandom.current().nextDouble(buckets.getKeys(false).stream().mapToDouble(buckets::getDouble).sum());
+        for (String b : buckets.getKeys(false)) if ((roll -= buckets.getDouble(b)) <= 0) return b;
+        return "common";
     }
 
     Entity spawn(Location loc, Mon mon) {
@@ -107,9 +164,59 @@ final class Spawner {
             e.setSilent(true);
             e.getPersistentDataContainer().set(pl.wildKey, PersistentDataType.STRING, Store.GSON.toJson(mon));
         });
-        BetterModel.model(mon.species).ifPresent(r -> r.create(BukkitAdapter.adapt(pig)));
+        model(pig, mon.model(pl.dex));
+        // Cobblemon's wild Pokémon don't follow food or breed like pigs (Paper keeps float, wander and look goals)
+        var goals = Bukkit.getMobGoals();
+        goals.removeGoal(pig, VanillaGoal.TEMPT);
+        goals.removeGoal(pig, VanillaGoal.BREED);
+        goals.removeGoal(pig, VanillaGoal.FOLLOW_PARENT);
         wild.add(pig.getUniqueId());
         return pig;
+    }
+
+    /** A party Pokémon out in the world (Companions): unhurtable, not wild, no AI of its own (Companions moves it). */
+    Entity companion(Location loc, String model, Player owner) {
+        Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
+            e.setPersistent(false);
+            e.setSilent(true);
+            e.setInvulnerable(true);
+            e.setCollidable(false);
+            e.getPersistentDataContainer().set(pl.companionKey, PersistentDataType.STRING, owner.getUniqueId().toString());
+        });
+        Bukkit.getMobGoals().removeAllGoals(pig);
+        model(pig, model);
+        return pig;
+    }
+
+    boolean isCompanion(Entity e) { return e.getPersistentDataContainer().has(pl.companionKey); }
+
+    /** The player's own Pokémon in a battle: same carrier, but still, unhurtable and not wild. */
+    Entity sendOut(Location loc, String model) {
+        Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
+            e.setPersistent(false);
+            e.setSilent(true);
+            e.setInvulnerable(true);
+            e.setAware(false);
+        });
+        face(pig, loc.clone().add(loc.getDirection()));
+        model(pig, model);
+        return pig;
+    }
+
+    /**
+     * The BetterModel model on a carrier, animated for Java players only: Bedrock players see GeyserModelEngine's
+     * native entity (animated on the phone), and Geyser would only decode and drop the Java bone stream.
+     */
+    private static void model(Pig pig, String model) {
+        BetterModel.model(model).ifPresent(r -> r.create(BukkitAdapter.adapt(pig)).getPipeline()
+                .viewFilter(p -> p.uuid().getMostSignificantBits() != 0)); // Ui.bedrock: Floodgate's UUIDs
+    }
+
+    static void face(Entity e, Location target) {
+        Location l = e.getLocation();
+        l.setDirection(target.toVector().subtract(l.toVector()));
+        e.setRotation(l.getYaw(), 0);
+        if (e instanceof org.bukkit.entity.LivingEntity le) le.setBodyYaw(l.getYaw()); // the model follows the body
     }
 
     static void freeze(Entity e, boolean frozen) {
@@ -140,25 +247,5 @@ final class Spawner {
             TagKey<Biome> tag = TagKey.create(RegistryKey.BIOME, Key.key(id.substring(1)));
             return biomes.hasTag(tag) && biomes.getTag(tag).contains(TypedKey.create(RegistryKey.BIOME, biome));
         });
-    }
-
-    /** Cobblemon picks a rarity bucket first, then a weighted entry inside it. */
-    private Dex.Spawn pick(List<Dex.Spawn> fits) {
-        if (fits.isEmpty()) return null;
-        var rnd = ThreadLocalRandom.current();
-        var buckets = pl.getConfig().getConfigurationSection("spawning.buckets");
-        Map<String, List<Dex.Spawn>> by = new HashMap<>();
-        for (Dex.Spawn s : fits) by.computeIfAbsent(s.bucket, b -> new ArrayList<>()).add(s);
-        double total = by.keySet().stream().mapToDouble(b -> buckets.getDouble(b, 0)).sum();
-        if (total <= 0) return null;
-        double roll = rnd.nextDouble(total);
-        for (var e : by.entrySet()) {
-            roll -= buckets.getDouble(e.getKey(), 0);
-            if (roll > 0) continue;
-            double wsum = e.getValue().stream().mapToDouble(s -> s.weight).sum(), r2 = rnd.nextDouble(wsum);
-            for (Dex.Spawn s : e.getValue()) if ((r2 -= s.weight) <= 0) return s;
-            return e.getValue().getLast();
-        }
-        return null;
     }
 }

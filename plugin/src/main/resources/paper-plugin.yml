@@ -10,7 +10,11 @@ dependencies:
       load: BEFORE
       required: true
       join-classpath: true
+    floodgate:
+      load: BEFORE
+      required: false
+      join-classpath: true
 permissions:
   cobblemonlink.admin:
-    description: /pokegive, /pokespawn, /pokeheal, /pokeballs
+    description: /pokegive, /pokespawn, /pokeheal, /pokeballs, /pc
     default: op

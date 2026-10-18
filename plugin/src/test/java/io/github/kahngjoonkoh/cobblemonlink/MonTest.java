@@ -50,10 +50,15 @@ class MonTest {
         List<String> said = new ArrayList<>();
         m.gainExp(dex, Rules.expFor("medium_slow", 16) - m.exp, said::add);
         assertEquals(16, m.level);
-        assertEquals("charmeleon", m.species);
-        assertEquals(4, m.moves.size()); // already knew 4: fire fang announced, not learned
+        assertEquals("charmander", m.species); // as Cobblemon: ready to evolve, evolved from the Summary
+        assertEquals("charmeleon", m.evolution);
+        assertEquals(4, m.moves.size()); // already knew 4: fire fang waits in learnable
+        assertEquals(List.of("firefang"), m.learnable);
         assertTrue(said.stream().anyMatch(s -> s.contains("wants to learn firefang")));
-        assertTrue(said.stream().anyMatch(s -> s.contains("evolved into Charmeleon")));
+        assertTrue(said.stream().anyMatch(s -> s.contains("seems ready to evolve")));
+        assertTrue(m.evolve(dex).contains("evolved into Charmeleon"));
+        assertEquals("charmeleon", m.species);
+        assertNull(m.evolution);
         assertEquals(10 + (Rules.maxHp(39, m.ivs[0], 16) - before), m.hp);
     }
 }

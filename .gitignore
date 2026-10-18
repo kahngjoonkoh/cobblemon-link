@@ -3,6 +3,7 @@ server/data/
 __pycache__/
 assets/java/
 assets/bedrock/
+assets/portraits/
 assets/species.tsv
 dist/
 assets/gamedata.json
@@ -13,3 +14,13 @@ plugin/.gradle-home/
 sim/node_modules/
 server/.env
 assets/ui-pack.zip
+graphify-out/
+client/build/
+client/.gradle/
+!client/gradle/wrapper/gradle-wrapper.jar
+assets/bodies/
+assets/bedrock-ui.mcpack
+assets/geyser-mappings.json
+assets/cards/
+assets/cards_full/
+assets/tiles/

@@ -49,4 +49,15 @@ final class Rules {
     static int stat(int base, int iv, int level) {
         return (2 * base + iv) * level / 100 + 5;
     }
+
+    /**
+     * Cobblemon's PlayerLevelRangeInfluence: the party's highest level (`top`, 0 without a party) +-5, at least up to
+     * 10, inside the spawn's [min, max]; no overlap -> the near quarter of the spawn's range.
+     */
+    static int[] levelRange(int top, int min, int max) {
+        int lo = top == 0 ? 1 : Math.max(top - 5, 1), hi = top == 0 ? 10 : Math.min(100, Math.max(top + 5, 10));
+        int a = Math.max(lo, min), b = Math.min(hi, max), width = max - min;
+        if (a <= b) return new int[] {a, b};
+        return min > hi ? new int[] {min, (int) (min + width / 4F)} : new int[] {(int) (min + 3 * width / 4F), max};
+    }
 }
