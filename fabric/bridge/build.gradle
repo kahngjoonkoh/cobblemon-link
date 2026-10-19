@@ -14,5 +14,6 @@ dependencies {
     modImplementation 'maven.modrinth:blockbench-import-library:1.2.7+1.21'
     modImplementation 'eu.pb4:polymer-bundled:0.9.19+1.21.1'
     compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0'
+    modCompileOnly files('libs/PolyMc-5.7.0-rev.a3eaae6+1.21.jar') // built from TheEpicBlock/PolyMc master (1.21)
 }
 java { toolchain.languageVersion = JavaLanguageVersion.of(21) }

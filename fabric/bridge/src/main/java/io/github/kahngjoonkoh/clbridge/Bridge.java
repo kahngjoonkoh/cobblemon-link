@@ -49,6 +49,13 @@ public class Bridge implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        Polys.register();
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> System.out.println(
+                "[cl-bridge] " + h.player.getScoreboardName() + " vanilla=" + vanilla(h) + " bedrock=" + bedrock(h)
+                        + " polymap=" + io.github.theepicblock.polymc.api.misc.PolyMapProvider.getPolyMap(h).getClass().getSimpleName()
+                        + " cobblemon channels=" + ServerPlayNetworking.getSendable(h).stream().filter(id -> id.getNamespace().equals("cobblemon")).count()));
+        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
+                net.minecraft.commands.Commands.literal("vparty").executes(c -> { PartyMenu.open(c.getSource().getPlayerOrException()); return 1; })));
         net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(GeyserUtilsPayload.TYPE, GeyserUtilsPayload.CODEC);
         // ponytail: models from a folder at startup (Polymer builds its pack once); every species later
         File dir = new File("config/cl-bridge/models");
