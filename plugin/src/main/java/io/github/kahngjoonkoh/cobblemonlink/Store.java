@@ -33,6 +33,7 @@ final class Store {
         Set<String> wallpapers = new HashSet<>(); // unlocked ones (Cobblemon's ids: biome_cave, pokemon_alpha, ...)
         Set<String> seen = new HashSet<>(), caught = new HashSet<>(); // Pokédex: species ids
         Set<String> looks = new HashSet<>(); // Pokédex: each look seen, look(): its genders, shinies and forms
+        boolean hideParty; // /partyhud: no party panel on the left (Cobblemon's O key)
         List<Mon> pc; // saves from before boxes: moved into them on load
 
         int pcCount() {

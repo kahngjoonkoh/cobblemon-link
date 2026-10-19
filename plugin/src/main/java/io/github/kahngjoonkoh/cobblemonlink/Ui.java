@@ -25,6 +25,7 @@ final class Ui {
     static Map<String, Integer> tiles = Map.of();     // starter -> index (build_ui.py tiles)
     static Map<String, Integer> bodies = Map.of();    // look -> its number (build_ui.py bodies)
     static com.google.gson.JsonObject pcWidths;       // build_pc.py's pc_widths.json: font -> char -> advance
+    static boolean partyPanel;                         // the UI pack has PartyPanel's art (build_hud.py)
     static final int MOVE_W = 93, PARTY_W = 95, MENU_W = 91; // glyph advances: Cobblemon's tile width + 1
     // full-size art for the cursor screen (build_ui.py): idle glyph, hover glyph = idle + 1
     static final char MENU = '\ue200', MOVE = '\ue210', PARTY = '\ue240', BACK = '\ue242', CURSOR = '\ue244', TYPE_BIG = '\ue250';
@@ -56,6 +57,7 @@ final class Ui {
                 portraits = index(z, "assets/cobblemonlink/textures/font/portrait/", true);
                 bodies = index(z, "assets/cobblemonlink/textures/font/body/", false); // unown__character_r is a body
             }
+            partyPanel = z.getEntry("assets/cobblemonlink/textures/font/hud_slot.png") != null;
             var w = z.getEntry("assets/cobblemonlink/pc_widths.json");
             if (w != null) try (var in = z.getInputStream(w)) {
                 pcWidths = com.google.gson.JsonParser.parseString(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
@@ -203,6 +205,14 @@ final class Ui {
         }
 
         Overlay text(int corner, int x, int y, String s) { return add(corner, x, y, Component.text(s), width(s)); }
+
+        /** The party panel's mode (PartyPanel): x px from the screen's left edge, y px from its middle (-128..127). */
+        Overlay mid(int x, int y, Component c, double width) {
+            int step = (int) Math.round(x - cursor);
+            b.append(space(step), c.color(TextColor.color(250, fade << 5, y + 128)).shadowColor(ShadowColor.none()));
+            cursor += step + width;
+            return this;
+        }
 
         /** Half-size text, centred on x. */
         Overlay small(int corner, int x, int y, String s) {

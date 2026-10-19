@@ -67,6 +67,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Dex dex;
     Store store;
     PcScreen pc;
+    PartyPanel panel;
     Spawner spawner;
     Companions companions;
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
@@ -86,6 +87,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
         pc = new PcScreen(this);
+        panel = new PartyPanel(this);
         Mod.enable(this);
         spawner = new Spawner(this);
         companions = new Companions(this);
@@ -103,6 +105,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, this::showStarterToasts, 40, 40);
         Bukkit.getScheduler().runTaskTimer(this, this::unlockWallpapers, 20, 20);
+        Bukkit.getScheduler().runTaskTimer(this, () -> panel.tick(), 20, 1); // Cobblemon's party overlay, vanilla Java
         Bukkit.getScheduler().runTaskTimer(this, () -> Bukkit.getOnlinePlayers().forEach(Mod::hud), 20, 10); // the mod's party overlay
         registerCommands();
         buildIcons();
@@ -275,8 +278,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     /** The toast is pack art: it waits for the packs (the client loads them all in one go). */
     @EventHandler
     public void onPack(org.bukkit.event.player.PlayerResourcePackStatusEvent e) {
-        if (e.getStatus() == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
-                && toastAfterPacks.remove(e.getPlayer().getUniqueId())) starterToast.add(e.getPlayer().getUniqueId());
+        if (e.getStatus() != org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) return;
+        panel.ready(e.getPlayer()); // the panel is pack art too
+        if (toastAfterPacks.remove(e.getPlayer().getUniqueId())) starterToast.add(e.getPlayer().getUniqueId());
     }
 
     /** Every 2 s: the starter toast stays up (an action bar lasts 3 s) until the player has a Pokémon. */
@@ -298,6 +302,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         lastInput.remove(e.getPlayer().getUniqueId());
         pc.forget(e.getPlayer());
         PokedexScreen.forget(e.getPlayer());
+        panel.forget(e.getPlayer());
         SummaryScreen.forget(e.getPlayer());
         store.unload(e.getPlayer().getUniqueId());
     }
@@ -604,6 +609,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             else offerStarter(p);
         });
         playerCommand("party", "Show your party", null, (p, a) -> openParty(p));
+        playerCommand("partyhud", "Show or hide the party on the left of the screen", null, (p, a) -> {
+            Store.Data d = store.get(p.getUniqueId());
+            d.hideParty = !d.hideParty;
+            store.save(p.getUniqueId());
+            p.sendMessage(Component.text(d.hideParty ? "Party hidden. /partyhud shows it again." : "Party shown.", NamedTextColor.GRAY));
+        });
         playerCommand("pokedex", "Open your Pokédex", null, (p, a) -> PokedexScreen.open(this, p, 0, null));
         playerCommand("pc", "Open your PC (admin; players use the PC button in the Pokémon menu)", "cobblemonlink.admin", (p, a) -> pc.open(p));
         playerCommand("battle", "Reopen the battle menu", null, (p, a) -> {

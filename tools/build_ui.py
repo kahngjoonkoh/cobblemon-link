@@ -42,7 +42,8 @@ void main() { fragColor = texture(InSampler, texCoord); }
 # GUI text coloured (254, g, b) [(252, g, b) red, (251, g, b) dark grey] is moved to a screen corner: g bit 0 = right edge, bit 1 = bottom edge, bit 2 = shadow,
 # bit 3 = stay horizontally centred, bit 4 = draw at twice the size (Hotbar.java's item sprites), bits 5-7 = n: drawn
 # at (8 - n) / 8 opacity (Cobblemon's faded overlay), b = px from that top/bottom edge. (253, g, b): moved b - 64 px down
-# in place, drawn at grey level g (the starter screen's chest title, laid out from the title's origin). Ui.overlay() lays it out from the action bar's origin (centre, H - 72).
+# in place, drawn at grey level g (the starter screen's chest title, laid out from the title's origin). (250, g, b): the
+# party panel, from the screen's left edge and b - 128 px from its middle, g's shadow and fade bits as above. Ui.overlay() lays it out from the action bar's origin (centre, H - 72).
 TEXT_VSH = """#version 330
 #extension GL_ARB_separate_shader_objects : require
 #if !defined(IS_GUI) && !defined(IS_SEE_THROUGH)
@@ -70,6 +71,11 @@ void main() {
     if (c.r == 253) { // a chest title piece (CobblemonLink's starter screen): b - 64 px down, grey level g
         pos.y += float(c.b) - 64.0;
         color = vec4(vec3(float(c.g) / 255.0), Color.a);
+    } else if (c.r == 250) { // the party panel (PartyPanel.java): left edge, b - 128 px from the screen's middle
+        vec2 screen = vec2(2.0 / ProjMat[0][0], -2.0 / ProjMat[1][1]);
+        pos.x -= screen.x * 0.5;
+        pos.y += float(c.b) - 128.0 - screen.y * 0.5 + 72.0;
+        color = vec4(vec3((c.g & 4) == 4 ? 0.25 : 1.0), Color.a * float(8 - (c.g >> 5)) / 8.0);
     } else if (c.r >= 251 && c.r <= 254 && c.r != 253) {
         vec2 screen = vec2(2.0 / ProjMat[0][0], -2.0 / ProjMat[1][1]);
         if ((c.g & 8) == 0) pos.x += (c.g & 1) == 1 ? screen.x * 0.5 : -screen.x * 0.5;
@@ -434,6 +440,9 @@ def build(gui, out_zip):
         glyph(f"starter_{name}", edge(img), chr(0xE280 + i), img.height, 7)
     import build_pc  # PcScreen.java's art and fonts, U+E2A0 on
     build_pc.pc(files, gui, cob, glyph, png_bytes, (cut_columns, cut_rows, stretch, nine), os.path.dirname(out_zip))
+    import build_hud  # PartyPanel.java's art, U+E4A0 on
+    for name, img, char, height, ascent in build_hud.hud_glyphs(gui, hp_colour):
+        glyph(name, img, char, height, ascent)
 
     # the client mod (client/) draws the Bedrock forms' screens from the same art: textures/cobblemonlink/<x> of the
     # Bedrock pack (built first) as cobblemonlink:textures/form/<x>; the whole-body pictures are the PC's (font/body)
@@ -585,6 +594,9 @@ def portraits(pics, src):
         # the same 28 px picture at 16 px, for text: the starter dialog's buttons (cobblemonlink:portrait_small)
         pics.glyph(name, "portrait_small", {"type": "bitmap", "file": f"cobblemonlink:item/portrait/{name}.png",
                                             "height": 16, "ascent": 12, "chars": [chr(0xF0000 + 2 * i)]})
+        # and at 21 px, the party panel's portrait (PartyPanel.java, cobblemonlink:portrait_hud)
+        pics.glyph(name, "portrait_hud", {"type": "bitmap", "file": f"cobblemonlink:item/portrait/{name}.png",
+                                          "height": 21, "ascent": 7, "chars": [chr(0xF0000 + 2 * i)]})
         pics.add(name, f"assets/cobblemonlink/items/portrait/{name}.json", json.dumps({"model": {
             "type": "minecraft:model", "model": f"cobblemonlink:item/portrait/{name}"}}).encode())
         pics.add(name, f"assets/cobblemonlink/models/item/portrait/{name}.json", json.dumps({

@@ -38,7 +38,7 @@ final class Companions {
         }
         if (pl.battles.containsKey(p.getUniqueId())) return;
         if (m.fainted(pl.dex)) {
-            p.sendActionBar(Component.text(m.name(pl.dex) + " has fainted.", NamedTextColor.RED));
+            pl.panel.say(p, m.name(pl.dex) + " has fainted.", true); // with the party panel, when it is shown
             return;
         }
         mine.put(m.id, pl.spawner.companion(spot(p), m.model(pl.dex), p));

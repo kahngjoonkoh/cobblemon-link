@@ -643,8 +643,13 @@ final class Battle {
             for (int idx : participants) {
                 Mon m = party.get(idx);
                 if (m.fainted(pl.dex)) continue;
-                m.gainExp(pl.dex, Rules.expGain(pl.dex.of(wild).baseExp, wild.level, m.level),
-                        s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
+                int level = m.level, moves = m.moves.size() + (m.learnable == null ? 0 : m.learnable.size());
+                String evolution = m.evolution;
+                long exp = Rules.expGain(pl.dex.of(wild).baseExp, wild.level, m.level);
+                boolean panel = pl.panel.on(player); // as Cobblemon: the party overlay shows it, not chat
+                m.gainExp(pl.dex, exp, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
+                if (panel) pl.panel.gain(player, m, level, exp, m.moves.size() + (m.learnable == null ? 0 : m.learnable.size()) - moves,
+                        m.evolution != null && !m.evolution.equals(evolution) ? 1 : 0);
             }
             wildEntity.remove();
         } else if (caught) {
