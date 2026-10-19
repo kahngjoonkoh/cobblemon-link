@@ -1,4 +1,4 @@
-package io.github.kahngjoonkoh.clbridge;
+package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

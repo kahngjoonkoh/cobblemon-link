@@ -1,0 +1,7 @@
+packs offered: 2
+start_game: in the world at {"x":0,"y":69,"z":0}
+still connected after 15 s; packets: {"network_settings":1,"server_to_client_handshake":1,"play_status":2,"resource_packs_info":1,"jigsaw_structure_data":1,"voxel_shapes":1,"start_game":1,"sync_entity_property":15,"item_registry":1,"level_chunk":454,"biome_definition_list":1,"available_entity_identi
+[23:36:38] [Netty Epoll Server IO #15/INFO]: Floodgate player logged in as .PocBedrock disconnected
+[23:36:54] [pool-7-thread-1/INFO]: Floodgate player who is logged in as .PocBedrock 00000000-0000-0000-0000-000000000000 joined
+[23:36:54] [Server thread/INFO]: [STDOUT]: [cobblemonlink] .PocBedrock modded=false bedrock=true polymap=PolyMapImpl cobblemon channels=0
+[23:36:54] [Server thread/INFO]: Floodgate player logged in as .PocBedrock joined (UUID: 00000000-0000-0000-0000-000000000000)

@@ -1,4 +1,4 @@
-package io.github.kahngjoonkoh.clbridge;
+package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.pokemon.Pokemon;

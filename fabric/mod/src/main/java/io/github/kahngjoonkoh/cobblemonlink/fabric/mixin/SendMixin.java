@@ -1,6 +1,7 @@
-package io.github.kahngjoonkoh.clbridge.mixin;
+package io.github.kahngjoonkoh.cobblemonlink.fabric.mixin;
 
-import io.github.kahngjoonkoh.clbridge.Bridge;
+import io.github.kahngjoonkoh.cobblemonlink.fabric.Bridge;
+import io.github.kahngjoonkoh.cobblemonlink.fabric.Clients;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
@@ -20,7 +21,7 @@ public class SendMixin {
     @ModifyVariable(method = "send(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketSendListener;)V",
             at = @At("HEAD"), argsOnly = true)
     private Packet<?> clbridge$filter(Packet<?> packet) {
-        if (!((Object) this instanceof ServerGamePacketListenerImpl h) || !Bridge.vanilla(h)) return packet;
+        if (!((Object) this instanceof ServerGamePacketListenerImpl h) || Clients.modded(h)) return packet;
         return clean(packet, h);
     }
 
@@ -40,11 +41,11 @@ public class SendMixin {
             return new ClientboundBundlePacket(out);
         }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its species (as on Paper)
-        if (Bridge.bedrock(h) && packet instanceof ClientboundAddEntityPacket a
+        if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a
                 && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity p) {
             String model = p.getPokemon().getSpecies().getName().toLowerCase(java.util.Locale.ROOT);
             return new ClientboundBundlePacket(List.of(
-                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(io.github.kahngjoonkoh.clbridge.GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + model)),
+                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(io.github.kahngjoonkoh.cobblemonlink.fabric.GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + model)),
                     new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
                             net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot())));
         }

@@ -1,4 +1,4 @@
-package io.github.kahngjoonkoh.clbridge;
+package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
 import io.github.theepicblock.polymc.api.misc.PolyMapProvider;
 import io.github.theepicblock.polymc.impl.NOPPolyMap;
@@ -9,7 +9,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 final class Polys {
     static void register() {
         PolyMapProvider.EVENT.register(connection ->
-                connection.getPacketListener() instanceof ServerGamePacketListenerImpl h && !Bridge.vanilla(h) ? new NOPPolyMap() : null);
+                connection.getPacketListener() instanceof ServerGamePacketListenerImpl h && Clients.modded(h) ? new NOPPolyMap() : null);
         // ponytail: a client's play channels are known once it has joined, so its map is picked again then (PolyMc
         // already filtered its configuration-phase registry sync; a Cobblemon client got through that fine here)
         ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> PolyMapProvider.get(h).refreshUsedPolyMap());

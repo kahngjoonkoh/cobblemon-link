@@ -1,4 +1,4 @@
-package io.github.kahngjoonkoh.clbridge;
+package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import de.tomalbrc.bil.core.holder.positioned.PositionedHolder;
@@ -32,46 +32,37 @@ public class Bridge implements ModInitializer {
                 try { VANILLA_DATA.add((EntityDataSerializer<?>) f.get(null)); } catch (IllegalAccessException ignored) {}
     }
 
-    /** ponytail: a Bedrock player comes through ViaProxy (Geyser's Java side); Floodgate tells them apart in a real setup. */
-    public static boolean bedrock(ServerGamePacketListenerImpl h) {
-        try {
-            return h.getRemoteAddress() instanceof java.net.InetSocketAddress a
-                    && a.getAddress().equals(java.net.InetAddress.getByName("viaproxy"));
-        } catch (java.net.UnknownHostException e) {
-            return false;
-        }
-    }
-
-    /** The player's client has no Cobblemon: it never registered a cobblemon: channel. */
-    public static boolean vanilla(ServerGamePacketListenerImpl h) {
-        return ServerPlayNetworking.getSendable(h).stream().noneMatch(id -> id.getNamespace().equals("cobblemon"));
-    }
-
     @Override
     public void onInitialize() {
+        Tasks.register();
+        Clients.register();
         Polys.register();
+        // the pack once in game, vanilla Java only (Packs); Polymer may still be building it
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
+            if (Clients.java(h)) Tasks.until(() -> h.player.hasDisconnected() || Packs.send(h));
+        });
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> System.out.println(
-                "[cl-bridge] " + h.player.getScoreboardName() + " vanilla=" + vanilla(h) + " bedrock=" + bedrock(h)
+                "[cobblemonlink] " + h.player.getScoreboardName() + " modded=" + Clients.modded(h) + " bedrock=" + Clients.bedrock(h.player)
                         + " polymap=" + io.github.theepicblock.polymc.api.misc.PolyMapProvider.getPolyMap(h).getClass().getSimpleName()
                         + " cobblemon channels=" + ServerPlayNetworking.getSendable(h).stream().filter(id -> id.getNamespace().equals("cobblemon")).count()));
         net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
                 net.minecraft.commands.Commands.literal("vparty").executes(c -> { PartyMenu.open(c.getSource().getPlayerOrException()); return 1; })));
         net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(GeyserUtilsPayload.TYPE, GeyserUtilsPayload.CODEC);
         // ponytail: models from a folder at startup (Polymer builds its pack once); every species later
-        File dir = new File("config/cl-bridge/models");
+        File dir = new File("config/cobblemonlink/models");
         for (File f : Objects.requireNonNullElse(dir.listFiles((d, n) -> n.endsWith(".bbmodel")), new File[0]))
             MODELS.put(f.getName().replace(".bbmodel", ""), BbModelLoader.load(f.getPath()));
-        System.out.println("[cl-bridge] models: " + MODELS.keySet() + ", vanilla data types: " + VANILLA_DATA.size());
+        System.out.println("[cobblemonlink] models: " + MODELS.keySet() + ", vanilla data types: " + VANILLA_DATA.size());
         ServerEntityEvents.ENTITY_LOAD.register((e, level) -> {
             if (!(e instanceof PokemonEntity p)) return;
             Model m = MODELS.get(p.getPokemon().getSpecies().getName().toLowerCase(Locale.ROOT));
-            System.out.println("[cl-bridge] pokemon " + p.getPokemon().getSpecies().getName() + " model=" + (m != null));
+            System.out.println("[cobblemonlink] pokemon " + p.getPokemon().getSpecies().getName() + " model=" + (m != null));
             if (m == null) return;
             var holder = new PositionedHolder(level, p.position(), m) {
                 @Override
                 public boolean startWatching(ServerGamePacketListenerImpl h) {
                     // Cobblemon players see Cobblemon's own model, Bedrock players GeyserModelEngine's
-                    return vanilla(h) && !bedrock(h) && super.startWatching(h);
+                    return Clients.java(h) && super.startWatching(h);
                 }
             };
             EntityAttachment.ofTicking(holder, p);

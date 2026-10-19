@@ -27,7 +27,7 @@ services:
     container_name: clpoc-viaproxy
     user: "1000:1000"
     working_dir: /w
-    command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1", "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE"]
+    command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1", "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE", "--rewrite-handshake-packet", "false"]  # keeps Floodgate's data in the handshake
     volumes:
       - ${HOME}/.cache/cl-fabric-poc/viaproxy:/w
   geyser:

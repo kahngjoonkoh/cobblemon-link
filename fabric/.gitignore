@@ -1,4 +1,4 @@
 mods-extra/*.jar
-bridge/build/
-bridge/.gradle/
-libs/
+mod/build/
+mod/.gradle/
+mod/libs/

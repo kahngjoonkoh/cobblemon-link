@@ -1,7 +1,0 @@
-{
-  "schemaVersion": 1, "id": "cl-bridge", "version": "0.0.1", "name": "cobblemon-link bridge (PoC)",
-  "environment": "server",
-  "entrypoints": { "main": ["io.github.kahngjoonkoh.clbridge.Bridge"] },
-  "mixins": ["cl-bridge.mixins.json"],
-  "depends": { "fabricloader": "*", "minecraft": "1.21.1", "cobblemon": "*", "bil": "*" }
-}
