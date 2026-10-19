@@ -1,0 +1,7 @@
+{
+	"required": true,
+	"package": "io.github.kahngjoonkoh.cobblemonlink.client.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": ["SlotHighlightMixin"],
+	"injectors": {"defaultRequire": 1}
+}

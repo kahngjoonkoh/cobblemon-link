@@ -473,22 +473,22 @@ final class PcScreen {
     /** The info strip: the name card (Lv tab, ball, name, gender), the whole Pokémon, Type / Nature / Ability / Moves. */
     private void info(Ui.Title t, Mon m, boolean confirm) {
         Dex.Species s = pl.dex.of(m);
-        text(t, "pc_bold", 10, 147, "Lv." + m.level, false);
-        glyph(t, 8, 155, BALL, 6);
-        text(t, "pc_bold", 15, 155, confirm ? "Release?" : m.name(pl.dex), false);
-        if (!m.gender.isEmpty()) glyph(t, 49, 157, "M".equals(m.gender) ? MALE : FEMALE, 4);
+        text(t, "pc_bold", 7, 147, "Lv." + m.level, false);
+        glyph(t, 5, 155, BALL, 6);
+        text(t, "pc_bold", 12, 155, confirm ? "Release?" : m.name(pl.dex), false);
+        if (!m.gender.isEmpty()) glyph(t, 48, 157, "M".equals(m.gender) ? MALE : FEMALE, 4);
         Integer b = Ui.bodies.get(m.model(pl.dex));
-        if (b != null) put(t, 8, 166, Component.text(Character.toString(0xF9000 + b)).font(Key.key("cobblemonlink", "body_big")), 45, 7);
+        if (b != null) put(t, 6, 166, Component.text(Character.toString(0xF9000 + b)).font(Key.key("cobblemonlink", "body_big")), 45, 7);
         String typeNames = String.join(" / ", s.types.stream().map(ty -> pl.dex.label("type", ty)).toList());
         String[][] rows = {{"Type", typeNames}, {"Nature", m.nature}, {"Ability", pl.dex.label("ability", m.ability)},
                 {"Moves", String.join(", ", m.moves.stream().map(mv -> pl.dex.label("move", mv)).toList())}};
         for (int i = 0; i < rows.length; i++) {
             int y = 152 + 3 + 15 * i;
-            text(t, "pc_bold", 60, y, rows[i][0], false);
-            String value = fit("pc_text", plain(rows[i][1]), 113 - (i == 0 ? 16 : 0));
-            text(t, "pc_text", 60, y + 7, value, false);
+            text(t, "pc_bold", 57, y, rows[i][0], false);
+            String value = fit("pc_text", plain(rows[i][1]), 121 - (i == 0 ? 16 : 0));
+            text(t, "pc_text", 57, y + 7, value, false);
             if (i == 0) {
-                double x = 60 + width("pc_text", value) + 3;
+                double x = 57 + width("pc_text", value) + 3;
                 for (String ty : s.types) {
                     glyph(t, x, y + 7, (char) (TYPE_INFO + Ui.TYPES.indexOf(ty)), 7);
                     x += 8;

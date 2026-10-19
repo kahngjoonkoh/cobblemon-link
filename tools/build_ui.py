@@ -393,6 +393,18 @@ def build(gui, out_zip):
         clear(n, (32, 2))
     for n in ["warning_button", "warning_button_disabled", "warning_button_highlighted"]:
         clear(f"sprites/dialog/{n}", (20, 20))
+    # No hover square over chest slots (it lights up half of a PC or starter tile) for vanilla Java. The client mod
+    # draws vanilla's square again from cobblemonlink:container/slot_highlight_* (the same 16 px white square at 96 /
+    # 32 alpha in a 24 px nine-slice). ponytail: every inventory on this server; vanilla has no per-screen switch.
+    for n, alpha in [("back", 96), ("front", 32)]:
+        clear(f"sprites/container/slot_highlight_{n}", (24, 24))
+        sq = Image.new("RGBA", (24, 24))
+        sq.paste((255, 255, 255, alpha), (4, 4, 20, 20))
+        buf = io.BytesIO()
+        sq.save(buf, "PNG")
+        files[f"assets/cobblemonlink/textures/gui/sprites/container/slot_highlight_{n}.png"] = buf.getvalue()
+        meta = json.dumps({"gui": {"scaling": {"type": "nine_slice", "width": 24, "height": 24, "border": 4}}}).encode()
+        files[f"assets/cobblemonlink/textures/gui/sprites/container/slot_highlight_{n}.png.mcmeta"] = meta
     files["assets/minecraft/shaders/post/box_blur.fsh"] = NO_BLUR.encode()
     files["assets/minecraft/shaders/core/gui.vsh"] = GUI_VSH.encode()  # nor the dark gradient behind chests
     # The chest's "Inventory" label is drawn over the starter screen's art (StarterScreen.java), so it goes.

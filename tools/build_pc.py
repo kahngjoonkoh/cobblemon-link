@@ -26,7 +26,8 @@ slot_y = lambda r: PC_CHEST[1] + 18 + 18 * r if r < 5 else PC_CHEST[1] + 121 + 1
 BOX = (slot_x(0) - 3, slot_y(0) - 3, slot_x(5) + 19, slot_y(4) + 19)  # the box screen's outline
 SY = slot_y(4) + 22  # the ◀ name ▶ bar's top
 IY0, IY1 = SY + 30, PC_H - 6  # the info strip
-FX, FY = 5, IY0 - 6  # the name card (its Lv tab rises 6 px above the strip)
+FX, FY = 2, IY0 - 6  # the name card (its Lv tab rises 6 px above the strip), 2 px in like the strip's other margins
+BX0, BX1 = FX + 53, PC_W - 4  # the Type / Nature / Ability / Moves bands
 
 
 def pc_base(gui, cut_columns, cut_rows, stretch, nine):
@@ -70,19 +71,22 @@ def pc_base(gui, cut_columns, cut_rows, stretch, nine):
     for x, dx in ((PX0, 1), (PX1, -1)):  # round corners
         d.point([(x, DV - 2), (x, DV - 3), (x + dx, DV - 2)], fill=(47, 47, 47, 255))
         d.point([(x + dx, DV - 3)], fill=(80, 80, 80, 255))
-    d.rectangle([3, SY + 23, PC_W - 2, H - 4], fill=(47, 47, 47, 255))  # no chest showing round the strip
+    d.rectangle([0, SY + 23, PC_W - 1, H - 4], fill=(47, 47, 47, 255))  # no chest or world showing round the strip
     d.rectangle([R - L - 3, SY + 18, R - L + G3, SY + 23], fill=(47, 47, 47, 255))
-    d.rounded_rectangle([3, IY0, PC_W - 4, IY1], 3, fill=(103, 103, 103, 255), outline=(47, 47, 47, 255))
-    nf = np.array(cut_rows(cut_columns(o("pc_base").crop((0, 0, 77, 23)), [(15, 8), (42, 20)]), [3, 4, 12, 13, 14]))
-    nf[:6, 27:] = 0  # Cobblemon's Lv tab and name frame, cut to 49 px; only the tab above the bar
+    d.rounded_rectangle([0, IY0, PC_W - 1, IY1], 3, fill=(103, 103, 103, 255), outline=(47, 47, 47, 255))
+    nf = np.array(cut_rows(cut_columns(o("pc_base").crop((0, 0, 77, 23)), [(15, 8), (42, 18)]), [3, 4, 12, 13, 14]))
+    nf[:6, 27:] = 0  # Cobblemon's Lv tab and name frame, cut to 51 px; only the tab above the bar
     p.alpha_composite(Image.fromarray(nf), (FX, FY))
-    d.rectangle([FX + 1, FY + 19, FX + 48, IY1 - 3], fill=(47, 47, 47, 255))  # the portrait window
-    p.alpha_composite(o("portrait_background").resize((44, 44), Image.NEAREST), (FX + 3, FY + 20))
-    p.alpha_composite(o("pc_base").crop((2, 97, 18, 113)).resize((10, 10), Image.NEAREST), (FX + 37, IY1 - 14))  # held item
+    for y in range(SY + 19, IY1):  # the panel's left edge runs on, straight, from the ◀ box ▶ bar down the strip
+        d.point([(0, y)], fill=(141, 141, 141, 255))
+        d.line([(1, y), (2, y)], fill=(103, 103, 103, 255))
+    d.rectangle([FX + 1, FY + 19, FX + 50, IY1 - 3], fill=(47, 47, 47, 255))  # the portrait window, as wide as the card
+    p.alpha_composite(o("portrait_background").resize((44, 44), Image.NEAREST), (FX + 4, FY + 20))
+    p.alpha_composite(o("pc_base").crop((2, 97, 18, 113)).resize((10, 10), Image.NEAREST), (FX + 39, IY1 - 14))  # held item
     for i in range(4):  # Type, Nature, Ability, Moves: a header band and a value band
         y = IY0 + 3 + 15 * i
-        d.rectangle([58, y, PC_W - 9, y + 5], fill=(47, 47, 47, 255))
-        d.rectangle([58, y + 6, PC_W - 9, y + 13], fill=(80, 80, 80, 255))
+        d.rectangle([BX0, y, BX1, y + 5], fill=(47, 47, 47, 255))
+        d.rectangle([BX0, y + 6, BX1, y + 13], fill=(80, 80, 80, 255))
     a = np.asarray(p).copy()  # no chest grey through a see-through pixel inside the chest
     cx, cy = PC_CHEST
     for y in range(cy + 204 - 1, cy - 1, -1):
