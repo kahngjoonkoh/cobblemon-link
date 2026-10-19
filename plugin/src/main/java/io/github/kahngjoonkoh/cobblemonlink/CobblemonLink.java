@@ -554,7 +554,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     void openParty(Player p) {
         Store.Data d = store.get(p.getUniqueId());
-        if (Mod.form(p) && !d.party.isEmpty()) { // Cobblemon's party is its Summary screen
+        if ((Mod.form(p) || SummaryScreen.art(this, p)) && !d.party.isEmpty()) { // Cobblemon's party is its Summary screen
             SummaryScreen.open(this, p, 0, SummaryScreen.INFO);
             return;
         }

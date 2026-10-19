@@ -194,7 +194,23 @@ final class SummaryScreen {
         return !Ui.bedrock(p) && Ui.pcWidths != null && Ui.pcWidths.getAsJsonObject("ui").has(String.valueOf(BASE));
     }
 
-    static void forget(Player p) { picked.remove(p.getUniqueId()); }
+    static void forget(Player p) {
+        picked.remove(p.getUniqueId());
+        learning.remove(p.getUniqueId());
+    }
+
+    /** Move learning on the Summary's Moves page (MoveLearn): mon wants move; forget.get(k) drops move k for it. */
+    record Learn(Mon mon, String move, List<Runnable> forget, Runnable skip) {}
+
+    private static final java.util.Map<java.util.UUID, Learn> learning = new java.util.HashMap<>();
+
+    static boolean art(CobblemonLink pl, Player p) { return art(p); }
+
+    /** Asks which move to forget: the Moves page, the new move under the four, Don't learn on the hotbar. Esc leaves it for later. */
+    static void learn(CobblemonLink pl, Player p, Learn l) {
+        learning.put(p.getUniqueId(), l);
+        art(pl, p, l.mon(), Math.max(0, pl.store.get(p.getUniqueId()).party.indexOf(l.mon())), MOVES);
+    }
 
     /**
      * Cobblemon's Summary over a 5-row chest: name card (click: nickname) and the tabs on the first row, the picture,
@@ -203,11 +219,18 @@ final class SummaryScreen {
      */
     private static void art(CobblemonLink pl, Player p, Mon m, int i, int tab) {
         Store.Data d = pl.store.get(p.getUniqueId());
+        Learn l = learning.get(p.getUniqueId());
+        if (l != null && l.mon() != m) learning.remove(p.getUniqueId()); // the player went on to another Pokémon: ask later
+        if (l != null && l.mon() == m) {
+            learnScreen(pl, p, d, m, i, l);
+            return;
+        }
         boolean battling = pl.battles.containsKey(p.getUniqueId()), out = pl.companions.isOut(p, m);
         if (tab != MOVES) picked.remove(p.getUniqueId());
         Integer pick = picked.get(p.getUniqueId());
         String[] actions = {battling ? "" : out ? "Recall" : "Send out", battling || i == 0 ? "" : "Lead", battling || d.party.size() <= 1 ? "" : "To PC"};
-        Menu menu = new Menu(45, title(pl, p, d, m, i, tab, pick, actions, m.evolution != null && !battling));
+        Menu menu = new Menu(45, title(pl, p, d, m, i, tab, pick, actions, m.evolution != null && !battling, null));
+        for (int c = 0; c < 3; c++) menu.on(PokedexScreen.raw(c, 5), e -> pl.pc.open(p)); // Open PC, where the party's title was
         for (int t = 0; t < TABS.length; t++) {
             int tt = t;
             for (int c = 0; c < 2; c++) menu.on(PokedexScreen.raw(3 + 2 * t + c, 0), e -> open(pl, p, i, tt));
@@ -252,8 +275,20 @@ final class SummaryScreen {
         pl.onMain(() -> { if (p.getOpenInventory().getTopInventory().getHolder() == menu) PcScreen.hideInventory(p, 45); });
     }
 
+    private static void learnScreen(CobblemonLink pl, Player p, Store.Data d, Mon m, int i, Learn l) {
+        Menu menu = new Menu(45, title(pl, p, d, m, i, MOVES, null, new String[]{"", "Don't learn", ""}, false, l));
+        for (int k = 0; k < Math.min(4, m.moves.size()); k++) {
+            Runnable f = l.forget().get(k);
+            for (int c = 3; c < 9; c++) menu.on(PokedexScreen.raw(c, 1 + k), e -> { learning.remove(p.getUniqueId()); p.closeInventory(); f.run(); });
+        }
+        for (int c = 3; c < 6; c++) menu.on(PokedexScreen.raw(c, 8), e -> { learning.remove(p.getUniqueId()); p.closeInventory(); l.skip().run(); });
+        p.openInventory(menu.getInventory());
+        PcScreen.hideInventory(p, 45);
+        pl.onMain(() -> { if (p.getOpenInventory().getTopInventory().getHolder() == menu) PcScreen.hideInventory(p, 45); });
+    }
+
     private static Component title(CobblemonLink pl, Player p, Store.Data d, Mon m, int i, int tab, Integer pick,
-                                   String[] actions, boolean evolve) {
+                                   String[] actions, boolean evolve, Learn learn) {
         Ui.Title t = new Ui.Title();
         Dex.Species s = pl.dex.of(m);
         int x = PokedexScreen.x(0), cardX = x - 3, cardY = PokedexScreen.y(0) - 9;
@@ -275,7 +310,10 @@ final class SummaryScreen {
             PcScreen.text(t, "pc_bold", PokedexScreen.x(1) + 18, PokedexScreen.y(4) + 5, "Evolve", true);
         }
         // the party
-        PcScreen.text(t, "pc_label", 36, PokedexScreen.y(5) + 3, "Party", true);
+        if (learn == null) { // Open PC, where the party's title was (the party chest's PC button before)
+            PcScreen.glyph(t, PokedexScreen.x(0) - 1, PokedexScreen.y(5) - 1, PLATE, 7);
+            PcScreen.text(t, "pc_label", PokedexScreen.x(0) + 26.5, PokedexScreen.y(5) + 4, "Open PC", true);
+        } else PcScreen.text(t, "pc_label", 36, PokedexScreen.y(5) + 3, "Party", true);
         for (int k = 0; k < d.party.size(); k++) {
             Mon pm = d.party.get(k);
             int cx = PokedexScreen.x(k % 3), cy = PokedexScreen.y(6 + k / 3);
@@ -303,8 +341,18 @@ final class SummaryScreen {
                     PcScreen.text(t, "pc_bold", px + 6, my + 6, pl.dex.label("move", m.moves.get(k)), false);
                     if (pick != null && pick == k) PcScreen.glyph(t, px, my, MOVE_SEL, 7);
                 }
-                PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(5) + 2, pick == null ? "Click a move, then another," : "Now click where it goes.", false);
-                if (pick == null) PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(5) + 9, "to swap their places.", false);
+                if (learn != null) { // the new move under the four, outlined
+                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(4) + 20, m.name(pl.dex) + " wants to learn:", false);
+                    int ny = PokedexScreen.y(5) - 1;
+                    PcScreen.glyph(t, px, ny, MOVE, 7);
+                    PcScreen.text(t, "pc_bold", px + 6, ny + 6, pl.dex.label("move", learn.move()), false);
+                    PcScreen.glyph(t, px, ny, MOVE_SEL, 7);
+                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(6) + 4, "Click a move above to forget it,", false);
+                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(6) + 11, "or Don't learn to keep all four.", false);
+                } else {
+                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(5) + 2, pick == null ? "Click a move, then another," : "Now click where it goes.", false);
+                    if (pick == null) PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(5) + 9, "to swap their places.", false);
+                }
             }
             case STATS -> {
                 PcScreen.glyph(t, px, py, PAGE_STATS, 7);

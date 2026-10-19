@@ -17,7 +17,8 @@ import org.bukkit.entity.Player;
 /**
  * Cobblemon's move learning: a party Pokémon that wanted a 5th move (Mon.learnable) asks which move to forget, or not
  * to learn it. A form (MARK + 7: Bedrock pack, client mod): buttons 0-3 the known moves, 4 "Don't learn"; the title
- * says which move. Vanilla Java: a dialog. One question at a time, after each battle.
+ * says which move. Vanilla Java: the Summary's Moves page (SummaryScreen.learn), a dialog without the UI pack.
+ * One question at a time, after each battle.
  */
 final class MoveLearn {
     private MoveLearn() {}
@@ -60,6 +61,10 @@ final class MoveLearn {
             }));
         }
         o.add(new Battle.Opt("Don't learn", "none", skip));
+        if (!Mod.form(p) && SummaryScreen.art(pl, p)) { // vanilla Java with the UI pack: the Summary's Moves page
+            SummaryScreen.learn(pl, p, new SummaryScreen.Learn(m, move, o.subList(0, 4).stream().map(Battle.Opt::action).toList(), skip));
+            return;
+        }
         if (Mod.form(p)) {
             Mod.send(p, name + " wants to learn " + label + Forms.MARK + 7, "Which move should " + name + " forget?", o,
                     i -> pl.onMain(() -> { if (i >= 0 && i < o.size()) o.get(i).action().run(); }));

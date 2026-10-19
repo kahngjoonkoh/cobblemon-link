@@ -35,7 +35,7 @@ Everything below was played through on a vanilla Java 26.3 client. Every screen 
 | **Wild spawns** | Built from Cobblemon's spawn pools: 1,066 entries for 579 species. They are checked against biome (Cobblemon's biome tags, shipped as a datapack), time of day, rain, sky light and height. A rarity bucket is picked (94.4/5/0.5/0.1, close to Cobblemon's 94.05/5/0.5/0.2), and wild Pokémon are capped per player (default 8). |
 | **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. Cobblemon's flow: Fight / Switch / Catch / Run, then type-coloured move tiles with PP, or the party. Both Pokémon's tiles (portrait, HP), the battle log and your hotbar stay on screen; your own Pokémon is sent out beside you. Wild Pokémon pick random moves. |
 | **Catching** | Throw a Poké Ball at a wild Pokémon, in or out of battle (Catch in the battle menu steps aside so you can throw). Uses the main-series catch formula: catch rate, HP left, and status bonuses. |
-| **Party and PC** | `/party` (6 slots; click a Pokémon for its options) and the PC: 40 boxes of 30 (`pc.boxes`), opened from the party menu or the Pokémon menu; `/pc` is for admins, as in Cobblemon. Move and swap between boxes and the party, sort a box, filter by type, release (with a confirm; never your last Pokémon), rename a box and pick its wallpaper. HP carries over between battles. |
+| **Party and PC** | `/party` opens Cobblemon's Summary, which holds the party, and the PC: 40 boxes of 30 (`pc.boxes`), opened with the Summary's **Open PC** button; `/pc` is for admins, as in Cobblemon. Move and swap between boxes and the party, sort a box, filter by type, release (with a confirm; never your last Pokémon), rename a box and pick its wallpaper. HP carries over between battles. |
 | **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned while there's room; with four moves, you pick one to forget (or don't learn it). Level-based evolutions (310 species): as in Cobblemon, the Pokémon says it's ready and you press Evolve in its Summary. |
 | **Summary** | Opened from the party: Info, Moves and Stats tabs, nickname (click the name card), Send out / Lead / To PC, and the party to switch between. On the Moves tab, click two moves to swap their order. A Pokémon that's ready to evolve gets an **Evolve** button, as in Cobblemon. |
 | **Pokédex** | `/pokedex`: seen (met in battle) and caught counts, every species in national order, and entries for caught ones. On vanilla Java: search, a filter, gender / shiny / form buttons for the ones you've seen, and Abilities, Base stats, Moves and Evolutions tabs (click a tab again for its next part). |
@@ -164,7 +164,7 @@ You need Docker. Accept the [Minecraft EULA](https://aka.ms/MinecraftEULA) befor
 
 | Command | Who | |
 |---|---|---|
-| `/starter`, `/party`, `/pokedex`, `/battle` | everyone | `/party` opens Cobblemon's Summary (Bedrock, client mod) or the party menu; `/battle` reopens the battle menu if you closed it |
+| `/starter`, `/party`, `/pokedex`, `/battle` | everyone | `/party` opens Cobblemon's Summary (a party menu on Java without the UI pack); `/battle` reopens the battle menu if you closed it |
 | `/pokegive <species> [level]`, `/pokespawn <species> [level]`, `/pokeheal`, `/pokeballs [n]`, `/pc` | ops | for testing; `/pc` as Cobblemon's |
 
 At most **12 players** (Java and Bedrock together) can be online at once, which fits a 4-core host at Cobblemon's spawn density; change it with `MAX_PLAYERS=` in `server/.env`.
