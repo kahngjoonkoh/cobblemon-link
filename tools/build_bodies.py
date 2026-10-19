@@ -2,7 +2,8 @@
 
 usage: build_bodies.py COBBLEMON_RESOURCES OUT_DIR   (OUT_DIR/java/*.bbmodel + species.tsv in; out: OUT_DIR/bodies/<name>.png)
 Each is the starter list's tile framing (portrait.TILE: drawProfilePokemon at 25 px), inside its 1 px frame (23 px),
-at 2 px a GUI px: 46 x 46. build_ui.py makes them font glyphs, drawn at 16 px in a box slot and 46 px in the info strip.
+at 4 px a GUI px: 92 x 92, so the 44 px pictures (Summary, Pokédex, the PC's info strip) stay sharp at GUI scale 2-3.
+build_ui.py makes them font glyphs, drawn at 16 px in a box slot and 44 px in the big windows.
 """
 import base64, json, os, sys
 from multiprocessing import Pool
@@ -12,7 +13,7 @@ import looks
 import portrait
 from build_cards import profile_framing
 
-PX = 2
+PX = 4
 
 
 def render(job):
