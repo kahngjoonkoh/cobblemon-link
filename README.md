@@ -70,7 +70,7 @@ Click an image for full size.
 | Move learning¹ | ![](docs/screenshots/compare/move-learning-cobblemon.png) | ![](docs/screenshots/compare/move-learning-java.png) | ![](docs/screenshots/compare/move-learning-java-mod.png) | ![](docs/screenshots/compare/move-learning-bedrock.png) |
 | Evolve | ![](docs/screenshots/compare/evolve-cobblemon.png) | ![](docs/screenshots/compare/evolve-java.png) | ![](docs/screenshots/compare/evolve-java-mod.png) | ![](docs/screenshots/compare/evolve-bedrock.png) |
 | Pokédex | ![](docs/screenshots/compare/pokedex-cobblemon.png) | ![](docs/screenshots/compare/pokedex-java.png) | ![](docs/screenshots/compare/pokedex-java-mod.png) | ![](docs/screenshots/compare/pokedex-bedrock.png) |
-| Party bar | ![](docs/screenshots/compare/party-bar-cobblemon.png) | ![](docs/screenshots/compare/party-bar-java.png) | ![](docs/screenshots/compare/party-bar-java-mod.png) | — (not possible on Bedrock) |
+| Party bar | ![](docs/screenshots/compare/party-bar-cobblemon.png) | ![](docs/screenshots/compare/party-bar-java.png) | ![](docs/screenshots/compare/party-bar-java-mod.png) | Same panel, drawn by the Bedrock UI pack (no screenshot yet; ¾ size from the top on touch screens) |
 
 ¹ Cobblemon has no prompt for this. A new move that doesn't fit goes to the benched moves, and you swap it in from the Summary's Moves tab (shown). cobblemon-link asks which move to forget instead, because it has no benched moves yet.
 
@@ -157,7 +157,7 @@ You need Docker. Accept the [Minecraft EULA](https://aka.ms/MinecraftEULA) befor
    docker compose up -d --build     # first boot generates configs (about a minute) and builds the battle sidecar
    docker compose down && ./setup.sh && docker compose up -d
    ```
-3. Connect. Java: `<host>:25566` (bound to localhost by default; edit `ports` to expose it). Bedrock: `<host>:19133`.
+3. Connect. Java: `<host>:25566` (bound to localhost by default; set `JAVA_BIND=0.0.0.0`, or a Tailscale IP, in `server/.env` to expose it). Bedrock: `<host>:19133`.
 4. Run `/starter`, then right-click (or tap) a wild Pokémon.
 
 **Optional client mod (Java).** Players who add `cobblemon-link-client-<version>.jar` (from the same release) and [Fabric API](https://modrinth.com/mod/fabric-api) to a Fabric 26.3 client get Cobblemon's screens drawn by their own client: the battle menus, the starter screen and the PC at Cobblemon's own layout, with no cursor lag and nothing in the inventory slots. Without it everything works as above. The mod only draws: the server decides everything, and on other servers it does nothing.

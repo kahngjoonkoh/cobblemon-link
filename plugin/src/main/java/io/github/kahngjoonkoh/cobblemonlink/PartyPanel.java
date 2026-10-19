@@ -18,7 +18,9 @@ import org.bukkit.entity.Player;
  * the EXP bar fills, "+N EXP" floats up, the level-up scroll runs over the portrait and the new-move and evolution
  * notices pop up (PartyOverlayDataControl's timings). Hidden in battles (the battle overlay), while a menu is open,
  * and by /partyhud (Cobblemon's O key). Other action bar messages (say()) ride along with it.
- * ponytail: no status icons outside battle, no EXP bar flash; the half-size text has no shadow (half a px).
+ * Bedrock gets the same through its UI pack (build_bedrock_ui.py hud_screen): the panel's values as a subtitle.
+ * ponytail: no status icons outside battle, no EXP bar flash; the half-size text has no shadow (half a px). On Bedrock
+ * "+N EXP" doesn't float, it shows behind forms, and a /title shows the party's subtitle hidden.
  */
 final class PartyPanel {
     // build_hud.py's glyphs
@@ -30,6 +32,10 @@ final class PartyPanel {
     static final int BEFORE = 15, FLASH = 2, POP_IN = 3, POP_HOLD = 40, POP_OUT = 3, LEVEL_UP = 10;
     static final int POPUP = POP_IN + POP_HOLD + POP_OUT, LAST = BEFORE + FLASH + POPUP, EXP_HOLD = BEFORE + FLASH + POPUP - 6;
     private static final Key PORTRAIT = Key.key("cobblemonlink", "portrait_hud");
+    // build_bedrock_ui.py HUD_FIELDS: state, level, name, gender, HP, EXP, scroll, evolution and move pop-ups, "+N EXP"
+    // fade and text, portrait texture
+    static final int[] FIELDS = {1, 3, 12, 1, 2, 2, 2, 2, 2, 1, 11, 76};
+    static final String HIDDEN = "|CL0";
 
     /** A battle's EXP for one Pokémon: its level before (-1: no level up), the EXP, new moves, evolutions unlocked. */
     static final class Gain {
@@ -53,9 +59,9 @@ final class PartyPanel {
 
     PartyPanel(CobblemonLink pl) { this.pl = pl; }
 
-    /** The player gets the panel (vanilla Java with the UI pack, not hidden); the client mod draws its own. */
+    /** The player gets the panel (Bedrock, or vanilla Java with the UI pack; not hidden); the client mod draws its own. */
     boolean on(Player p) {
-        return Ui.partyPanel && !Ui.bedrock(p) && !Mod.has(p) && !pl.store.get(p.getUniqueId()).hideParty;
+        return (Ui.bedrock(p) || Ui.partyPanel && !Mod.has(p)) && !pl.store.get(p.getUniqueId()).hideParty;
     }
 
     void ready(Player p) { ready.add(p.getUniqueId()); }
@@ -77,7 +83,7 @@ final class PartyPanel {
 
     /** An action bar message (3 s): with the panel when it's shown, else as a plain action bar. */
     void say(Player p, String text, boolean red) {
-        if (!on(p) || !shown.contains(p.getUniqueId())) {
+        if (!on(p) || !shown.contains(p.getUniqueId()) || Ui.bedrock(p)) { // Bedrock's action bar is its own
             p.sendActionBar(Component.text(text, red ? net.kyori.adventure.text.format.NamedTextColor.RED : net.kyori.adventure.text.format.NamedTextColor.WHITE));
             return;
         }
@@ -93,10 +99,14 @@ final class PartyPanel {
         for (Player p : Bukkit.getOnlinePlayers()) {
             UUID id = p.getUniqueId();
             Store.Data d = pl.store.get(id);
-            boolean visible = on(p) && ready.contains(id) && !d.party.isEmpty() && !pl.battles.containsKey(id)
+            boolean bedrock = Ui.bedrock(p);
+            boolean visible = on(p) && (bedrock || ready.contains(id)) && !d.party.isEmpty() && !pl.battles.containsKey(id)
                     && !(p.getOpenInventory().getTopInventory().getHolder() instanceof Menu);
             if (!visible) {
-                if (shown.remove(id) && !pl.battles.containsKey(id)) p.sendActionBar(Component.empty());
+                if (shown.remove(id)) {
+                    if (bedrock) p.sendTitlePart(net.kyori.adventure.title.TitlePart.SUBTITLE, Component.text(HIDDEN));
+                    else if (!pl.battles.containsKey(id)) p.sendActionBar(Component.empty());
+                }
                 continue;
             }
             Map<String, Gain> g = gains.getOrDefault(id, Map.of());
@@ -106,7 +116,10 @@ final class PartyPanel {
                 message.remove(id);
                 messageUntil.remove(id);
             }
-            if (!g.isEmpty() || shown.add(id) || now % 10 == 0) p.sendActionBar(draw(p, d, g, now));
+            if (!g.isEmpty() || shown.add(id) || now % 10 == 0) {
+                if (bedrock) p.sendTitlePart(net.kyori.adventure.title.TitlePart.SUBTITLE, Component.text(bedrock(d, g, now)));
+                else p.sendActionBar(draw(p, d, g, now));
+            }
         }
     }
 
@@ -161,6 +174,63 @@ final class PartyPanel {
         Component c = o.build();
         Component msg = message.get(p.getUniqueId());
         return msg == null ? c : Component.text().append(c, msg).build();
+    }
+
+    /** The party for Bedrock's UI pack: "|CL", its size, then six slots of FIELDS, ASCII padded with '~'. */
+    String bedrock(Store.Data d, Map<String, Gain> gains, long now) {
+        int n = Math.min(6, d.party.size());
+        StringBuilder b = new StringBuilder("|CL").append(n);
+        for (int i = 0; i < 6; i++) {
+            if (i >= n) {
+                b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
+                continue;
+            }
+            Mon m = d.party.get(i);
+            Gain g = gains.get(m.id);
+            if (g != null && g.start < 0) g.start = now;
+            long t = g == null ? -1 : now - g.start;
+            String scroll = "0", ev = "-", mv = "-", ea = "-", et = "";
+            if (g != null && g.oldLevel >= 0) {
+                double tr = (t - BEFORE - FLASH) / (double) LEVEL_UP;
+                if (tr >= 0 && tr < 1) scroll = String.valueOf(Math.max(1, (int) Math.ceil(tr * 14)));
+            }
+            if (g != null) {
+                double[] ex = fade(t, POP_IN, EXP_HOLD, POP_OUT);
+                double[] mvf = g.moves > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
+                double[] evf = g.evolutions > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
+                if (ex[1] > 0.25) {
+                    ea = "0";
+                    et = "+" + g.exp + " EXP";
+                }
+                if (evf[1] > 0) ev = step(evf[1]) + (ex[1] > 0 && mvf[1] > 0 ? "b" : "a");
+                if (mvf[1] > 0) mv = step(mvf[1]) + (ex[1] > 0 ? "a" : "b");
+            }
+            boolean fainted = m.fainted(pl.dex);
+            int hp = m.hp(pl.dex), max = Math.max(1, m.maxHp(pl.dex)), h = hp <= 0 ? 0 : Math.max(1, Math.round(BAR * hp / (float) max));
+            String model = m.model(pl.dex);
+            String[] v = {String.valueOf(fainted ? (i == 0 ? 3 : 2) : (i == 0 ? 1 : 0)),
+                    String.valueOf(g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.level), ascii(m.name(pl.dex)),
+                    "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n", two(h), two(Math.round(BAR * expRatio(m, g, t))),
+                    two(Integer.parseInt(scroll)), ev, mv, ea, et,
+                    Ui.portraits.containsKey(model) ? "items/portrait/" + model : "cobblemonlink/none"};
+            for (int k = 0; k < FIELDS.length; k++) {
+                String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
+                b.append(x).append("~".repeat(FIELDS[k] - x.length()));
+            }
+        }
+        return b.toString();
+    }
+
+    private static String step(double opacity) { return String.valueOf(Math.min(7, (int) Math.round((1 - opacity) * 8))); }
+
+    private static String two(int v) { return v < 10 ? "0" + v : String.valueOf(v); }
+
+    /** Plain ASCII without the pack's '~' and '|': Bedrock's UI cuts the subtitle by bytes. */
+    static String ascii(String s) {
+        s = java.text.Normalizer.normalize(s.replace('♀', 'F').replace('♂', 'M'), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        StringBuilder b = new StringBuilder();
+        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' ? c : '?');
+        return b.toString();
     }
 
     /** Cobblemon's EXP bar: filling up to the old level's end, then from 0 to now (level up), else from before to now. */

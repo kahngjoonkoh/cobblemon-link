@@ -10,7 +10,7 @@ ponytail: written from the vanilla server_form.json (Mojang/bedrock-samples); on
 """
 import hashlib, io, json, os, sys, zipfile
 from PIL import Image
-from build_ui import TYPES, TYPE_RGB, tint
+from build_ui import TYPES, TYPE_RGB, tint, hp_colour
 
 MARK = "§r§l§"
 TEX = "textures/cobblemonlink/"
@@ -497,6 +497,141 @@ def server_form():
     }
 
 
+# PartyPanel.java's Bedrock party: a subtitle (one without a title shows nothing) of "|CL", the party's size, then six
+# fixed-width slots of plain ASCII (Bedrock cuts strings by bytes); a field is padded with '~'. Must match PartyPanel.FIELDS.
+HUD_FIELDS = [("st", 1), ("lv", 3), ("nm", 12), ("g", 1), ("hp", 2), ("xp", 2), ("sc", 2), ("ev", 2), ("mv", 2),
+              ("ea", 1), ("et", 11), ("pt", 76)]
+HUD_SLOT = sum(w for _, w in HUD_FIELDS)
+HUD_T = "((#hud_subtitle_text_string - '§r') - '§f')"  # less any reset/white codes Geyser puts in
+
+
+def hud_cut(k, n):
+    """n characters from k: the text less its first k (unique: they start with '|CL'), then the first n of that."""
+    return f"('%.{n}s' * ({HUD_T} - ('%.{k}s' * {HUD_T})))"
+
+
+def hud_field(i, name, part=None):
+    k = 4 + HUD_SLOT * i
+    for f, w in HUD_FIELDS:
+        if f == name:
+            return hud_cut(k + part, 1) if part is not None else hud_cut(k, w)
+        k += w
+
+
+def hud_slot(i, y, s, anchor):
+    """Slot i's controls at y (from the anchor) at scale s, as PartyPanel.draw lays them out."""
+    sel = 6 if i == 0 else 0
+    glob = {"binding_name": "#hud_subtitle_text_string"}
+
+    def put(c, x, yy, w, h, layer, binds=()):
+        c.update({"size": [w * s, h * s], "offset": [x * s, (yy + y) * s], "anchor_from": anchor, "anchor_to": "top_left",
+                  "layer": layer})
+        if binds:
+            c["bindings"] = [glob] + list(binds)
+        return c
+
+    def img(tex, x, yy, w, h, layer, tex_expr=None, show=None):
+        c = {"type": "image"}
+        if tex:
+            c["texture"] = TEX + tex
+        binds = []
+        if tex_expr:
+            binds.append({"binding_type": "view", "source_property_name": f"('{TEX}' + {tex_expr})", "target_property_name": "#texture"})
+        if show:
+            binds.append(visible(show))
+        return put(c, x, yy, w, h, layer, binds)
+
+    def text(expr, x, yy, w, align, show=None):
+        c = {"type": "label", "text": "#text", "color": [1, 1, 1], "shadow": True, "localize": False,
+             "font_scale_factor": 0.5 * s, "text_alignment": align}
+        binds = [{"binding_type": "view", "source_property_name": f"({expr} - '~')", "target_property_name": "#text"}]
+        if show:
+            binds.append(visible(show))
+        return put(c, x, yy, w, 5, 5, binds)
+
+    f = lambda n, part=None: hud_field(i, n, part)
+    portrait = {"type": "image", "bindings": [glob, {"binding_type": "view", "target_property_name": "#texture",
+                "source_property_name": f"('textures/' + ({f('pt')} - '~'))"}]}
+    c = [
+        img("hud/portrait_bg", 22 + sel, 2, 21, 21, 1),
+        put(portrait, 22 + sel, 2, 21, 21, 2),
+        img(None, 0, 0, 62, 30, 3, f"'hud/slot_' + {f('st')}"),
+        img(None, 24 + sel, 4, 17, 17, 4, f"'hud/scroll_' + {f('sc')}", f"(not ({f('sc')} = '00'))"),
+        text("'Lv.'", sel - 3, 13, 20, "center"),
+        text(f("lv"), sel - 3, 18, 20, "center"),
+        text(f("nm"), sel + 2, 25, 40, "left"),
+        img(None, sel + 40, 22, 2.5, 3.5, 5, f"'hud/g_' + {f('g')}", f"(not ({f('g')} = 'n'))"),
+        img("hud/ball", sel + 43, 22, 9, 11, 5),
+        img(None, sel + 46, 5, 2, 18, 4, f"'hud/hp_' + {f('hp')}", f"(not ({f('hp')} = '00'))"),
+        img(None, sel + 49, 5, 1, 18, 4, f"'hud/exp_' + {f('xp')}", f"(not ({f('xp')} = '00'))"),
+        text(f("et"), sel + 57, 17, 40, "left", f"(not ({f('ea')} = '-'))"),
+    ]
+    for kind, spots in (("ev", ((56, 4, "a"), (78, 4, "b"))), ("mv", ((56, 4, "a"), (56, 17, "b")))):
+        for x, yy, pos in spots:  # PartyPanel.draw moves a pop-up aside for the other one or "+N EXP"
+            c.append(img(None, sel + x, yy, 18.5, 10, 6, f"'hud/{kind}_' + {f(kind, 0)}",
+                         f"((not ({f(kind, 0)} = '-')) and ({f(kind, 1)} = '{pos}'))"))
+    return [{f"s{i}_{k}": x} for k, x in enumerate(c)]
+
+
+def hud_screen():
+    """The party down the left edge (PartyOverlay: centred, so a column per party size); on a touch screen at 3/4 size
+    from the top, clear of the D-pad. The subtitle that carries it is hidden."""
+    count = hud_cut(3, 1)
+    desktop = []
+    for n in range(1, 7):
+        top = -n * 15 - 10
+        desktop.append({f"n{n}": {"type": "panel", "size": ["100%", "100%"],
+            "bindings": [{"binding_name": "#hud_subtitle_text_string"}, visible(f"({count} = '{n}')")],
+            "controls": [c for i in range(n) for c in hud_slot(i, top + 34 * i, 1, "left_middle")]}})
+    touch = [{f"t{i}": {"type": "panel", "size": ["100%", "100%"],
+              "bindings": [{"binding_name": "#hud_subtitle_text_string"},
+                           visible(" and ".join(f"(not ({count} = '{k}'))" for k in range(i + 1)))],
+              "controls": hud_slot(i, 8 / 0.75 + 34 * i, 0.75, "top_left")}} for i in range(6)]
+    party = {"type": "panel", "size": ["100%", "100%"], "layer": 1,
+             "bindings": [{"binding_name": "#hud_subtitle_text_string"}, visible(f"(not ({HUD_T} = ({HUD_T} - '|CL')))")],
+             "controls": [{"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": desktop}},
+                          {"touch": {"type": "panel", "size": ["100%", "100%"], "ignored": "(not $touch)", "controls": touch}}]}
+    sub = {"type": "label", "anchor_from": "top_middle", "anchor_to": "top_middle", "color": "$title_command_text_color",
+           "text": "#text", "layer": 31, "localize": False, "font_size": "large", "shadow": "$title_shadow",
+           "text_alignment": "center", "offset": [1, 19],
+           "bindings": [{"binding_name": "#hud_subtitle_text_string", "binding_name_override": "#text", "binding_type": "global"}]}
+    subtitle = {"type": "panel", "size": ["100%", "100%cm"], "controls": [{"subtitle": sub}],  # Mojang's, without the party
+                "bindings": [{"binding_name": "#hud_subtitle_text_string"},
+                             visible(f"({HUD_T} = ({HUD_T} - '|CL'))")]}
+    return {"namespace": "hud",
+            "cl_party": party,
+            "root_panel": {"modifications": [{"array_name": "controls", "operation": "insert_back",
+                                              "value": [{"cl_party@hud.cl_party": {}}]}]},
+            "hud_title_text": {"modifications": [{"array_name": "controls", "operation": "replace",
+                                                  "where": {"control_name": "subtitle_frame"},
+                                                  "value": {"subtitle_frame": subtitle}}]}}
+
+
+def hud_art(gui, png, hp_colour):
+    o = lambda n: Image.open(f"{gui}/party/{n}.png").convert("RGBA")
+    for k, n in enumerate(("party_slot", "party_slot_active", "party_slot_fainted", "party_slot_fainted_active")):
+        png(f"hud/slot_{k}", o(n))
+    png("hud/portrait_bg", o("party_slot_portrait_background"))
+    png("hud/g_m", o("party_gender_male"))
+    png("hud/g_f", o("party_gender_female"))
+    png("hud/ball", Image.open(f"{gui}/ball/poke_ball.png").convert("RGBA").crop((0, 0, 18, 22)))
+    strip = o("party_slot_portrait_level_up")
+    from build_hud import scroll, BAR
+    for step in range(1, 15):
+        png(f"hud/scroll_{step:02d}", scroll(strip, step))
+    exp = (int(0.2 * 255), int(0.65 * 255), int(0.84 * 255), 255)
+    for h in range(1, BAR + 1):
+        for kind, w, rgba in (("hp", 2, hp_colour(h / BAR) + (255,)), ("exp", 1, exp)):
+            bar = Image.new("RGBA", (w, BAR))
+            bar.paste(rgba, (0, BAR - h, w, BAR))
+            png(f"hud/{kind}_{h:02d}", bar)
+    for kind, n in (("ev", "party_slot_notification_evolution"), ("mv", "party_slot_notification_new_move")):
+        img = o(n)
+        for fade in range(8):  # PartyPanel's fade steps: 0 opaque, 7 nearly gone
+            a = img.getchannel("A").point(lambda v: v * (8 - fade) // 8)
+            png(f"hud/{kind}_{fade}", Image.merge("RGBA", img.split()[:3] + (a,)))
+
+
 def portrait_names(out):
     src = os.path.join(os.path.dirname(out), "portraits")
     return sorted(n[:-4] for n in os.listdir(src) if not n.endswith("_r.png")) if os.path.isdir(src) else []
@@ -562,6 +697,7 @@ def build(gui, out):
     pc_art(gui, png, out)  # PcScreen.bedrock
     summary_art(gui, png)  # SummaryScreen
     dex_art(gui, png)  # PokedexScreen
+    hud_art(gui, png, hp_colour)  # PartyPanel
     for n in ("party_slot", "party_slot_active", "party_slot_fainted", "party_slot_fainted_active",
               "party_slot_portrait_background", "party_gender_male", "party_gender_female"):  # the client mod's party HUD
         png("party/" + n, Image.open(f"{gui}/party/{n}.png").convert("RGBA"))
@@ -583,6 +719,7 @@ def build(gui, out):
         "texture_data": textures}, indent=1).encode()
 
     files["ui/server_form.json"] = json.dumps(server_form(), indent=1, ensure_ascii=False).encode()
+    files["ui/hud_screen.json"] = json.dumps(hud_screen(), indent=1, ensure_ascii=False).encode()
     # Bedrock keeps a pack by uuid + version: a content-derived patch number makes every change a new download
     digest = hashlib.sha1(b"".join(k.encode() + files[k] for k in sorted(files))).digest()
     ver = [1, 0, int.from_bytes(digest[:3]) % 1000000]
@@ -601,6 +738,8 @@ if __name__ == "__main__":
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
     g = f["cl_starter"]["controls"][-1]["list"]
     assert g["offset"][1] + 44 == 27 and g["grid_dimensions"] == [3, 4], "first tile row at the list's top (27)"
+    assert HUD_SLOT == 115 and hud_field(1, "lv") == hud_cut(4 + 115 + 1, 3), "PartyPanel.FIELDS' layout"
+    assert all(len("items/portrait/" + n) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
     files = build(sys.argv[1], sys.argv[2])
     print(f"bedrock ui pack: {len(files)} files -> {sys.argv[2]}")
     mappings = os.path.join(os.path.dirname(sys.argv[2]), "geyser-mappings.json")  # -> Geyser's custom_mappings/

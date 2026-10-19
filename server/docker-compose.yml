@@ -6,6 +6,7 @@
 # Optional .env next to this file:
 #   PACK_URL=https://your.host/build.zip   public URL of data/plugins/BetterModel/build.zip for Java players
 #   PACK_BIND=0.0.0.0                       let the bundled pack server listen beyond localhost
+#   JAVA_BIND=0.0.0.0                       let Java players connect from other machines
 #   MEMORY=3G
 #   ONLINE_MODE=FALSE                       only for local bot testing; never on a reachable server
 
@@ -34,7 +35,7 @@ services:
       - ../assets/datapack:/datapacks:ro
     depends_on: [sim]
     ports:
-      - "127.0.0.1:25566:25565"     # Java
+      - "${JAVA_BIND:-127.0.0.1}:25566:25565"     # Java
       - "19133:19132/udp"           # Bedrock (Geyser); 19133 so it can sit beside a normal server
     restart: unless-stopped
     # Safe shutdown: mc-server-runner stops Paper by typing "stop" on its console, which needs
