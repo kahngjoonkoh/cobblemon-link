@@ -37,6 +37,7 @@ import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
@@ -68,6 +69,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Store store;
     PcScreen pc;
     PartyPanel panel;
+    PokeBalls balls;
     Spawner spawner;
     Companions companions;
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
@@ -88,6 +90,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
         pc = new PcScreen(this);
         panel = new PartyPanel(this);
+        balls = new PokeBalls(this);
         Mod.enable(this);
         spawner = new Spawner(this);
         companions = new Companions(this);
@@ -106,6 +109,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, this::showStarterToasts, 40, 40);
         Bukkit.getScheduler().runTaskTimer(this, this::unlockWallpapers, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, () -> panel.tick(), 20, 1); // Cobblemon's party overlay, vanilla Java
+        Bukkit.getScheduler().runTaskTimer(this, () -> balls.tick(), 1, 1); // thrown Poké Balls' models
         Bukkit.getScheduler().runTaskTimer(this, () -> Bukkit.getOnlinePlayers().forEach(Mod::hud), 20, 10); // the mod's party overlay
         registerCommands();
         buildIcons();
@@ -366,32 +370,44 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (spawner.isWild(e.getEntity())) e.setCancelled(true); // lightning would turn the pig into a piglin
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onBallThrow(ProjectileLaunchEvent e) {
+        if (e.getEntity() instanceof Snowball ball && isBall(ball.getItem()) && ball.getShooter() instanceof Player) balls.launch(ball);
+    }
+
     @EventHandler
     public void onBallHit(ProjectileHitEvent e) {
         if (!(e.getEntity() instanceof Snowball ball) || !isBall(ball.getItem())) return;
-        Entity hit = e.getHitEntity();
-        if (hit == null || !spawner.isWild(hit) || !(ball.getShooter() instanceof Player p)) return;
+        Entity model = balls.land(ball), hit = e.getHitEntity();
+        if (hit == null || !spawner.isWild(hit) || !(ball.getShooter() instanceof Player p) || balls.capturing(hit)) {
+            if (model != null) model.remove(); // ponytail: a miss just vanishes (Cobblemon's ball drops to the ground)
+            return;
+        }
         e.setCancelled(true);
         ball.remove();
         Battle mine = battles.get(p.getUniqueId());
         if (mine != null && mine.wildEntity.equals(hit)) {
-            mine.ballHit();
+            mine.ballHit(model);
             return;
         }
         if (inBattle(hit)) {
+            if (model != null) model.remove();
             p.sendMessage(Component.text("That Pokémon is already in a battle.", NamedTextColor.RED));
             return;
         }
         Mon wild = spawner.monOf(hit);
         double chance = Rules.catchChance(dex.of(wild).catchRate, wild.hp(dex), wild.maxHp(dex), "");
-        if (ThreadLocalRandom.current().nextDouble() < chance) {
-            boolean toParty = store.give(p.getUniqueId(), wild);
-            hit.remove();
-            p.sendMessage(Component.text("Gotcha! " + wild.name(dex) + " (Lv." + wild.level + ") was caught!"
-                    + (toParty ? "" : " It was sent to the PC."), NamedTextColor.GREEN));
-        } else {
-            p.sendMessage(Component.text("The wild " + wild.name(dex) + " broke free! Weaken it in battle first.", NamedTextColor.YELLOW));
-        }
+        balls.capture(model, hit, Rules.shakes(chance, ThreadLocalRandom.current()), caught -> {
+            if (!hit.isValid() || !p.isOnline()) return;
+            if (caught) {
+                boolean toParty = store.give(p.getUniqueId(), wild);
+                hit.remove();
+                p.sendMessage(Component.text("Gotcha! " + wild.name(dex) + " (Lv." + wild.level + ") was caught!"
+                        + (toParty ? "" : " It was sent to the PC."), NamedTextColor.GREEN));
+            } else {
+                p.sendMessage(Component.text("The wild " + wild.name(dex) + " broke free! Weaken it in battle first.", NamedTextColor.YELLOW));
+            }
+        });
     }
 
     /** ponytail: beds heal (any time you lie down); a Pokémon Center block is the upgrade. */

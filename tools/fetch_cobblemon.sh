@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download the Cobblemon resources build_all.py and build_data.py need (models, animations, posers,
+# Download the Cobblemon resources build_all.py and build_data.py need (models, animations, posers, the Poké Ball model,
 # resolvers, textures, battle GUI art, Poké Ball items, species and their features, spawn pools, biome tags, lang) at one commit, without cloning the whole repo.
 # usage: fetch_cobblemon.sh COMMIT_SHA DEST
 set -euo pipefail
@@ -8,6 +8,7 @@ api=https://gitlab.com/api/v4/projects/31496946/repository/archive.tar.gz   # ca
 base=common/src/main/resources
 mkdir -p "$dest"
 for p in assets/cobblemon/bedrock/pokemon assets/cobblemon/textures/pokemon assets/cobblemon/textures/gui \
+         assets/cobblemon/bedrock/poke_balls assets/cobblemon/textures/poke_balls \
          assets/cobblemon/textures/item/poke_balls assets/cobblemon/models/item data/cobblemon/species \
          data/cobblemon/species_features data/cobblemon/species_feature_assignments \
          data/cobblemon/spawn_pool_world data/cobblemon/tags/worldgen/biome assets/cobblemon/lang; do

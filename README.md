@@ -19,6 +19,8 @@ This repo takes a third approach:
 - **Bedrock:** [GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine) turns the same models into native Bedrock custom entities. Geyser pushes the Bedrock pack automatically.
 - **Models** are Cobblemon's own. They are already in Bedrock geometry format and are converted for Java by [`tools/geo2bb.py`](tools/geo2bb.py).
 
+**Free and non-commercial, for everyone.** cobblemon-link is free and open source, and it will stay that way. Anyone can play, on vanilla Java, Java with the optional mod, or Bedrock, and anyone can host it. There are no paid perks, stores or premium versions. Cobblemon's art is licensed for non-commercial use only (see [License](#license)), so servers running cobblemon-link must not sell anything that uses it.
+
 ## Current state: playable core
 
 Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/cobblemon/-/commit/910551ee70bd2853532ea782a20420fef475ce4b) (2026-10-15, after 1.8.2), pinned in [`COBBLEMON_COMMIT`](COBBLEMON_COMMIT).

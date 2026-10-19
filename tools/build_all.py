@@ -13,7 +13,11 @@ import geo2bb
 import looks
 import portrait
 
-BEDROCK_ANIM = re.compile(r"q\.bedrock\('([^']+)',\s*'([^']+)'")
+BEDROCK_ANIM = re.compile(r"q\.bedrock(?:_primary|_stateful)?\('([^']+)',\s*'([^']+)'")
+# PokemonEntity.playAnimation's names in a poser's "animations" (BattleAnimations: a move by category, hit, faint)
+BATTLE = ('cry', 'recoil', 'faint', 'physical', 'special')
+# Cobblemon's Poké Ball (PokeBallModel, EmptyPokeBallEntity): its idle is shut_idle; 'throw' loops in flight
+BALL = ('throw', 'open', 'shut', 'bounce', 'bob1', 'bob2', 'bob3', 'capture', 'break')
 KT_SCALE = re.compile(r"portraitScale\s*=\s*([-\d.]+)F?")
 KT_TRANSLATION = re.compile(r"portraitTranslation\s*=\s*Vec3\(\s*([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\s*\)")
 
@@ -34,11 +38,11 @@ def index(pattern, key):
     return {key(p): p for p in glob.glob(pattern, recursive=True)}
 
 
-def pose_anims(poser, want, avoid=('battle', 'surface', 'water', 'swim', 'fly', 'hover', 'sleep', 'shoulder', 'ride')):
-    """First q.bedrock(...) of the first pose with poseType `want` whose name avoids special states."""
+def pose_anims(poser, want, avoid=('battle', 'surface', 'water', 'swim', 'fly', 'hover', 'sleep', 'shoulder', 'ride'), need=''):
+    """First q.bedrock(...) of the first pose with poseType `want` whose name avoids special states (and has `need`)."""
     poses = sorted(poser.get('poses', {}).items(), key=lambda kv: 'NONE' not in kv[1].get('poseTypes', []))
     for pname, p in poses:
-        if want in p.get('poseTypes', []) and not any(w in pname.lower() for w in avoid):
+        if want in p.get('poseTypes', []) and need in pname.lower() and not any(w in pname.lower() for w in avoid):
             for a in p.get('animations', []):
                 m = BEDROCK_ANIM.search(a if isinstance(a, str) else a.get('animation', ''))
                 if m:
@@ -68,11 +72,20 @@ def plan(res):
             anims = {}
             for dst, want, fallback in (('idle', 'STAND', 'ground_idle'), ('walk', 'WALK', 'ground_walk')):
                 anims[dst] = pose_anims(poser, want) or (poser_name, fallback)
+            anims['battle_idle'] = pose_anims(poser, 'STAND', avoid=('water', 'fly', 'hover'), need='battle') or (poser_name, 'battle_idle')
+            for dst in BATTLE:
+                m = BEDROCK_ANIM.search(poser.get('animations', {}).get(dst, ''))
+                anims[dst] = m.groups() if m else (poser_name, dst)
             anims = {k: (anim_files[f], a) for k, (f, a) in anims.items() if f in anim_files}
             framing = (poser['portraitScale'], poser.get('portraitTranslation', [0, 0, 0])) if 'portraitScale' in poser \
                 else kotlin.get(poser_name, (1.0, [0.0, 0.0, 0.0]))
             tex = [f"{A}/{t.split(':')[1]}" for t in [looks.first_frame(texture)] + looks.layers(rs_by[species], set(aspects))]
             jobs.append((name, models[geo], tex, scales.get(species, 1.0), anims, framing))
+    B = f'{A}/bedrock/poke_balls'
+    if os.path.exists(f'{B}/models/poke_ball.geo.json'):  # no portraits: it isn't a Pokémon
+        anims = {dst: (f'{B}/animations/poke_ball.animation.json', dst) for dst in BALL} | \
+                {'idle': (f'{B}/animations/poke_ball.animation.json', 'shut_idle')}
+        jobs.append(('poke_ball', f'{B}/models/poke_ball.geo.json', [f'{A}/textures/poke_balls/poke_ball.png'], 1.0, anims, None))
     return jobs
 
 
@@ -101,14 +114,16 @@ def build(job, out):
         for dst, (f, a) in anim_refs.items():
             src = json.load(open(f))['animations']
             key = next((k for k in src if k.endswith('.' + a)), None)
-            if key:
+            # ponytail: a battle animation over 8 s (Charizard's 40 s battle_idle) is left out: Java keeps every
+            # sampled keyframe in memory; the plugin falls back to idle
+            if key and (dst in ('idle', 'walk') or float(src[key].get('animation_length', 0)) <= 8):
                 anims[dst] = src[key]
         geo = json.load(open(geo_p))['minecraft:geometry'][0]
         png = texture(tex_p)
         bb, g, an, dropped = geo2bb.convert(geo, anims, png, name, scale)
         geo2bb.write(name, bb, g, an, png, f'{out}/java', f'{out}/bedrock')
         os.makedirs(f'{out}/portraits', exist_ok=True)
-        for suffix, rev in (('', False), ('_r', True)):
+        for suffix, rev in (('', False), ('_r', True)) if framing else ():
             portrait.render(bb, png, *framing, scale, rev).save(f'{out}/portraits/{name}{suffix}.png')
         return f'{name}\t{scale}\t{",".join(anims)}\t{len(dropped)}\tok'
     except Exception as e:  # one broken species must not stop the other thousand
@@ -136,6 +151,8 @@ def demo():
     assert pose_anims(poser, 'STAND') == ('x', 'ground_idle')
     assert pose_anims(poser, 'WALK') == ('x', 'ground_walk')
     assert pose_anims({}, 'STAND') is None
+    assert pose_anims(poser, 'STAND', avoid=(), need='battle') == ('x', 'battle_idle')
+    assert BEDROCK_ANIM.search("q.bedrock_primary('ivysaur', 'faint', q.curve('one'))").groups() == ('ivysaur', 'faint')
 
 
 if __name__ == '__main__':

@@ -144,7 +144,7 @@ def starter_form():
     hint = lambda tex: [{"default": image(tex, (106, 14))}, {"hover": image(tex + "_hover", (106, 14))},
                         {"pressed": image(tex + "_hover", (106, 14))}]
     arrow = lambda tex: [{s: image(tex, (7, 4), (0, 0), 2)} for s in ("default", "hover", "pressed")]
-    return {"type": "panel", "size": [239, 197], "anchor_from": "center", "anchor_to": "center",
+    return {"type": "panel", "size": [239, 197], "anchor_from": "center", "anchor_to": "center", "collection_name": "form_buttons",
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}4') = #title_text))")],
             "controls": [
                 {"base": image("starter_base", (239, 197))},
@@ -266,6 +266,7 @@ def pc_form():
     for i in range(6):
         c.append(slot(PC_PARTY0 + i, *pc_party_xy(i)))
     return {"type": "panel", "size": [349, 205], "anchor_from": "center", "anchor_to": "center",
+            "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}5') = #title_text))")], "controls": c}
 
 
@@ -350,6 +351,7 @@ def summary_form():
         c.append(at(SUM_ROWS + 3 * r, label("#form_button_text", (lx, ly), (45, 7), 0.5, "left", BUTTON_TEXT, layer=5)))
         c.append(at(SUM_ROWS + 3 * r + 1, label("#form_button_text", (vx, vy), (80, 7), 0.5, "left", BUTTON_TEXT, layer=5)))
     return {"type": "panel", "size": [331, 161], "anchor_from": "center", "anchor_to": "center",
+            "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}6') = #title_text))")], "controls": c}
 
 
@@ -381,6 +383,7 @@ def learn_form():
         c.append(pc_button(k, (12, 12 + 6 + 25 * k), (110, 22), None, "#t", (0, 7)))
     c.append(pc_button(4, (68, 12 + 113), (60, 28), None, "#t", (0, 10)))
     return {"type": "panel", "size": [134, 160], "anchor_from": "center", "anchor_to": "center",
+            "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}7') = #title_text))")], "controls": c}
 
 
@@ -424,6 +427,7 @@ def dex_form():
     for k in range(25):
         c.append({f"s{k}@server_form.cl_dex_slot": {"collection_index": 8 + k, "offset": [26 + 27 * (k % 5), 39 + 27 * (k // 5)]}})
     return {"type": "panel", "size": [345, 207], "anchor_from": "center", "anchor_to": "center",
+            "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}8') = #title_text))")], "controls": c}
 
 
@@ -497,120 +501,132 @@ def server_form():
     }
 
 
-# PartyPanel.java's Bedrock party: a subtitle (one without a title shows nothing) of "|CL", the party's size, then six
+# PartyPanel.java's Bedrock party: a title (its display hidden; a subtitle alone never reaches the HUD) of "|CL", the party's size, then six
 # fixed-width slots of plain ASCII (Bedrock cuts strings by bytes); a field is padded with '~'. Must match PartyPanel.FIELDS.
-HUD_FIELDS = [("st", 1), ("lv", 3), ("nm", 12), ("g", 1), ("hp", 2), ("xp", 2), ("sc", 2), ("ev", 2), ("mv", 2),
+# No field is all digits: Bedrock turns those into numbers, which a picture's name or a comparison can't use, so a
+# number field starts with a letter (n party size, a-d slot, L level, h HP, x EXP, s scroll; pop-up fades a-h).
+HUD_FIELDS = [("st", 1), ("lv", 4), ("nm", 12), ("g", 1), ("hp", 3), ("xp", 3), ("sc", 3), ("ev", 2), ("mv", 2),
               ("ea", 1), ("et", 11), ("pt", 76)]
+HUD_HEAD = 5  # "|CL", then n and the party's size
 HUD_SLOT = sum(w for _, w in HUD_FIELDS)
-HUD_T = "((#hud_subtitle_text_string - '§r') - '§f')"  # less any reset/white codes Geyser puts in
+HUD_T = "#hud_title_text_string"
+# Bedrock folds whatever follows a '%.Ns' cut into the cut (a cut then "- '~'" strips first, cuts after), so every
+# field is a chain of one-step view bindings through a control's own properties: the title less Geyser's colour code,
+# less the field's start, cut to its width, then used.
 
 
-def hud_cut(k, n):
-    """n characters from k: the text less its first k (unique: they start with '|CL'), then the first n of that."""
-    return f"('%.{n}s' * ({HUD_T} - ('%.{k}s' * {HUD_T})))"
+def view(src, dst):
+    return {"binding_type": "view", "source_property_name": src, "target_property_name": dst}
+
+
+def hud_chain(fields):
+    """Bindings putting each (start, width) of fields in #cl_f0, #cl_f1, ... (and a property bag for them)."""
+    b = [{"binding_name": HUD_T}, view(f"(({HUD_T} - '§r') - '§f')", "#cl_t")]
+    for j, (k, n) in enumerate(fields):
+        b += [view(f"(#cl_t - ('%.{k}s' * #cl_t))", f"#cl_a{j}"), view(f"('%.{n}s' * #cl_a{j})", f"#cl_f{j}")]
+    bag = {"#cl_t": ""} | {f"#cl_{x}{j}": "" for j in range(len(fields)) for x in "af"}
+    return b, bag
 
 
 def hud_field(i, name, part=None):
-    k = 4 + HUD_SLOT * i
+    """(start, width) of slot i's field (or its part-th character) in the title, less its colour code."""
+    k = HUD_HEAD + HUD_SLOT * i
     for f, w in HUD_FIELDS:
         if f == name:
-            return hud_cut(k + part, 1) if part is not None else hud_cut(k, w)
+            return (k + part, 1) if part is not None else (k, w)
         k += w
 
 
 def hud_slot(i, y, s, anchor):
     """Slot i's controls at y (from the anchor) at scale s, as PartyPanel.draw lays them out."""
     sel = 6 if i == 0 else 0
-    glob = {"binding_name": "#hud_subtitle_text_string"}
+    f = lambda n, part=None: hud_field(i, n, part)
 
-    def put(c, x, yy, w, h, layer, binds=()):
+    def put(c, x, yy, w, h, layer, fields=(), finals=()):
+        """finals: (source using #cl_f0..., target property), after the fields' chain."""
         c.update({"size": [w * s, h * s], "offset": [x * s, (yy + y) * s], "anchor_from": anchor, "anchor_to": "top_left",
                   "layer": layer})
-        if binds:
-            c["bindings"] = [glob] + list(binds)
+        if fields:
+            b, bag = hud_chain(fields)
+            c["bindings"] = b + [view(src, dst) for src, dst in finals]
+            c["property_bag"] = bag
         return c
 
-    def img(tex, x, yy, w, h, layer, tex_expr=None, show=None):
+    def img(tex, x, yy, w, h, layer, fields=(), tex_expr=None, show=None):
         c = {"type": "image"}
         if tex:
             c["texture"] = TEX + tex
-        binds = []
-        if tex_expr:
-            binds.append({"binding_type": "view", "source_property_name": f"('{TEX}' + {tex_expr})", "target_property_name": "#texture"})
-        if show:
-            binds.append(visible(show))
-        return put(c, x, yy, w, h, layer, binds)
+        finals = ([(f"('{TEX}' + {tex_expr})", "#texture")] if tex_expr else []) + ([(show, "#visible")] if show else [])
+        return put(c, x, yy, w, h, layer, fields, finals)
 
-    def text(expr, x, yy, w, align, show=None):
-        c = {"type": "label", "text": "#text", "color": [1, 1, 1], "shadow": True, "localize": False,
+    def text(x, yy, w, align, fields=(), src=None, show=None, static=None):
+        c = {"type": "label", "text": static or "#text", "color": [1, 1, 1], "shadow": True, "localize": False,
              "font_scale_factor": 0.5 * s, "text_alignment": align}
-        binds = [{"binding_type": "view", "source_property_name": f"({expr} - '~')", "target_property_name": "#text"}]
-        if show:
-            binds.append(visible(show))
-        return put(c, x, yy, w, 5, 5, binds)
+        finals = ([(src, "#text")] if src else []) + ([(show, "#visible")] if show else [])
+        return put(c, x, yy, w, 5, 5, fields, finals)
 
-    f = lambda n, part=None: hud_field(i, n, part)
-    portrait = {"type": "image", "bindings": [glob, {"binding_type": "view", "target_property_name": "#texture",
-                "source_property_name": f"('textures/' + ({f('pt')} - '~'))"}]}
+    tex = lambda name, prefix: ([f(name)], f"'{prefix}' + #cl_f0")
     c = [
         img("hud/portrait_bg", 22 + sel, 2, 21, 21, 1),
-        put(portrait, 22 + sel, 2, 21, 21, 2),
-        img(None, 0, 0, 62, 30, 3, f"'hud/slot_' + {f('st')}"),
-        img(None, 24 + sel, 4, 17, 17, 4, f"'hud/scroll_' + {f('sc')}", f"(not ({f('sc')} = '00'))"),
-        text("'Lv.'", sel - 3, 13, 20, "center"),
-        text(f("lv"), sel - 3, 18, 20, "center"),
-        text(f("nm"), sel + 2, 25, 40, "left"),
-        img(None, sel + 40, 22, 2.5, 3.5, 5, f"'hud/g_' + {f('g')}", f"(not ({f('g')} = 'n'))"),
+        put({"type": "image"}, 22 + sel, 2, 21, 21, 2, [f("pt")], [("('textures/' + (#cl_f0 - '~'))", "#texture")]),
+        img(None, 0, 0, 62, 30, 3, *tex("st", "hud/slot_")),
+        img(None, 24 + sel, 4, 17, 17, 4, *tex("sc", "hud/scroll_"), "(not (#cl_f0 = 's00'))"),
+        text(sel - 3, 13, 20, "center", static="Lv."),
+        # "L19~" less '~' then 'L' leaves "19", which Bedrock makes a number a label won't show: '§r' + it is text
+        text(sel - 3, 18, 20, "center", [f("lv")], "('§r' + ((#cl_f0 - '~') - 'L'))"),
+        text(sel + 2, 25, 40, "left", [f("nm")], "(#cl_f0 - '~')"),
+        img(None, sel + 40, 22, 2.5, 3.5, 5, *tex("g", "hud/g_"), "(not (#cl_f0 = 'n'))"),
         img("hud/ball", sel + 43, 22, 9, 11, 5),
-        img(None, sel + 46, 5, 2, 18, 4, f"'hud/hp_' + {f('hp')}", f"(not ({f('hp')} = '00'))"),
-        img(None, sel + 49, 5, 1, 18, 4, f"'hud/exp_' + {f('xp')}", f"(not ({f('xp')} = '00'))"),
-        text(f("et"), sel + 57, 17, 40, "left", f"(not ({f('ea')} = '-'))"),
+        img(None, sel + 46, 5, 2, 18, 4, *tex("hp", "hud/hp_"), "(not (#cl_f0 = 'h00'))"),
+        img(None, sel + 49, 5, 1, 18, 4, *tex("xp", "hud/exp_"), "(not (#cl_f0 = 'x00'))"),
+        text(sel + 57, 17, 40, "left", [f("et"), f("ea")], "(#cl_f0 - '~')", "(not (#cl_f1 = '-'))"),
     ]
     for kind, spots in (("ev", ((56, 4, "a"), (78, 4, "b"))), ("mv", ((56, 4, "a"), (56, 17, "b")))):
         for x, yy, pos in spots:  # PartyPanel.draw moves a pop-up aside for the other one or "+N EXP"
-            c.append(img(None, sel + x, yy, 18.5, 10, 6, f"'hud/{kind}_' + {f(kind, 0)}",
-                         f"((not ({f(kind, 0)} = '-')) and ({f(kind, 1)} = '{pos}'))"))
+            c.append(img(None, sel + x, yy, 18.5, 10, 6, [f(kind, 0), f(kind, 1)], f"'hud/{kind}_' + #cl_f0",
+                         f"((not (#cl_f0 = '-')) and (#cl_f1 = '{pos}'))"))
     return [{f"s{i}_{k}": x} for k, x in enumerate(c)]
+
+
+def hud_panel(fields, show, controls):
+    b, bag = hud_chain(fields)
+    return {"type": "panel", "size": ["100%", "100%"], "bindings": b + [view(show, "#visible")], "property_bag": bag,
+            "controls": controls}
 
 
 def hud_screen():
     """The party down the left edge (PartyOverlay: centred, so a column per party size); on a touch screen at 3/4 size
-    from the top, clear of the D-pad. The subtitle that carries it is hidden."""
-    count = hud_cut(3, 1)
-    desktop = []
-    for n in range(1, 7):
-        top = -n * 15 - 10
-        desktop.append({f"n{n}": {"type": "panel", "size": ["100%", "100%"],
-            "bindings": [{"binding_name": "#hud_subtitle_text_string"}, visible(f"({count} = '{n}')")],
-            "controls": [c for i in range(n) for c in hud_slot(i, top + 34 * i, 1, "left_middle")]}})
-    touch = [{f"t{i}": {"type": "panel", "size": ["100%", "100%"],
-              "bindings": [{"binding_name": "#hud_subtitle_text_string"},
-                           visible(" and ".join(f"(not ({count} = '{k}'))" for k in range(i + 1)))],
-              "controls": hud_slot(i, 8 / 0.75 + 34 * i, 0.75, "top_left")}} for i in range(6)]
-    party = {"type": "panel", "size": ["100%", "100%"], "layer": 1,
-             "bindings": [{"binding_name": "#hud_subtitle_text_string"}, visible(f"(not ({HUD_T} = ({HUD_T} - '|CL')))")],
+    from the top, clear of the D-pad. The title that carries it isn't shown."""
+    desktop = [{f"n{n}": hud_panel([(3, 2)], f"(#cl_f0 = 'n{n}')", [c for i in range(n) for c in hud_slot(i, -n * 15 - 10 + 34 * i, 1, "left_middle")])}
+               for n in range(1, 7)]
+    # a touch screen's slot shows while it holds a Pokémon: its first field is a-d (padding is '~', past the end '')
+    touch = [{f"t{i}": hud_panel([hud_field(i, "st")], "(not ((#cl_f0 = '~') or (#cl_f0 = '')))", hud_slot(i, 8 / 0.75 + 34 * i, 0.75, "top_left"))}
+             for i in range(6)]
+    b, bag = hud_chain([(3, 2)])
+    party = {"type": "panel", "size": ["100%", "100%"], "layer": 1, "property_bag": bag,  # "|CLn0": hidden
+             "bindings": b + [view(f"(not ({HUD_T} = ({HUD_T} - '|CL')))", "#cl_on"), view("(#cl_on and (not (#cl_f0 = 'n0')))", "#visible")],
              "controls": [{"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": desktop}},
                           {"touch": {"type": "panel", "size": ["100%", "100%"], "ignored": "(not $touch)", "controls": touch}}]}
-    sub = {"type": "label", "anchor_from": "top_middle", "anchor_to": "top_middle", "color": "$title_command_text_color",
-           "text": "#text", "layer": 31, "localize": False, "font_size": "large", "shadow": "$title_shadow",
-           "text_alignment": "center", "offset": [1, 19],
-           "bindings": [{"binding_name": "#hud_subtitle_text_string", "binding_name_override": "#text", "binding_type": "global"}]}
-    subtitle = {"type": "panel", "size": ["100%", "100%cm"], "controls": [{"subtitle": sub}],  # Mojang's, without the party
-                "bindings": [{"binding_name": "#hud_subtitle_text_string"},
-                             visible(f"({HUD_T} = ({HUD_T} - '|CL'))")]}
+    debug = []
+    if os.environ.get("CL_HUD_DEBUG"):  # a line at the top: the pack loaded, touch or not, the title's start
+        lab = lambda t, ig, x: {"type": "label", "text": t, "color": [1, 1, 0], "layer": 40, "anchor_from": "top_middle",
+                                "anchor_to": "top_middle", "offset": [x, 24], "size": ["default", "default"], **({"ignored": ig} if ig else {})}
+        raw = lab("#text", None, 40)
+        raw["bindings"] = [{"binding_name": "#hud_title_text_string"}, {"binding_type": "view",
+                           "source_property_name": "('[' + ('%.24s' * #hud_title_text_string) + ']')", "target_property_name": "#text"}]
+        debug = [{"cl_dbg_t": lab("CL touch", "(not $touch)", -60)}, {"cl_dbg_d": lab("CL desk", "$touch", -60)}, {"cl_dbg_raw": raw}]
     return {"namespace": "hud",
             "cl_party": party,
             "root_panel": {"modifications": [{"array_name": "controls", "operation": "insert_back",
-                                              "value": [{"cl_party@hud.cl_party": {}}]}]},
-            "hud_title_text": {"modifications": [{"array_name": "controls", "operation": "replace",
-                                                  "where": {"control_name": "subtitle_frame"},
-                                                  "value": {"subtitle_frame": subtitle}}]}}
+                                              "value": [{"cl_party@hud.cl_party": {}}] + debug}]},
+            # Mojang's title, its bindings only (the rest stays Mojang's): not shown when it carries the party
+            "hud_title_text": {"bindings": [{"binding_name": HUD_T}, view(f"({HUD_T} = ({HUD_T} - '|CL'))", "#visible")]}}
 
 
 def hud_art(gui, png, hp_colour):
     o = lambda n: Image.open(f"{gui}/party/{n}.png").convert("RGBA")
     for k, n in enumerate(("party_slot", "party_slot_active", "party_slot_fainted", "party_slot_fainted_active")):
-        png(f"hud/slot_{k}", o(n))
+        png(f"hud/slot_{'abcd'[k]}", o(n))
     png("hud/portrait_bg", o("party_slot_portrait_background"))
     png("hud/g_m", o("party_gender_male"))
     png("hud/g_f", o("party_gender_female"))
@@ -618,18 +634,18 @@ def hud_art(gui, png, hp_colour):
     strip = o("party_slot_portrait_level_up")
     from build_hud import scroll, BAR
     for step in range(1, 15):
-        png(f"hud/scroll_{step:02d}", scroll(strip, step))
+        png(f"hud/scroll_s{step:02d}", scroll(strip, step))
     exp = (int(0.2 * 255), int(0.65 * 255), int(0.84 * 255), 255)
     for h in range(1, BAR + 1):
         for kind, w, rgba in (("hp", 2, hp_colour(h / BAR) + (255,)), ("exp", 1, exp)):
             bar = Image.new("RGBA", (w, BAR))
             bar.paste(rgba, (0, BAR - h, w, BAR))
-            png(f"hud/{kind}_{h:02d}", bar)
+            png(f"hud/{kind}_{kind[0] if kind == 'hp' else 'x'}{h:02d}", bar)
     for kind, n in (("ev", "party_slot_notification_evolution"), ("mv", "party_slot_notification_new_move")):
         img = o(n)
         for fade in range(8):  # PartyPanel's fade steps: 0 opaque, 7 nearly gone
             a = img.getchannel("A").point(lambda v: v * (8 - fade) // 8)
-            png(f"hud/{kind}_{fade}", Image.merge("RGBA", img.split()[:3] + (a,)))
+            png(f"hud/{kind}_{'abcdefgh'[fade]}", Image.merge("RGBA", img.split()[:3] + (a,)))
 
 
 def portrait_names(out):
@@ -722,7 +738,7 @@ def build(gui, out):
     files["ui/hud_screen.json"] = json.dumps(hud_screen(), indent=1, ensure_ascii=False).encode()
     # Bedrock keeps a pack by uuid + version: a content-derived patch number makes every change a new download
     digest = hashlib.sha1(b"".join(k.encode() + files[k] for k in sorted(files))).digest()
-    ver = [1, 0, int.from_bytes(digest[:3]) % 1000000]
+    ver = [1, 0, int.from_bytes(digest[:3]) % 32768]  # Bedrock refuses a pack whose version part is over 65535 (81108: "Block")
     files["manifest.json"] = json.dumps({"format_version": 2, "header": {
         "name": "cobblemon-link UI", "description": "Cobblemon battle tiles (Cobblemon GUI art, CC BY-NC 3.0)",
         "uuid": UUIDS[0], "version": ver, "min_engine_version": [1, 21, 0]},
@@ -738,7 +754,7 @@ if __name__ == "__main__":
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
     g = f["cl_starter"]["controls"][-1]["list"]
     assert g["offset"][1] + 44 == 27 and g["grid_dimensions"] == [3, 4], "first tile row at the list's top (27)"
-    assert HUD_SLOT == 115 and hud_field(1, "lv") == hud_cut(4 + 115 + 1, 3), "PartyPanel.FIELDS' layout"
+    assert HUD_SLOT == 119 and hud_field(1, "lv") == (5 + 119 + 1, 4), "PartyPanel.FIELDS' layout"
     assert all(len("items/portrait/" + n) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
     files = build(sys.argv[1], sys.argv[2])
     print(f"bedrock ui pack: {len(files)} files -> {sys.argv[2]}")

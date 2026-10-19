@@ -16,6 +16,12 @@ class RulesTest {
         assertEquals(1_640_000, Rules.expFor("fluctuating", 100));
         assertEquals(0, Rules.expFor("medium_slow", 1)); // formula goes negative at 1
         assertEquals(135, Rules.expFor("medium_slow", 5)); // a level 5 starter
+        var rnd = new java.util.Random(7);
+        assertEquals(4, Rules.shakes(1.0, rnd));
+        assertEquals(0, Rules.shakes(0.0, rnd));
+        int caught = 0;
+        for (int i = 0; i < 20000; i++) if (Rules.shakes(0.3, rnd) == 4) caught++;
+        assertEquals(0.3, caught / 20000.0, 0.02, "four checks keep the single roll's odds");
     }
 
     @Test

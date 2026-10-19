@@ -14,6 +14,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import kr.toxicity.model.api.BetterModel;
+import kr.toxicity.model.api.animation.AnimationIterator;
+import kr.toxicity.model.api.animation.AnimationModifier;
+import kr.toxicity.model.api.tracker.ModelScaler;
 import kr.toxicity.model.api.bukkit.platform.BukkitAdapter;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
@@ -202,6 +205,49 @@ final class Spawner {
         model(pig, model);
         return pig;
     }
+
+    /** The Poké Ball's model (PokeBalls) on a still carrier that PokeBalls moves. */
+    Entity ball(Location loc) {
+        Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
+            e.setPersistent(false);
+            e.setSilent(true);
+            e.setInvulnerable(true);
+            e.setAware(false);
+            e.setGravity(false);
+            e.setCollidable(false);
+        });
+        model(pig, "poke_ball");
+        return pig;
+    }
+
+    /**
+     * Plays one of the model's animations over its idle (a battle one, a cry, the ball's shakes): BetterModel runs it,
+     * GeyserModelEngine mirrors it to Bedrock. False when the model has no such animation (it keeps its idle).
+     */
+    static boolean animate(Entity e, String anim, AnimationIterator.Type type) {
+        var r = BetterModel.registryOrNull(BukkitAdapter.adapt(e));
+        boolean played = false;
+        if (r != null) for (var t : r.trackers()) played |= t.animate(anim, AnimationModifier.builder().type(type).build());
+        return played;
+    }
+
+    static void stopAnimation(Entity e, String anim) {
+        var r = BetterModel.registryOrNull(BukkitAdapter.adapt(e));
+        if (r != null) for (var t : r.trackers()) t.stopAnimation(anim);
+    }
+
+    /** Hides the model (inside a Poké Ball) by scaling it to nothing: GeyserModelEngine sends the scale to Bedrock too. */
+    static void hide(Entity e, boolean hidden) {
+        var r = BetterModel.registryOrNull(BukkitAdapter.adapt(e));
+        if (r == null) return;
+        for (var t : r.trackers()) {
+            ModelScaler was = SHOWN.computeIfAbsent(e.getUniqueId(), k -> t.scaler());
+            t.scaler(hidden ? ModelScaler.value(0.001F) : was);
+        }
+        if (!hidden) SHOWN.remove(e.getUniqueId());
+    }
+
+    private static final Map<UUID, ModelScaler> SHOWN = new HashMap<>(); // a hidden model's own scaler
 
     /**
      * The BetterModel model on a carrier, animated for Java players only: Bedrock players see GeyserModelEngine's

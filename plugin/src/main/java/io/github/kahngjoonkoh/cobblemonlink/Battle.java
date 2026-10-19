@@ -31,6 +31,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import kr.toxicity.model.api.animation.AnimationIterator;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -57,6 +58,7 @@ final class Battle {
     private int hiddenAt, lastSneak = -100;
     private Entity ally; // the player's active Pokémon, out beside them
     private int allyIndex = -1;
+    private long animUntil; // the server tick the turn's battle animations end (animate)
     private final BossBar wildBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
     private final BossBar ownBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.GREEN, BossBar.Overlay.NOTCHED_10);
 
@@ -84,6 +86,7 @@ final class Battle {
         init.add("hp1", Store.GSON.toJsonTree(hp));
         wild.hp = -1;
         Spawner.freeze(wildEntity, true);
+        Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
         Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
         String appeared = "A wild " + wild.name(pl.dex) + " (Lv." + wild.level + ") appeared!";
         log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
@@ -124,6 +127,7 @@ final class Battle {
                 if (!request.has("wait")) openMenu();
             }
             case "log" -> {
+                animate(msg.getAsJsonArray("lines"));
                 for (JsonElement l : msg.getAsJsonArray("lines")) {
                     String text = narrate(l.getAsString());
                     if (text == null) continue;
@@ -139,6 +143,10 @@ final class Battle {
                     if (p1.get(i).getAsJsonObject().get("active").getAsBoolean()) {
                         participants.add(order.get(i));
                         JsonObject p = p1.get(i).getAsJsonObject();
+                        if (p.get("hp").getAsInt() <= 0 && ally != null) { // Cobblemon: it faints, then goes back
+                            faint(ally);
+                            ally = null;
+                        }
                         sendOut(p.get("hp").getAsInt() > 0 ? order.get(i) : -1);
                     }
                 updateBars();
@@ -563,7 +571,8 @@ final class Battle {
 
     /**
      * Cobblemon sends the active Pokémon out next to the player, facing the opponent: here 2.5 blocks toward it and
-     * 1.5 to the right, inside the battle camera's view. -1 (fainted) recalls it. ponytail: no throw animation, no ground search (it may fall).
+     * 1.5 to the right, inside the battle camera's view, out of a thrown Poké Ball (PokeBalls.sendOut). -1 (fainted) recalls it.
+     * ponytail: no ground search (it may fall).
      */
     private void sendOut(int partyIndex) {
         if (partyIndex == allyIndex) return;
@@ -580,6 +589,44 @@ final class Battle {
         at.setDirection(wildEntity.getLocation().toVector().subtract(at.toVector()));
         at.setPitch(0);
         ally = pl.spawner.sendOut(at, pl.store.get(player.getUniqueId()).party.get(partyIndex).model(pl.dex));
+        Spawner.animate(ally, "battle_idle", AnimationIterator.Type.LOOP);
+        pl.balls.sendOut(player, ally);
+    }
+
+    /**
+     * Cobblemon's battle animations for one turn's log, a second apart in its order: the attacker's move ("physical",
+     * else "special") and the target's "recoil" on damage.
+     * ponytail: every move plays "physical" (no move categories here); the sim's move data would pick special/status.
+     */
+    private void animate(JsonArray lines) {
+        long now = Bukkit.getCurrentTick();
+        int at = (int) Math.max(0, animUntil - now);
+        for (JsonElement l : lines) {
+            String[] p = l.getAsString().split("\\|");
+            if (p.length < 3 || !p[1].equals("move") && !p[1].equals("-damage")) continue;
+            Entity who = p[2].startsWith("p1") ? ally : p[2].startsWith("p2") ? wildEntity : null;
+            if (who == null) continue;
+            boolean move = p[1].equals("move");
+            Bukkit.getScheduler().runTaskLater(pl, () -> {
+                if (!who.isValid()) return;
+                if (!move) Spawner.animate(who, "recoil", AnimationIterator.Type.PLAY_ONCE);
+                else if (!Spawner.animate(who, "physical", AnimationIterator.Type.PLAY_ONCE))
+                    Spawner.animate(who, "special", AnimationIterator.Type.PLAY_ONCE);
+            }, at);
+            at += 20;
+        }
+        animUntil = now + at;
+    }
+
+    /** After the turn's animations: "faint", held, then the Pokémon is gone (1.5 s). */
+    private void faint(Entity e) {
+        long wait = pl.isEnabled() ? Math.max(0, animUntil - Bukkit.getCurrentTick()) : -1;
+        if (wait < 0) {
+            e.remove();
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(pl, () -> Spawner.animate(e, "faint", AnimationIterator.Type.HOLD_ON_LAST), wait);
+        Bukkit.getScheduler().runTaskLater(pl, e::remove, wait + 30);
     }
 
     /** Cobblemon's Catch: the battle steps aside and the player throws a real Poké Ball (ballHit). */
@@ -589,10 +636,11 @@ final class Battle {
     }
 
     /**
-     * A thrown Poké Ball hit this battle's wild Pokémon: the main-series formula with its battle HP and status.
+     * A thrown Poké Ball hit this battle's wild Pokémon: the main-series formula with its battle HP and status, then
+     * Cobblemon's capture sequence with the ball's model (PokeBalls.capture), then the result.
      * ponytail: a failed throw doesn't cost a turn (Showdown has no item action); the main games give the wild Pokémon a free move.
      */
-    void ballHit() {
+    void ballHit(Entity ball) {
         if (over) return;
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
@@ -603,14 +651,18 @@ final class Battle {
             status = w.get("status").getAsString();
         }
         double chance = Rules.catchChance(pl.dex.of(wild).catchRate, hp, max, status);
-        if (ThreadLocalRandom.current().nextDouble() < chance) {
-            wild.hp = hp;
-            finish(null, true);
-        } else {
-            turnLog.add("Oh no! The Pokémon broke free!");
-            log.addAll(Ui.wrap("Oh no! The Pokémon broke free!", 146));
-            openMenu();
-        }
+        int caughtHp = hp;
+        pl.balls.capture(ball, wildEntity, Rules.shakes(chance, ThreadLocalRandom.current()), caught -> {
+            if (over) return;
+            if (caught) {
+                wild.hp = caughtHp;
+                finish(null, true);
+            } else {
+                turnLog.add("Oh no! The Pokémon broke free!");
+                log.addAll(Ui.wrap("Oh no! The Pokémon broke free!", 146));
+                openMenu();
+            }
+        });
     }
 
     /** Ends the battle exactly once: writes HP back, awards EXP, releases or removes the wild Pokémon. */
@@ -651,7 +703,8 @@ final class Battle {
                 if (panel) pl.panel.gain(player, m, level, exp, m.moves.size() + (m.learnable == null ? 0 : m.learnable.size()) - moves,
                         m.evolution != null && !m.evolution.equals(evolution) ? 1 : 0);
             }
-            wildEntity.remove();
+            wildEntity.getPersistentDataContainer().remove(pl.wildKey); // no longer wild while it faints
+            faint(wildEntity);
         } else if (caught) {
             boolean toParty = pl.store.give(player.getUniqueId(), wild);
             player.sendMessage(Component.text("Gotcha! " + wild.name(pl.dex) + " was caught!"
@@ -661,6 +714,7 @@ final class Battle {
             if ("p2".equals(winner))
                 player.sendMessage(Component.text("All your Pokémon fainted! Sleep in a bed to heal them.", NamedTextColor.RED));
             Spawner.freeze(wildEntity, false);
+            Spawner.stopAnimation(wildEntity, "battle_idle");
         }
         pl.store.save(player.getUniqueId());
         pl.battles.remove(player.getUniqueId());

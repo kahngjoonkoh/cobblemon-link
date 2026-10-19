@@ -40,6 +40,17 @@ final class Rules {
         return Math.min(1.0, a / 255.0);
     }
 
+    /**
+     * The main games' four shake checks for a catch of chance `chance`, each passed with chance^(1/4) (so all four,
+     * a catch, keep the same odds): how many pass before the first fail, 4 = caught. The ball shakes that many times.
+     */
+    static int shakes(double chance, java.util.random.RandomGenerator rnd) {
+        double each = Math.pow(chance, 0.25);
+        int n = 0;
+        while (n < 4 && rnd.nextDouble() < each) n++;
+        return n;
+    }
+
     /** HP stat (no EVs, which this plugin doesn't award yet). */
     static int maxHp(int base, int iv, int level) {
         return (2 * base + iv) * level / 100 + level + 10;

@@ -245,7 +245,8 @@ def convert(geo, anims, png, name, scale=1.0):
             kfs = [{'channel': ch, 'uuid': uid(), 'time': t, 'interpolation': 'linear',
                     'data_points': [dict(zip('xyz', samples[(bone, ch)][t]))]} for t in times]
             animators.setdefault(groups[bone]['uuid'], {'name': bone, 'type': 'bone', 'keyframes': []})['keyframes'] += kfs
-        bb_anims.append({'uuid': uid(), 'name': dst, 'loop': 'loop' if a.get('loop') else 'once',
+        loop = {True: 'loop', 'hold_on_last_frame': 'hold'}.get(a.get('loop'), 'once')
+        bb_anims.append({'uuid': uid(), 'name': dst, 'loop': loop,
                          'override': False, 'length': length, 'snapping': 24, 'animators': animators})
         # Bedrock plays the original molang natively; strip cobblemon-only queries, sounds, particles
         br = {k: a[k] for k in ('loop', 'animation_length') if k in a}
@@ -346,6 +347,8 @@ def demo():
     bad = {'loop': True, 'bones': {'body': {'rotation': [[1, 2], 0, 0]}}}
     assert convert(geo, {'idle': bad}, b'', 'x')[3] == ['idle:body.rotation']
     assert g['minecraft:geometry'][0]['bones'][1]['parent'] == 'cl_scale' and an['animations']['idle']['bones']['cl_scale']
+    held = convert(geo, {'faint': dict(anim, loop='hold_on_last_frame')}, b'', 'x')[0]['animations'][0]
+    assert held['loop'] == 'hold' and bb['animations'][0]['loop'] == 'loop'
 
 
 if __name__ == '__main__':

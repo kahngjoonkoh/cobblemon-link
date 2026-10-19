@@ -18,9 +18,10 @@ import org.bukkit.entity.Player;
  * the EXP bar fills, "+N EXP" floats up, the level-up scroll runs over the portrait and the new-move and evolution
  * notices pop up (PartyOverlayDataControl's timings). Hidden in battles (the battle overlay), while a menu is open,
  * and by /partyhud (Cobblemon's O key). Other action bar messages (say()) ride along with it.
- * Bedrock gets the same through its UI pack (build_bedrock_ui.py hud_screen): the panel's values as a subtitle.
+ * Bedrock gets the same through its UI pack (build_bedrock_ui.py hud_screen): the panel's values as a title, which the
+ * pack never shows (a subtitle alone never reaches Bedrock's HUD).
  * ponytail: no status icons outside battle, no EXP bar flash; the half-size text has no shadow (half a px). On Bedrock
- * "+N EXP" doesn't float, it shows behind forms, and a /title shows the party's subtitle hidden.
+ * "+N EXP" doesn't float, it shows behind forms, and another title is replaced by the party within half a second.
  */
 final class PartyPanel {
     // build_hud.py's glyphs
@@ -33,9 +34,9 @@ final class PartyPanel {
     static final int POPUP = POP_IN + POP_HOLD + POP_OUT, LAST = BEFORE + FLASH + POPUP, EXP_HOLD = BEFORE + FLASH + POPUP - 6;
     private static final Key PORTRAIT = Key.key("cobblemonlink", "portrait_hud");
     // build_bedrock_ui.py HUD_FIELDS: state, level, name, gender, HP, EXP, scroll, evolution and move pop-ups, "+N EXP"
-    // fade and text, portrait texture
-    static final int[] FIELDS = {1, 3, 12, 1, 2, 2, 2, 2, 2, 1, 11, 76};
-    static final String HIDDEN = "|CL0";
+    // fade and text, portrait texture. A number field starts with a letter: Bedrock's UI makes an all-digit one a number.
+    static final int[] FIELDS = {1, 4, 12, 1, 3, 3, 3, 2, 2, 1, 11, 76};
+    static final String HIDDEN = "|CLn0";
 
     /** A battle's EXP for one Pokémon: its level before (-1: no level up), the EXP, new moves, evolutions unlocked. */
     static final class Gain {
@@ -104,7 +105,7 @@ final class PartyPanel {
                     && !(p.getOpenInventory().getTopInventory().getHolder() instanceof Menu);
             if (!visible) {
                 if (shown.remove(id)) {
-                    if (bedrock) p.sendTitlePart(net.kyori.adventure.title.TitlePart.SUBTITLE, Component.text(HIDDEN));
+                    if (bedrock) bedrockTitle(p, HIDDEN);
                     else if (!pl.battles.containsKey(id)) p.sendActionBar(Component.empty());
                 }
                 continue;
@@ -117,7 +118,7 @@ final class PartyPanel {
                 messageUntil.remove(id);
             }
             if (!g.isEmpty() || shown.add(id) || now % 10 == 0) {
-                if (bedrock) p.sendTitlePart(net.kyori.adventure.title.TitlePart.SUBTITLE, Component.text(bedrock(d, g, now)));
+                if (bedrock) bedrockTitle(p, bedrock(d, g, now));
                 else p.sendActionBar(draw(p, d, g, now));
             }
         }
@@ -176,10 +177,18 @@ final class PartyPanel {
         return msg == null ? c : Component.text().append(c, msg).build();
     }
 
-    /** The party for Bedrock's UI pack: "|CL", its size, then six slots of FIELDS, ASCII padded with '~'. */
+    private static final net.kyori.adventure.title.Title.Times NO_FADE = net.kyori.adventure.title.Title.Times.times(
+            java.time.Duration.ZERO, java.time.Duration.ofSeconds(2), java.time.Duration.ZERO);
+
+    private static void bedrockTitle(Player p, String text) {
+        p.sendTitlePart(net.kyori.adventure.title.TitlePart.TIMES, NO_FADE);
+        p.sendTitlePart(net.kyori.adventure.title.TitlePart.TITLE, Component.text(text));
+    }
+
+    /** The party for Bedrock's UI pack: "|CLn", its size, then six slots of FIELDS, ASCII padded with '~'. */
     String bedrock(Store.Data d, Map<String, Gain> gains, long now) {
         int n = Math.min(6, d.party.size());
-        StringBuilder b = new StringBuilder("|CL").append(n);
+        StringBuilder b = new StringBuilder("|CLn").append(n);
         for (int i = 0; i < 6; i++) {
             if (i >= n) {
                 b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
@@ -199,7 +208,7 @@ final class PartyPanel {
                 double[] mvf = g.moves > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
                 double[] evf = g.evolutions > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
                 if (ex[1] > 0.25) {
-                    ea = "0";
+                    ea = "y";
                     et = "+" + g.exp + " EXP";
                 }
                 if (evf[1] > 0) ev = step(evf[1]) + (ex[1] > 0 && mvf[1] > 0 ? "b" : "a");
@@ -208,10 +217,10 @@ final class PartyPanel {
             boolean fainted = m.fainted(pl.dex);
             int hp = m.hp(pl.dex), max = Math.max(1, m.maxHp(pl.dex)), h = hp <= 0 ? 0 : Math.max(1, Math.round(BAR * hp / (float) max));
             String model = m.model(pl.dex);
-            String[] v = {String.valueOf(fainted ? (i == 0 ? 3 : 2) : (i == 0 ? 1 : 0)),
-                    String.valueOf(g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.level), ascii(m.name(pl.dex)),
-                    "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n", two(h), two(Math.round(BAR * expRatio(m, g, t))),
-                    two(Integer.parseInt(scroll)), ev, mv, ea, et,
+            String[] v = {String.valueOf("abcd".charAt(fainted ? (i == 0 ? 3 : 2) : (i == 0 ? 1 : 0))),
+                    "L" + (g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.level), ascii(m.name(pl.dex)),
+                    "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n", "h" + two(h), "x" + two(Math.round(BAR * expRatio(m, g, t))),
+                    "s" + two(Integer.parseInt(scroll)), ev, mv, ea, et,
                     Ui.portraits.containsKey(model) ? "items/portrait/" + model : "cobblemonlink/none"};
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
@@ -221,7 +230,7 @@ final class PartyPanel {
         return b.toString();
     }
 
-    private static String step(double opacity) { return String.valueOf(Math.min(7, (int) Math.round((1 - opacity) * 8))); }
+    private static String step(double opacity) { return String.valueOf("abcdefgh".charAt(Math.min(7, (int) Math.round((1 - opacity) * 8)))); }
 
     private static String two(int v) { return v < 10 ? "0" + v : String.valueOf(v); }
 

@@ -16,7 +16,8 @@ import org.bukkit.util.RayTraceResult;
  * Party Pokémon sent out into the world (Cobblemon's SendOutPokemonHandler): each party slot toggles on its own, so up
  * to 6 can be out; fainted ones stay in; a recall right after a send-out is ignored (Cobblemon's throw-animation
  * guard against spam). They follow their trainer and go back in for a battle, a world change, death or logout.
- * ponytail: no throw animation or interaction wheel; following is a plain pathfind every half second.
+ * Sending out throws a Poké Ball (PokeBalls.sendOut).
+ * ponytail: no interaction wheel; following is a plain pathfind every half second.
  */
 final class Companions {
     private static final int RECALL_GUARD_TICKS = 25; // THROW_DURATION + 0.5 s, as in Cobblemon
@@ -41,7 +42,9 @@ final class Companions {
             pl.panel.say(p, m.name(pl.dex) + " has fainted.", true); // with the party panel, when it is shown
             return;
         }
-        mine.put(m.id, pl.spawner.companion(spot(p), m.model(pl.dex), p));
+        Entity mon = pl.spawner.companion(spot(p), m.model(pl.dex), p);
+        pl.balls.sendOut(p, mon);
+        mine.put(m.id, mon);
     }
 
     void recall(Player p, String monId) {
