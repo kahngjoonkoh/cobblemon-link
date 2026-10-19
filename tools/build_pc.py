@@ -253,18 +253,7 @@ def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
         widths[font] = {" ": space}
         for i, c in enumerate(CHARS):
             widths[font][c] = advance(sheet.crop((cw * (i % 16), chh * (i // 16), cw * (i % 16 + 1), chh * (i // 16 + 1))), 0.5)
-    src = os.path.join(out_dir, "bodies")
-    names = sorted(n[:-4] for n in os.listdir(src) if n.endswith(".png")) if os.path.isdir(src) else []
-    small, big = [], []
-    for i, name in enumerate(names):
-        img = Image.open(f"{src}/{name}.png").convert("RGBA")
-        img.putpixel((img.width - 1, 0), img.getpixel((img.width - 1, 0))[:3] + (max(1, img.getpixel((img.width - 1, 0))[3]),))
-        files[f"assets/cobblemonlink/textures/font/body/{name}.png"] = png_bytes(img)
-        for lst, h in ((small, 16), (big, 44)):
-            lst.append({"type": "bitmap", "file": f"cobblemonlink:font/body/{name}.png", "height": h, "ascent": 7,
-                        "chars": [chr(0xF9000 + i)]})
-    files["assets/cobblemonlink/font/body.json"] = json.dumps({"providers": small}).encode()
-    files["assets/cobblemonlink/font/body_big.json"] = json.dumps({"providers": big}).encode()
+    # the whole-Pokémon pictures (fonts body / body_big) go to the picture packs: build_ui.py bodies()
     widths["body"], widths["body_big"] = 17, 45  # advance of every body glyph (16 / 44 px, last column inked)
     build_dex.dex_no_font(files, png_bytes, widths)
     files["assets/cobblemonlink/pc_widths.json"] = json.dumps(widths, ensure_ascii=False).encode()

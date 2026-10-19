@@ -20,10 +20,10 @@ final class Ui {
     static final Key UNIFORM = Key.key("minecraft", "uniform"); // Cobblemon's DEFAULT_LARGE
     static final Key SMALL_LOW = Key.key("cobblemonlink", "small_low");
     static final Key PORTRAIT = Key.key("cobblemonlink", "portrait");
-    static Map<String, Integer> portraits = Map.of(); // species -> index in the UI pack (build_ui.py portraits)
+    static Map<String, Integer> portraits = Map.of(); // look -> its number (build_ui.py: tools/picture_ids.json)
     static Map<String, Integer> cards = Map.of();     // starter -> index (build_ui.py cards)
     static Map<String, Integer> tiles = Map.of();     // starter -> index (build_ui.py tiles)
-    static Map<String, Integer> bodies = Map.of();    // model -> index (build_pc.py bodies)
+    static Map<String, Integer> bodies = Map.of();    // look -> its number (build_ui.py bodies)
     static com.google.gson.JsonObject pcWidths;       // build_pc.py's pc_widths.json: font -> char -> advance
     static final int MOVE_W = 93, PARTY_W = 95, MENU_W = 91; // glyph advances: Cobblemon's tile width + 1
     // full-size art for the cursor screen (build_ui.py): idle glyph, hover glyph = idle + 1
@@ -45,15 +45,28 @@ final class Ui {
     /** The UI pack's portraits, numbered as build_ui.py numbers them: sorted by species name. */
     static void loadPortraits(java.nio.file.Path zip) throws java.io.IOException {
         try (var z = new java.util.zip.ZipFile(zip.toFile())) {
-            portraits = index(z, "assets/cobblemonlink/textures/font/portrait/", true);
             cards = index(z, "assets/cobblemonlink/textures/font/card/", false);
             tiles = index(z, "assets/cobblemonlink/textures/font/tile/", false);
-            bodies = index(z, "assets/cobblemonlink/textures/font/body/", false); // unown__character_r is a body
+            var ids = z.getEntry("assets/cobblemonlink/picture_ids.json"); // the pictures live in the picture packs
+            if (ids != null) try (var in = z.getInputStream(ids)) {
+                var o = com.google.gson.JsonParser.parseString(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+                portraits = numbers(o.getAsJsonObject("portrait"));
+                bodies = numbers(o.getAsJsonObject("body"));
+            } else { // a UI pack from before the picture packs
+                portraits = index(z, "assets/cobblemonlink/textures/font/portrait/", true);
+                bodies = index(z, "assets/cobblemonlink/textures/font/body/", false); // unown__character_r is a body
+            }
             var w = z.getEntry("assets/cobblemonlink/pc_widths.json");
             if (w != null) try (var in = z.getInputStream(w)) {
                 pcWidths = com.google.gson.JsonParser.parseString(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             }
         }
+    }
+
+    static Map<String, Integer> numbers(com.google.gson.JsonObject o) {
+        Map<String, Integer> m = new java.util.HashMap<>();
+        if (o != null) o.entrySet().forEach(e -> m.put(e.getKey(), e.getValue().getAsInt()));
+        return m;
     }
 
     /** mirrored: the folder also holds each picture mirrored as <name>_r (portraits), which isn't counted. */

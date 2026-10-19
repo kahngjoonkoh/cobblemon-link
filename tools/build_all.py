@@ -4,8 +4,9 @@ usage: build_all.py COBBLEMON_RESOURCES OUT_DIR
   COBBLEMON_RESOURCES: Cobblemon's common/src/main/resources (see fetch_cobblemon.sh)
   OUT_DIR gets java/<name>.bbmodel, bedrock/<name>/..., portraits/<name>.png (+ _r, the wild side), species.tsv
 """
-import base64, glob, json, os, re, sys
+import base64, glob, io, json, os, re, sys
 from multiprocessing import Pool
+from PIL import Image
 
 sys.path.insert(0, os.path.dirname(__file__))
 import geo2bb
@@ -46,7 +47,7 @@ def pose_anims(poser, want, avoid=('battle', 'surface', 'water', 'swim', 'fly', 
 
 
 def plan(res):
-    """[(name, geo_path, tex_path, scale, {dst: (anim_file, anim_name)}, portrait)] for every look of every species
+    """[(name, geo_path, [texture, layer, ...], scale, {dst: (anim_file, anim_name)}, portrait)] for every look of every species
     (looks.py: base, shiny, gender, regional and other forms)."""
     A = f'{res}/assets/cobblemon'
     models = index(f'{A}/bedrock/pokemon/models/**/*.geo.json', lambda p: os.path.basename(p)[:-5])
@@ -70,9 +71,27 @@ def plan(res):
             anims = {k: (anim_files[f], a) for k, (f, a) in anims.items() if f in anim_files}
             framing = (poser['portraitScale'], poser.get('portraitTranslation', [0, 0, 0])) if 'portraitScale' in poser \
                 else kotlin.get(poser_name, (1.0, [0.0, 0.0, 0.0]))
-            jobs.append((name, models[geo], f"{A}/{looks.first_frame(texture).split(':')[1]}",
-                         scales.get(species, 1.0), anims, framing))
+            tex = [f"{A}/{t.split(':')[1]}" for t in [looks.first_frame(texture)] + looks.layers(rs_by[species], set(aspects))]
+            jobs.append((name, models[geo], tex, scales.get(species, 1.0), anims, framing))
     return jobs
+
+
+def texture(paths):
+    """The base texture with its render layers painted on (looks.layers), as PNG bytes; a missing layer is skipped."""
+    if len(paths) == 1:
+        return open(paths[0], 'rb').read()
+    import numpy as np
+    img = Image.open(paths[0]).convert('RGBA')
+    for p in paths[1:]:
+        if os.path.exists(p):
+            layer = np.array(Image.open(p).convert('RGBA').resize(img.size, Image.NEAREST))
+            # where the base is empty only solid layer pixels (a flame): the models are cutout, so see-through ones
+            # (Chandelure's glass) would turn solid and hide what's behind them
+            layer[(np.asarray(img)[:, :, 3] == 0) & (layer[:, :, 3] < 255), 3] = 0
+            img.alpha_composite(Image.fromarray(layer))
+    buf = io.BytesIO()
+    img.save(buf, 'PNG')
+    return buf.getvalue()
 
 
 def build(job, out):
@@ -85,7 +104,7 @@ def build(job, out):
             if key:
                 anims[dst] = src[key]
         geo = json.load(open(geo_p))['minecraft:geometry'][0]
-        png = open(tex_p, 'rb').read()
+        png = texture(tex_p)
         bb, g, an, dropped = geo2bb.convert(geo, anims, png, name, scale)
         geo2bb.write(name, bb, g, an, png, f'{out}/java', f'{out}/bedrock')
         os.makedirs(f'{out}/portraits', exist_ok=True)

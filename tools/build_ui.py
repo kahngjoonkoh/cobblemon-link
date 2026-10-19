@@ -13,9 +13,12 @@ Font cobblemonlink:ui (codepoints must match Ui.java / Battle.java), all at Cobb
   U+E280+i    starter screen art (STARTER_GLYPHS, StarterScreen.java)
   U+F000+n / U+F400+n  advance -n / +n px
 Also Cobblemon's Poké Ball item (item_model cobblemon:poke_ball): its flat icon, and its 3D model once thrown.
-Portraits (build_all.py, OUT_ZIP's folder/portraits): font cobblemonlink:portrait, species i (sorted by name) at
-U+F0000+2i facing right and +1 mirrored (Ui.java reads the same list back from this zip), 28 px; and item models
-cobblemonlink:portrait/<name> for the menus.
+Pictures (portraits: build_all.py; whole bodies: build_bodies.py) go to picture packs of their own, one a region
+(OUT_ZIP's folder/pics/cobblemon-link-pics-<region>.zip), so a few changed Pokémon re-download one small pack. Each
+picture keeps the number tools/picture_ids.json gave it (new ones are appended), so adding one changes no other.
+Portraits: font cobblemonlink:portrait, picture i at U+F0000+2i facing right and +1 mirrored, 28 px, plus item models
+cobblemonlink:portrait/<name> for the menus; bodies: fonts body (16 px) and body_big (44 px) at U+F9000+i. The UI
+pack's assets/cobblemonlink/picture_ids.json tells Ui.java the numbers.
 Font cobblemonlink:small: vanilla ascii.png at half size. Also overrides the menu blur/background, the dialog
 warning button and the GUI text shader (see TEXT_VSH) to keep the world visible and pin the overlay to the corners.
 """
@@ -440,8 +443,13 @@ def build(gui, out_zip):
             for n in z.namelist():
                 if n.startswith("textures/cobblemonlink/") and "/body/" not in n and n.endswith(".png"):
                     files["assets/cobblemonlink/textures/form/" + n[len("textures/cobblemonlink/"):]] = z.read(n)
-    portraits(files, os.path.join(os.path.dirname(out_zip), "portraits"))
-    cards(files, os.path.join(os.path.dirname(out_zip), "cards"))
+    out_dir = os.path.dirname(out_zip)
+    pics = Pictures(os.path.join(out_dir, "gamedata.json"))
+    ids = {"portrait": portraits(pics, os.path.join(out_dir, "portraits")),
+           "body": bodies(pics, os.path.join(out_dir, "bodies"))}
+    files["assets/cobblemonlink/picture_ids.json"] = json.dumps(ids, sort_keys=True).encode()
+    pics.write(os.path.join(out_dir, "pics"))
+    cards(files, os.path.join(out_dir, "cards"))
     tiles(files, os.path.join(os.path.dirname(out_zip), "tiles"), os.path.join(os.path.dirname(out_zip), "portraits"))
 
     bad = [p["chars"] for p in providers if p.get("ascent", 0) > p.get("height", 8)]
@@ -493,32 +501,95 @@ def tiles(files, src, portraits_dir):
     files["assets/cobblemonlink/font/tile.json"] = json.dumps({"providers": providers}).encode()
 
 
-def portraits(files, src):
+PACK_META = json.dumps({"pack": {"description": "cobblemon-link Pokémon pictures (Cobblemon models, CC BY-NC 3.0)",
+                                   "pack_format": 97, "supported_formats": [46, 999], "min_format": 46, "max_format": 999}}).encode()
+REGIONS = [(1, "kanto"), (152, "johto"), (252, "hoenn"), (387, "sinnoh"), (494, "unova"), (650, "kalos"),
+           (722, "alola"), (810, "galar"), (906, "paldea")]  # first national number of each (PokedexScreen.REGIONS)
+IDS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "picture_ids.json")
+
+
+def numbers(kind, names):
+    """{name: its number}: the one picture_ids.json already has, new names appended (sorted); never renumbered."""
+    saved = json.load(open(IDS)) if os.path.exists(IDS) else {}
+    order = saved.setdefault(kind, [])
+    order += sorted(set(names) - set(order))
+    json.dump(saved, open(IDS, "w"), indent=0, sort_keys=True)
+    return {n: i for i, n in enumerate(order) if n in names}
+
+
+class Pictures:
+    """The picture packs' files, one pack a region (by the species' national number; "other" if none)."""
+
+    def __init__(self, gamedata):
+        sp = json.load(open(gamedata))["species"] if os.path.exists(gamedata) else {}
+        self.dex = {k: v.get("dex", 0) for k, v in sp.items()}
+        self.files, self.fonts = {}, {}
+
+    def region(self, name):
+        n = self.dex.get(name.split("__")[0], 0)
+        return [r for first, r in REGIONS if first <= n][-1] if n > 0 else "other"
+
+    def add(self, name, path, data):
+        self.files.setdefault(self.region(name), {})[path] = data
+
+    def glyph(self, name, font, provider):
+        self.fonts.setdefault(self.region(name), {}).setdefault(font, []).append(provider)
+
+    def write(self, out):
+        if os.path.isdir(out):
+            for f in os.listdir(out):
+                os.remove(os.path.join(out, f))
+        os.makedirs(out, exist_ok=True)
+        for region in sorted(set(self.files) | set(self.fonts)):
+            files = dict(self.files.get(region, {}), **{"pack.mcmeta": PACK_META})
+            for font, providers in self.fonts.get(region, {}).items():  # the client merges a font's files across packs
+                files[f"assets/cobblemonlink/font/{font}.json"] = json.dumps({"providers": providers}).encode()
+            with zipfile.ZipFile(os.path.join(out, f"cobblemon-link-pics-{region}.zip"), "w", zipfile.ZIP_DEFLATED) as z:
+                for name in sorted(files):  # fixed order and timestamps: same pictures, same zip, same SHA-1
+                    z.writestr(zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0)), files[name])
+        print(f"picture packs: {len(self.files)} -> {out}")
+
+
+def bodies(pics, src):
+    """The whole-Pokémon pictures (build_bodies.py) as fonts body (16 px) and body_big (44 px) at U+F9000 + number."""
+    names = sorted(n[:-4] for n in os.listdir(src) if n.endswith(".png")) if os.path.isdir(src) else []
+    ids = numbers("body", names)
+    for name in names:
+        img = Image.open(f"{src}/{name}.png").convert("RGBA")
+        img.putpixel((img.width - 1, 0), img.getpixel((img.width - 1, 0))[:3] + (max(1, img.getpixel((img.width - 1, 0))[3]),))
+        pics.add(name, f"assets/cobblemonlink/textures/font/body/{name}.png", png_bytes(img))
+        for font, h in (("body", 16), ("body_big", 44)):
+            pics.glyph(name, font, {"type": "bitmap", "file": f"cobblemonlink:font/body/{name}.png", "height": h,
+                                    "ascent": 7, "chars": [chr(0xF9000 + ids[name])]})
+    return ids
+
+
+def portraits(pics, src):
     if not os.path.isdir(src):
-        return
+        return {}
     names = sorted(n[:-4] for n in os.listdir(src) if n.endswith(".png") and not n.endswith("_r.png"))
-    providers, small = [], []
-    for i, name in enumerate(names):
+    ids = numbers("portrait", names)
+    for name in names:
+        i = ids[name]
         for k, suffix in enumerate(("", "_r")):
             img = Image.open(f"{src}/{name}{suffix}.png").convert("RGBA")
             img.putpixel((img.width - 1, 0), (0, 0, 0, 1))  # advance = full width + 1, whatever the model covers
-            files[f"assets/cobblemonlink/textures/font/portrait/{name}{suffix}.png"] = png_bytes(img)
-            providers.append({"type": "bitmap", "file": f"cobblemonlink:font/portrait/{name}{suffix}.png",
-                              "height": 28, "ascent": 7, "chars": [chr(0xF0000 + 2 * i + k)]})
+            pics.add(name, f"assets/cobblemonlink/textures/font/portrait/{name}{suffix}.png", png_bytes(img))
+            pics.glyph(name, "portrait", {"type": "bitmap", "file": f"cobblemonlink:font/portrait/{name}{suffix}.png",
+                                          "height": 28, "ascent": 7, "chars": [chr(0xF0000 + 2 * i + k)]})
         # menu icon: 28 px (an exact 1/3) in textures/item/, the only folder the item atlas takes; full size would
         # push every client's item atlas to 8192 px
         small_img = Image.open(f"{src}/{name}.png").convert("RGBA").resize((28, 28), Image.NEAREST)
         small_img.putpixel((27, 0), (0, 0, 0, 1))  # advance = full width + 1, as for the big glyphs
-        files[f"assets/cobblemonlink/textures/item/portrait/{name}.png"] = png_bytes(small_img)
+        pics.add(name, f"assets/cobblemonlink/textures/item/portrait/{name}.png", png_bytes(small_img))
         # the same 28 px picture at 16 px, for text: the starter dialog's buttons (cobblemonlink:portrait_small)
-        small.append({"type": "bitmap", "file": f"cobblemonlink:item/portrait/{name}.png", "height": 16, "ascent": 12,
-                      "chars": [chr(0xF0000 + 2 * i)]})
-        files[f"assets/cobblemonlink/items/portrait/{name}.json"] = json.dumps({"model": {
-            "type": "minecraft:model", "model": f"cobblemonlink:item/portrait/{name}"}}).encode()
-        files[f"assets/cobblemonlink/models/item/portrait/{name}.json"] = json.dumps({
-            "parent": "minecraft:item/generated", "textures": {"layer0": f"cobblemonlink:item/portrait/{name}"}}).encode()
-    files["assets/cobblemonlink/font/portrait.json"] = json.dumps({"providers": providers}).encode()
-    files["assets/cobblemonlink/font/portrait_small.json"] = json.dumps({"providers": small}).encode()
+        pics.glyph(name, "portrait_small", {"type": "bitmap", "file": f"cobblemonlink:item/portrait/{name}.png",
+                                            "height": 16, "ascent": 12, "chars": [chr(0xF0000 + 2 * i)]})
+        pics.add(name, f"assets/cobblemonlink/items/portrait/{name}.json", json.dumps({"model": {
+            "type": "minecraft:model", "model": f"cobblemonlink:item/portrait/{name}"}}).encode())
+        pics.add(name, f"assets/cobblemonlink/models/item/portrait/{name}.json", json.dumps({
+            "parent": "minecraft:item/generated", "textures": {"layer0": f"cobblemonlink:item/portrait/{name}"}}).encode())
+    return ids
 
 
 def demo():
@@ -527,6 +598,12 @@ def demo():
         img.paste((v, v, v, 255), (0, y, 4, y + 1))
     s = squash(img, 4)
     assert [s.getpixel((0, y))[0] for y in range(4)] == [0, 9, 50, 0], "squash should drop the repeated rows"
+    global IDS
+    import tempfile
+    saved, IDS = IDS, os.path.join(tempfile.mkdtemp(), "ids.json")
+    assert numbers("body", ["b", "c"]) == {"b": 0, "c": 1}
+    assert numbers("body", ["a", "c", "d"]) == {"a": 2, "c": 1, "d": 3}, "new names are appended, old ones keep theirs"
+    IDS = saved
     assert widen(img, 10, 1, 1).size == (10, 6)
     assert tint(Image.new("RGBA", (1, 1), (255, 255, 255, 255)), 0x102030).getpixel((0, 0)) == (16, 32, 48, 255)
     t = toast()

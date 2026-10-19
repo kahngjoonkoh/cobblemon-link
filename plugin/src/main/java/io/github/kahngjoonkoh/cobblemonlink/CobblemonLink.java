@@ -108,6 +108,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         buildIcons();
         loadPack("cobblemon-link-ui.zip");
         loadPack("cobblemon-link-icons.zip");
+        try (var pics = Files.list(getDataFolder().toPath().resolveSibling("BetterModel"))) { // the Pokémon pictures, a pack a region
+            pics.map(f -> f.getFileName().toString()).filter(n -> n.startsWith("cobblemon-link-pics-") && n.endsWith(".zip"))
+                    .sorted().forEach(this::loadPack);
+        } catch (IOException e) {
+            getLogger().warning("No picture packs: " + e);
+        }
         getLogger().info(dex.species.size() + " species, " + dex.spawns.size() + " spawn entries loaded");
     }
 

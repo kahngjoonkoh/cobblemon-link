@@ -4,8 +4,9 @@ Cobblemon (VaryingModelRepository) takes every resolver of a species in `order`,
 are all on the Pokémon overrides the model / texture so far. Each distinct (model, texture) pair is one converted
 model here, named `<species>` for the base look and `<species>__<aspect>__...` (aspects that produced it) otherwise.
 Used by build_all.py (what to convert) and build_data.py (the table the plugin resolves with at runtime).
-ponytail: cosmetic items (player-applied), alpha eyes and other render layers are not looks; animated textures use
-their first frame.
+Render layers (Charmander's flame, glows, patterns: layers() below) are painted onto the texture, so they show on
+the converted models and pictures; Cobblemon draws them emissive and animated, here they're plain and still.
+ponytail: cosmetic items (player-applied) and alpha eyes are not looks; animated textures use their first frame.
 """
 import glob, itertools, json, os, re
 
@@ -57,6 +58,17 @@ def resolve(rs, aspects):
                 model = v.get('model', model)
                 texture = v.get('texture', texture)
     return model, texture
+
+
+def layers(rs, aspects):
+    """The render layers' textures (first frames) for a set of aspects: a matching variation's layers replace the ones
+    so far, as in Cobblemon; alpha eyes only show on alphas, which aren't looks here."""
+    out = []
+    for d in rs:
+        for v in d['variations']:
+            if set(v.get('aspects', [])) <= aspects and v.get('layers') is not None:
+                out = [first_frame(l['texture']) for l in v['layers'] if l.get('name') != 'alpha_eyes' and l.get('texture')]
+    return out
 
 
 def poser(rs, aspects):
@@ -156,6 +168,10 @@ def demo():
     assert names['x'] == ('m', 't') and names['x__shiny'] == ('m', 'ts')
     assert names['x__female__shiny'] == ('mf', 'ts') and names['x__alolan__shiny'] == ('ma', 'tas')
     assert resolve(rs, {'alolan', 'female'}) == ('ma', 'ta')  # the regional form's model wins (later order)
+    rl = [{'species': 'cobblemon:c', 'variations': [
+        {'aspects': [], 'layers': [{'name': 'flame', 'texture': {'frames': ['f1', 'f2']}}]},
+        {'aspects': ['shiny'], 'layers': [{'name': 'flame', 'texture': 'sf'}, {'name': 'alpha_eyes', 'texture': 'a'}]}]}]
+    assert layers(rl, set()) == ['f1'] and layers(rl, {'shiny'}) == ['sf']  # replaced, first frame, no alpha eyes
     assert aspect_of({'type': 'choice', 'isAspect': True, 'aspectFormat': '{{choice}}-sea'}, 'west') == 'west-sea'
     assert aspect_of({'type': 'flag', 'keys': ['alolan'], 'isAspect': True}, True) == 'alolan'
 

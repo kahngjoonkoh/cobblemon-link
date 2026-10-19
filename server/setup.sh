@@ -42,6 +42,8 @@ mkdir -p "$D/plugins/CobblemonLink"
 cp ../assets/gamedata.json "$D/plugins/CobblemonLink/"
 # Java battle-menu art; the pack server serves it next to BetterModel's build.zip
 cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
+rm -f "$D"/plugins/BetterModel/cobblemon-link-pics-*.zip  # the Pokémon pictures, a pack a region
+cp ../assets/pics/cobblemon-link-pics-*.zip "$D/plugins/BetterModel/"
 mkdir -p "$D/plugins/Geyser-Spigot/packs" && cp ../assets/bedrock-ui.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-ui.mcpack"
 mkdir -p "$D/plugins/Geyser-Spigot/custom_mappings" && cp ../assets/geyser-mappings.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link.json"
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
