@@ -1,0 +1,2 @@
+{ "required": true, "package": "io.github.kahngjoonkoh.clbridge.mixin", "compatibilityLevel": "JAVA_21",
+  "mixins": ["SendMixin"], "injectors": { "defaultRequire": 1 } }

@@ -1,0 +1,23 @@
+# PoC: real Cobblemon on Fabric 1.21.1 (data under ~/.cache/cl-fabric-poc)
+services:
+  fabric:
+    image: itzg/minecraft-server:java21
+    container_name: clpoc-fabric
+    environment:
+      EULA: "TRUE"
+      TYPE: FABRIC
+      VERSION: "1.21.1"
+      ONLINE_MODE: "FALSE"   # PoC only: offline test clients
+      MEMORY: 4G
+      MODRINTH_PROJECTS: "fabric-api,fabric-language-kotlin,cobblemon:GJ2a1b8O"
+      MODRINTH_ALLOWED_VERSION_TYPE: release
+      MODE: creative
+      LEVEL_TYPE: flat
+      SPAWN_PROTECTION: 0
+      ENABLE_RCON: "true"
+      RCON_PASSWORD: poc-only
+    volumes:
+      - ${HOME}/.cache/cl-fabric-poc/fabric:/data
+      - ./mods-extra:/mods:ro
+    ports:
+      - "127.0.0.1:25570:25565"

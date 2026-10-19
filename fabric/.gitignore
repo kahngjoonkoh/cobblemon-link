@@ -1,0 +1,3 @@
+mods-extra/*.jar
+bridge/build/
+bridge/.gradle/

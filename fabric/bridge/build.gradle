@@ -1,0 +1,18 @@
+plugins { id 'fabric-loom' version '1.9.2' }
+version = '0.0.1-poc'
+repositories {
+    maven { url 'https://api.modrinth.com/maven' }
+    maven { url 'https://maven.nucleoid.xyz/' }
+    mavenCentral()
+}
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.1'
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.16.14'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.116.17+1.21.1'
+    modCompileOnly 'maven.modrinth:cobblemon:GJ2a1b8O'
+    modImplementation 'maven.modrinth:blockbench-import-library:1.2.7+1.21'
+    modImplementation 'eu.pb4:polymer-bundled:0.9.19+1.21.1'
+    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0'
+}
+java { toolchain.languageVersion = JavaLanguageVersion.of(21) }
