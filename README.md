@@ -27,7 +27,7 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 How this compares with Cobblemon 1.8.2, feature by feature: [docs/COVERAGE.md](docs/COVERAGE.md).
 
-Everything below was played through on a vanilla Java 26.3 client. The battle menu is a vanilla dialog screen: Java players see Cobblemon's battle tiles (drawn by the client from a small resource pack, `assets/ui-pack.zip`), and Geyser shows Bedrock players the same menu as a plain-text form. The starter screen is Cobblemon's, painted over a chest (Java) or a restyled form (Bedrock); the PC is Cobblemon's PC painted over a chest (Java), and the party is a chest menu. **The gameplay hasn't been tested on a Bedrock device yet.**
+Everything below was played through on a vanilla Java 26.3 client. Every screen is Cobblemon's: the battle screen, starter, PC, Summary and Pokédex. On vanilla Java the server draws them from a small resource pack (`assets/ui-pack.zip`) over chests, dialogs and the HUD. Bedrock players get the same screens as restyled forms through Geyser. Java players can also install the optional client mod (`client/`), which draws the screens itself, like Cobblemon does. See [Screens compared](#screens-compared). **The gameplay hasn't been tested on a Bedrock device yet.**
 
 | Feature | How it works |
 |---|---|
@@ -35,8 +35,10 @@ Everything below was played through on a vanilla Java 26.3 client. The battle me
 | **Wild spawns** | Built from Cobblemon's spawn pools: 1,066 entries for 579 species. They are checked against biome (Cobblemon's biome tags, shipped as a datapack), time of day, rain, sky light and height. A rarity bucket is picked (94.4/5/0.5/0.1, close to Cobblemon's 94.05/5/0.5/0.2), and wild Pokémon are capped per player (default 8). |
 | **Battles** | Right-click (or tap, on Bedrock) a wild Pokémon. Cobblemon's flow: Fight / Switch / Catch / Run, then type-coloured move tiles with PP, or the party. Both Pokémon's tiles (portrait, HP), the battle log and your hotbar stay on screen; your own Pokémon is sent out beside you. Wild Pokémon pick random moves. |
 | **Catching** | Throw a Poké Ball at a wild Pokémon, in or out of battle (Catch in the battle menu steps aside so you can throw). Uses the main-series catch formula: catch rate, HP left, and status bonuses. |
-| **Party and PC** | `/party` (6 slots; click to make lead, shift-click to send to PC) and the PC: 40 boxes of 30 (`pc.boxes`), opened from the party menu or the Pokémon menu; `/pc` is for admins, as in Cobblemon. Move and swap between boxes and the party, sort a box, filter by type, release (with a confirm; never your last Pokémon), rename a box and pick its wallpaper. HP carries over between battles. |
-| **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned automatically while there's room. Level-based evolutions (310 species) happen at the right level. |
+| **Party and PC** | `/party` (6 slots; click a Pokémon for its options) and the PC: 40 boxes of 30 (`pc.boxes`), opened from the party menu or the Pokémon menu; `/pc` is for admins, as in Cobblemon. Move and swap between boxes and the party, sort a box, filter by type, release (with a confirm; never your last Pokémon), rename a box and pick its wallpaper. HP carries over between battles. |
+| **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned while there's room; with four moves, you pick one to forget (or don't learn it). Level-based evolutions (310 species): as in Cobblemon, the Pokémon says it's ready and you press Evolve in its Summary. |
+| **Summary** | Opened from the party: Info, Moves and Stats tabs, nickname, Send out / Lead / To PC. A Pokémon that's ready to evolve gets an **Evolve** button, as in Cobblemon. |
+| **Pokédex** | `/pokedex`: seen (met in battle) and caught counts, every species in national order, and entries for caught ones. |
 | **Healing** | Lie down in a bed. |
 | **Poké Balls** | Crafted vertically from red dye, a stone button and an iron ingot (makes 4). |
 
@@ -47,6 +49,30 @@ Not yet: trainers and gyms, items and held items, stone, trade and friendship ev
 | ![battle menu](docs/screenshots/gameplay-battle-menu.png) | ![fight](docs/screenshots/gameplay-battle-log.png) |
 | **Party** | **Catching** |
 | ![party](docs/screenshots/gameplay-party.png) | ![catch](docs/screenshots/gameplay-catch.png) |
+
+### Screens compared
+
+Each screen in four clients:
+- **Cobblemon:** Cobblemon 1.8.2 itself (Fabric 1.21.1).
+- **Java:** cobblemon-link on a vanilla Java client (resource pack only).
+- **Java + mod:** cobblemon-link on Java with the optional client mod (`client/`).
+- **Bedrock:** cobblemon-link on Bedrock, through Geyser and Floodgate.
+
+Click an image for full size.
+
+| Screen | Cobblemon | Java | Java + mod | Bedrock |
+|---|---|---|---|---|
+| Starter | ![](docs/screenshots/compare/starter-cobblemon.png) | ![](docs/screenshots/compare/starter-java.png) | ![](docs/screenshots/compare/starter-java-mod.png) | ![](docs/screenshots/compare/starter-bedrock.png) |
+| Battle | ![](docs/screenshots/compare/battle-cobblemon.png) | ![](docs/screenshots/compare/battle-java.png) | ![](docs/screenshots/compare/battle-java-mod.png) | ![](docs/screenshots/compare/battle-bedrock.png) |
+| Moves | ![](docs/screenshots/compare/moves-cobblemon.png) | ![](docs/screenshots/compare/moves-java.png) | ![](docs/screenshots/compare/moves-java-mod.png) | ![](docs/screenshots/compare/moves-bedrock.png) |
+| PC | ![](docs/screenshots/compare/pc-cobblemon.png) | ![](docs/screenshots/compare/pc-java.png) | ![](docs/screenshots/compare/pc-java-mod.png) | ![](docs/screenshots/compare/pc-bedrock.png) |
+| Summary | ![](docs/screenshots/compare/summary-cobblemon.png) | ![](docs/screenshots/compare/summary-java.png) | ![](docs/screenshots/compare/summary-java-mod.png) | ![](docs/screenshots/compare/summary-bedrock.png) |
+| Move learning¹ | ![](docs/screenshots/compare/move-learning-cobblemon.png) | ![](docs/screenshots/compare/move-learning-java.png) | ![](docs/screenshots/compare/move-learning-java-mod.png) | ![](docs/screenshots/compare/move-learning-bedrock.png) |
+| Evolve | ![](docs/screenshots/compare/evolve-cobblemon.png) | ![](docs/screenshots/compare/evolve-java.png) | ![](docs/screenshots/compare/evolve-java-mod.png) | ![](docs/screenshots/compare/evolve-bedrock.png) |
+| Pokédex | ![](docs/screenshots/compare/pokedex-cobblemon.png) | ![](docs/screenshots/compare/pokedex-java.png) | ![](docs/screenshots/compare/pokedex-java-mod.png) | ![](docs/screenshots/compare/pokedex-bedrock.png) |
+| Party bar | ![](docs/screenshots/compare/party-bar-cobblemon.png) | — (none on vanilla) | ![](docs/screenshots/compare/party-bar-java-mod.png) | — (not possible on Bedrock) |
+
+¹ Cobblemon has no prompt for this. A new move that doesn't fit goes to the benched moves, and you swap it in from the Summary's Moves tab (shown). cobblemon-link asks which move to forget instead, because it has no benched moves yet.
 
 ### How it differs from Cobblemon
 
@@ -155,7 +181,7 @@ Bedrock players join through Floodgate with a `.` prefix, so op them by that nam
 
 ```bash
 tools/build.sh                    # fetch the pinned Cobblemon commit, convert into assets/, build the plugin
-tools/build.sh --zip v0.2.0       # also write dist/cobblemon-link-v0.2.0.zip
+tools/build.sh --zip v0.3.0       # also write dist/cobblemon-link-v0.3.0.zip
 ```
 
 Needs `bash`, `curl`, `python3`, `zip` and Docker (the plugin builds with Gradle and JDK 25 inside the `gradle:9.1-jdk25` image). To move to a newer Cobblemon, put its commit SHA in `COBBLEMON_COMMIT` and rebuild. `assets/species.tsv` lists each species with its scale, animations and status.
