@@ -98,7 +98,7 @@ final class SummaryScreen {
         String said = m.evolve(pl.dex);
         if (said == null) return;
         Store.Data d = pl.store.get(p.getUniqueId());
-        d.seen.add(m.species);
+        d.see(m);
         d.caught.add(m.species);
         pl.store.save(p.getUniqueId());
         p.sendMessage(Component.text(said, net.kyori.adventure.text.format.NamedTextColor.GREEN));

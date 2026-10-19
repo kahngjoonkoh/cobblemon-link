@@ -38,7 +38,7 @@ Everything below was played through on a vanilla Java 26.3 client. Every screen 
 | **Party and PC** | `/party` (6 slots; click a Pokémon for its options) and the PC: 40 boxes of 30 (`pc.boxes`), opened from the party menu or the Pokémon menu; `/pc` is for admins, as in Cobblemon. Move and swap between boxes and the party, sort a box, filter by type, release (with a confirm; never your last Pokémon), rename a box and pick its wallpaper. HP carries over between battles. |
 | **EXP and growth** | Gen 5+ EXP formula and all six growth curves. Level-up moves are learned while there's room; with four moves, you pick one to forget (or don't learn it). Level-based evolutions (310 species): as in Cobblemon, the Pokémon says it's ready and you press Evolve in its Summary. |
 | **Summary** | Opened from the party: Info, Moves and Stats tabs, nickname, Send out / Lead / To PC. A Pokémon that's ready to evolve gets an **Evolve** button, as in Cobblemon. |
-| **Pokédex** | `/pokedex`: seen (met in battle) and caught counts, every species in national order, and entries for caught ones. |
+| **Pokédex** | `/pokedex`: seen (met in battle) and caught counts, every species in national order, and entries for caught ones. On vanilla Java: search, a filter, gender / shiny / form buttons for the ones you've seen, and Abilities, Base stats, Moves and Evolutions tabs (click a tab again for its next part). |
 | **Healing** | Lie down in a bed. |
 | **Poké Balls** | Crafted vertically from red dye, a stone button and an iron ingot (makes 4). |
 

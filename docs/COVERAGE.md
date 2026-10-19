@@ -67,7 +67,7 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | Ball types | 30+ (Great, Ultra, Quick, Dusk, Net, Heal…) plus ancient balls | One Poké Ball (×1), crafted from red dye, button and iron ingot | ❌ |
 | Apricorn ball crafting | ✓ | — | ❌ |
 | Can't catch owned or busy Pokémon | ✓ | ✓ (wild only, not while it's in someone's battle) | ✅ |
-| Pokédex (seen / caught) | ✓ | `/pokedex`: seen (met in battle) and caught, Cobblemon's Pokédex screen (Bedrock, client mod; a chest on vanilla Java) with picture, types and entry; no search, forms or info tabs | 🟡 |
+| Pokédex (seen / caught) | ✓ | `/pokedex`: seen (met in battle) and caught, Cobblemon's Pokédex screen with picture, types and entry. Vanilla Java also has search, an All / Seen / Caught filter, the genders, shinies and forms you've seen, and Abilities, Base stats, Moves and Evolutions tabs; no regional dexes, scanning, poses or cry | 🟡 |
 
 ## Pokémon data and progression
 

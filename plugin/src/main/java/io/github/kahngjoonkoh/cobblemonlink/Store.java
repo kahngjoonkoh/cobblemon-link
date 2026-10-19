@@ -32,6 +32,7 @@ final class Store {
         List<Box> boxes = new ArrayList<>();
         Set<String> wallpapers = new HashSet<>(); // unlocked ones (Cobblemon's ids: biome_cave, pokemon_alpha, ...)
         Set<String> seen = new HashSet<>(), caught = new HashSet<>(); // Pokédex: species ids
+        Set<String> looks = new HashSet<>(); // Pokédex: each look seen, look(): its genders, shinies and forms
         List<Mon> pc; // saves from before boxes: moved into them on load
 
         int pcCount() {
@@ -52,6 +53,12 @@ final class Store {
         }
 
         boolean empty() { return party.isEmpty() && pcCount() == 0; }
+
+        /** The Pokédex has seen this Pokémon, as it looks. */
+        void see(Mon m) {
+            seen.add(m.species);
+            looks.add(look(m));
+        }
     }
 
     private final Path dir;
@@ -80,14 +87,20 @@ final class Store {
         while (d.boxes.size() < n) d.boxes.add(new Box());
         if (d.seen == null) d.seen = new HashSet<>();
         if (d.caught == null) d.caught = new HashSet<>();
+        if (d.looks == null) d.looks = new HashSet<>();
         if (d.pc != null) {
             d.pc.forEach(m -> { if (!d.toPc(m)) spill(d, m); });
             d.pc = null;
         }
-        d.party.forEach(m -> d.caught.add(m.species)); // saves from before the Pokédex
-        for (Box b : d.boxes) for (Mon m : b.slots) if (m != null) d.caught.add(m.species);
+        d.party.forEach(m -> { d.caught.add(m.species); d.looks.add(look(m)); }); // saves from before the Pokédex
+        for (Box b : d.boxes) for (Mon m : b.slots) if (m != null) { d.caught.add(m.species); d.looks.add(look(m)); }
         d.seen.addAll(d.caught);
         return d;
+    }
+
+    /** "species:aspect,aspect" (sorted): what the Pokédex remembers of a Pokémon's looks. */
+    static String look(Mon m) {
+        return m.species + ":" + String.join(",", new java.util.TreeSet<>(m.allAspects()));
     }
 
     /** ponytail: a full PC gets one more box rather than losing the Pokémon; Cobblemon refuses the catch instead. */
@@ -100,7 +113,7 @@ final class Store {
     /** Adds to the party, or the PC when the party is full. Returns true if it went to the party. */
     boolean give(UUID player, Mon mon) {
         Data d = get(player);
-        d.seen.add(mon.species);
+        d.see(mon);
         d.caught.add(mon.species);
         boolean toParty = d.party.size() < PARTY;
         if (toParty) d.party.add(mon);

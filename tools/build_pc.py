@@ -221,8 +221,9 @@ def advance(img, scale):
 
 def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
     """Adds the PC's glyphs (through glyph()) and fonts to files; writes pc_widths.json (every advance PcScreen needs)."""
+    import build_dex  # PokedexScreen.java's art, U+E400 on, in the same font and widths
     widths = {"ui": {}}
-    for name, img, char, height, ascent in pc_glyphs(gui, cob, *helpers):
+    for name, img, char, height, ascent in pc_glyphs(gui, cob, *helpers) + build_dex.dex_glyphs(gui, helpers[3]):
         img = img.copy()
         p = img.getpixel((img.width - 1, 0))
         img.putpixel((img.width - 1, 0), p[:3] + (max(p[3], 1),))  # advance = full width (scaled) + 1
@@ -262,6 +263,7 @@ def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
     files["assets/cobblemonlink/font/body.json"] = json.dumps({"providers": small}).encode()
     files["assets/cobblemonlink/font/body_big.json"] = json.dumps({"providers": big}).encode()
     widths["body"], widths["body_big"] = 17, 45  # advance of every body glyph (16 / 44 px, last column inked)
+    build_dex.dex_no_font(files, png_bytes, widths)
     files["assets/cobblemonlink/pc_widths.json"] = json.dumps(widths, ensure_ascii=False).encode()
 
 

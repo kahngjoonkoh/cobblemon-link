@@ -291,6 +291,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         companions.recallAll(e.getPlayer());
         lastInput.remove(e.getPlayer().getUniqueId());
         pc.forget(e.getPlayer());
+        PokedexScreen.forget(e.getPlayer());
         store.unload(e.getPlayer().getUniqueId());
     }
 
@@ -425,7 +426,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
         companions.recallAll(p); // the battle sends out its own
         Battle b = new Battle(this, p, wildEntity, spawner.monOf(wildEntity));
-        store.get(p.getUniqueId()).seen.add(b.wild.species); // the Pokédex: seen in battle
+        store.get(p.getUniqueId()).see(b.wild); // the Pokédex: seen in battle
         battles.put(p.getUniqueId(), b);
         if (!b.start()) battles.remove(p.getUniqueId());
     }

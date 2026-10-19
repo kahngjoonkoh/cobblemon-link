@@ -144,7 +144,7 @@ final class PcScreen {
      * those slots are empty (the server keeps them; the next real update shows them again, so on close).
      * ponytail: Paper has no API for a fake container content packet; reflection on the Mojang names, skipped if they change.
      */
-    private static void hideInventory(Player p, int containerSlots) {
+    static void hideInventory(Player p, int containerSlots) {
         try {
             Object h = p.getClass().getMethod("getHandle").invoke(p);
             Object menu = h.getClass().getField("containerMenu").get(h);
@@ -497,24 +497,33 @@ final class PcScreen {
         }
     }
 
-    private static void glyph(Ui.Title t, double x, int y, char c, int ascent) {
+    static void glyph(Ui.Title t, double x, int y, char c, int ascent) {
         put(t, x, y, Ui.glyphs(String.valueOf(c)), width("ui", c), ascent);
     }
 
     /** A piece whose top should be y px down the panel (a glyph's top is ascent above its baseline, 7 below the line). */
-    private static void put(Ui.Title t, double x, int y, Component c, double advance, int ascent) {
-        t.add(x + PX - 8, y + PY - 6 - (7 - ascent), c, advance, WHITE);
+    static void put(Ui.Title t, double x, int y, Component c, double advance, int ascent) {
+        put(t, x, y, c, advance, ascent, WHITE);
+    }
+
+    /** grey: the level it's drawn at (the shader multiplies the piece's colours by grey / 255). */
+    static void put(Ui.Title t, double x, int y, Component c, double advance, int ascent, int grey) {
+        t.add(x + PX - 8, y + PY - 6 - (7 - ascent), c, advance, grey);
     }
 
     /**
      * One of build_pc.py's text fonts (its shadow baked in), each letter followed by U+E300 (1 px back: the client's
      * bitmap advance adds a whole px, Unifont's half); centred on x if centre. Top y.
      */
-    private static void text(Ui.Title t, String font, double x, int y, String s, boolean centre) {
+    static void text(Ui.Title t, String font, double x, int y, String s, boolean centre) {
+        text(t, font, x, y, s, centre, WHITE);
+    }
+
+    static void text(Ui.Title t, String font, double x, int y, String s, boolean centre, int grey) {
         s = plain(s);
         double w = width(font, s);
         int ascent = font.equals("pc_label") ? 7 : 6;
-        put(t, centre ? x - w / 2 : x, y, Component.text(Ui.tight(s)).font(Key.key("cobblemonlink", font)), w, ascent);
+        put(t, centre ? x - w / 2 : x, y, Component.text(Ui.tight(s)).font(Key.key("cobblemonlink", font)), w, ascent, grey);
     }
 
     /** Width as text() lays it out: each advance less 1. */
