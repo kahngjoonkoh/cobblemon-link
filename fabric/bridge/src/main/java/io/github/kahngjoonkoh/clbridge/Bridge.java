@@ -32,6 +32,16 @@ public class Bridge implements ModInitializer {
                 try { VANILLA_DATA.add((EntityDataSerializer<?>) f.get(null)); } catch (IllegalAccessException ignored) {}
     }
 
+    /** ponytail: a Bedrock player comes through ViaProxy (Geyser's Java side); Floodgate tells them apart in a real setup. */
+    public static boolean bedrock(ServerGamePacketListenerImpl h) {
+        try {
+            return h.getRemoteAddress() instanceof java.net.InetSocketAddress a
+                    && a.getAddress().equals(java.net.InetAddress.getByName("viaproxy"));
+        } catch (java.net.UnknownHostException e) {
+            return false;
+        }
+    }
+
     /** The player's client has no Cobblemon: it never registered a cobblemon: channel. */
     public static boolean vanilla(ServerGamePacketListenerImpl h) {
         return ServerPlayNetworking.getSendable(h).stream().noneMatch(id -> id.getNamespace().equals("cobblemon"));
@@ -39,6 +49,7 @@ public class Bridge implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry.playS2C().register(GeyserUtilsPayload.TYPE, GeyserUtilsPayload.CODEC);
         // ponytail: models from a folder at startup (Polymer builds its pack once); every species later
         File dir = new File("config/cl-bridge/models");
         for (File f : Objects.requireNonNullElse(dir.listFiles((d, n) -> n.endsWith(".bbmodel")), new File[0]))
@@ -52,7 +63,8 @@ public class Bridge implements ModInitializer {
             var holder = new PositionedHolder(level, p.position(), m) {
                 @Override
                 public boolean startWatching(ServerGamePacketListenerImpl h) {
-                    return vanilla(h) && super.startWatching(h); // Cobblemon players see Cobblemon's own model
+                    // Cobblemon players see Cobblemon's own model, Bedrock players GeyserModelEngine's
+                    return vanilla(h) && !bedrock(h) && super.startWatching(h);
                 }
             };
             EntityAttachment.ofTicking(holder, p);

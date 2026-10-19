@@ -39,6 +39,15 @@ public class SendMixin {
             }
             return new ClientboundBundlePacket(out);
         }
+        // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its species (as on Paper)
+        if (Bridge.bedrock(h) && packet instanceof ClientboundAddEntityPacket a
+                && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity p) {
+            String model = p.getPokemon().getSpecies().getName().toLowerCase(java.util.Locale.ROOT);
+            return new ClientboundBundlePacket(List.of(
+                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(io.github.kahngjoonkoh.clbridge.GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + model)),
+                    new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
+                            net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot())));
+        }
         // ponytail: an empty bundle stands for "nothing"; moves etc. for an entity the client never saw are ignored by it
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
             return new ClientboundBundlePacket(List.of());

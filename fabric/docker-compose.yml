@@ -21,3 +21,23 @@ services:
       - ./mods-extra:/mods:ro
     ports:
       - "127.0.0.1:25570:25565"
+  # Bedrock path: phone (latest Bedrock) -> Geyser standalone (latest, speaks Java 26.3) -> ViaProxy (26.3 -> 1.21.1) -> fabric
+  viaproxy:
+    image: eclipse-temurin:25-jre
+    container_name: clpoc-viaproxy
+    user: "1000:1000"
+    working_dir: /w
+    command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1", "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE"]
+    volumes:
+      - ${HOME}/.cache/cl-fabric-poc/viaproxy:/w
+  geyser:
+    image: eclipse-temurin:25-jre
+    container_name: clpoc-geyser
+    user: "1000:1000"
+    working_dir: /w
+    stdin_open: true
+    command: ["java", "-jar", "Geyser-Standalone.jar", "--nogui"]
+    volumes:
+      - ${HOME}/.cache/cl-fabric-poc/geyser:/w
+    ports:
+      - "127.0.0.1:19140:19132/udp"
