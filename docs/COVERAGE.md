@@ -90,7 +90,7 @@ This page covers the core first: spawning, battling, capture, Pokémon data and 
 | Pasture | ✓ | — | ❌ |
 | Breeding / daycare | Not in 1.8.2 | — | ✅ (none in either) |
 | Size variation, babies | ✓ | — | ❌ |
-| Summary screen (stats, moves, friendship, held item) | Mod screen | Cobblemon's Summary (Bedrock, client mod; a dialog on vanilla Java): Info, Moves, Stats (with IVs and nature), party switching, send out / lead / to PC; no friendship, held items, nickname or move types | 🟡 |
+| Summary screen (stats, moves, friendship, held item) | Mod screen | Cobblemon's Summary on every client: Info, Moves (reorder on vanilla Java), Stats (with IVs and nature), nickname, party switching, send out / lead / to PC; no friendship, held items or move types | 🟡 |
 
 ## Commands
 

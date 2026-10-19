@@ -42,4 +42,20 @@ class PokedexScreenTest {
         d.looks.add("rattata:alolan,male");
         assertSame(alola, PokedexScreen.forms(dex, d, "rattata").get(1));
     }
+
+    @Test
+    void aBodyEndingInRKeepsItsNumber() throws Exception {
+        java.nio.file.Path zip = java.nio.file.Files.createTempFile("ui", ".zip");
+        try (var out = new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(zip))) {
+            for (String n : List.of("body/unown__character_r.png", "body/venusaur.png", "portrait/a.png", "portrait/a_r.png", "portrait/b.png")) {
+                out.putNextEntry(new java.util.zip.ZipEntry(n));
+                out.closeEntry();
+            }
+        }
+        try (var z = new java.util.zip.ZipFile(zip.toFile())) {
+            assertEquals(1, Ui.index(z, "body/", false).get("venusaur"));
+            assertEquals(1, Ui.index(z, "portrait/", true).get("b"), "a portrait's mirror isn't counted");
+        }
+        java.nio.file.Files.delete(zip);
+    }
 }

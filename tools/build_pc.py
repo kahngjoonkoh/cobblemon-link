@@ -223,7 +223,10 @@ def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
     """Adds the PC's glyphs (through glyph()) and fonts to files; writes pc_widths.json (every advance PcScreen needs)."""
     import build_dex  # PokedexScreen.java's art, U+E400 on, in the same font and widths
     widths = {"ui": {}}
-    for name, img, char, height, ascent in pc_glyphs(gui, cob, *helpers) + build_dex.dex_glyphs(gui, helpers[3]):
+    import build_summary  # SummaryScreen.java's art, U+E480 on
+    plate = Image.open(f"{gui}/pc/pc_release_button.png").convert("RGBA").crop((0, 0, 58, 16))
+    for name, img, char, height, ascent in (pc_glyphs(gui, cob, *helpers) + build_dex.dex_glyphs(gui, helpers[3])
+                                            + build_summary.sum_glyphs(gui, plate)):
         img = img.copy()
         p = img.getpixel((img.width - 1, 0))
         img.putpixel((img.width - 1, 0), p[:3] + (max(p[3], 1),))  # advance = full width (scaled) + 1

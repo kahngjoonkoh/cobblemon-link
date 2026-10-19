@@ -45,10 +45,10 @@ final class Ui {
     /** The UI pack's portraits, numbered as build_ui.py numbers them: sorted by species name. */
     static void loadPortraits(java.nio.file.Path zip) throws java.io.IOException {
         try (var z = new java.util.zip.ZipFile(zip.toFile())) {
-            portraits = index(z, "assets/cobblemonlink/textures/font/portrait/");
-            cards = index(z, "assets/cobblemonlink/textures/font/card/");
-            tiles = index(z, "assets/cobblemonlink/textures/font/tile/");
-            bodies = index(z, "assets/cobblemonlink/textures/font/body/");
+            portraits = index(z, "assets/cobblemonlink/textures/font/portrait/", true);
+            cards = index(z, "assets/cobblemonlink/textures/font/card/", false);
+            tiles = index(z, "assets/cobblemonlink/textures/font/tile/", false);
+            bodies = index(z, "assets/cobblemonlink/textures/font/body/", false); // unown__character_r is a body
             var w = z.getEntry("assets/cobblemonlink/pc_widths.json");
             if (w != null) try (var in = z.getInputStream(w)) {
                 pcWidths = com.google.gson.JsonParser.parseString(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
@@ -56,9 +56,10 @@ final class Ui {
         }
     }
 
-    private static Map<String, Integer> index(java.util.zip.ZipFile z, String dir) {
+    /** mirrored: the folder also holds each picture mirrored as <name>_r (portraits), which isn't counted. */
+    static Map<String, Integer> index(java.util.zip.ZipFile z, String dir, boolean mirrored) {
         List<String> names = z.stream().map(java.util.zip.ZipEntry::getName)
-                .filter(n -> n.startsWith(dir) && n.endsWith(".png") && !n.endsWith("_r.png"))
+                .filter(n -> n.startsWith(dir) && n.endsWith(".png") && !(mirrored && n.endsWith("_r.png")))
                 .map(n -> n.substring(dir.length(), n.length() - 4)).sorted().toList();
         Map<String, Integer> m = new java.util.HashMap<>();
         for (int i = 0; i < names.size(); i++) m.put(names.get(i), i);

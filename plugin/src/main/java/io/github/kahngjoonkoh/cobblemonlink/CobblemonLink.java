@@ -292,6 +292,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         lastInput.remove(e.getPlayer().getUniqueId());
         pc.forget(e.getPlayer());
         PokedexScreen.forget(e.getPlayer());
+        SummaryScreen.forget(e.getPlayer());
         store.unload(e.getPlayer().getUniqueId());
     }
 
