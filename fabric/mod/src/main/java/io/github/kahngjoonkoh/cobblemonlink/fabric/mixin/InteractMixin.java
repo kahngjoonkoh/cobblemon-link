@@ -20,6 +20,10 @@ public class InteractMixin {
     private void cobblemonlink$use(Entity e, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
         if (hand == InteractionHand.MAIN_HAND && (Object) this instanceof ServerPlayer p && e instanceof PokemonEntity pe && Battles.interact(p, pe))
             cir.setReturnValue(InteractionResult.SUCCESS);
+        // another player: Cobblemon's battle challenge / trade menu
+        if (hand == InteractionHand.MAIN_HAND && (Object) this instanceof ServerPlayer p && e instanceof ServerPlayer target
+                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.playerClicked(p, target))
+            cir.setReturnValue(InteractionResult.SUCCESS);
     }
 
     @Inject(method = "attack", at = @At("HEAD"), cancellable = true)

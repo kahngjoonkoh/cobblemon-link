@@ -13,7 +13,7 @@ public final class Mixins {
         if (ui != null) ui.swing();
     }
 
-    public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); }
+    public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); Social.packet(p, payload); }
 
     public static void pasture(net.minecraft.server.level.ServerPlayer p) { Pasture.open(p); }
 
@@ -24,4 +24,6 @@ public final class Mixins {
     public static void menuClosed(ServerPlayer p) { Menus.closed(p); }
 
     public static boolean moddedMenu(net.minecraft.world.inventory.MenuType<?> t) { return Menus.modded(t); }
+
+    public static boolean playerClicked(ServerPlayer p, ServerPlayer target) { return Social.interact(p, target); }
 }

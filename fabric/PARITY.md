@@ -120,8 +120,8 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
 | Pokémon on your shoulder | ⬜ | ⬜ | vanilla parrot data with a Pokémon id |
 | Sending out / recalling (R key) | 🟡 | 🟡 | Summary's Send out / Recall; ⬜ a key for it |
-| PvP battle challenges, multi battles, spectating | ⬜ | ⬜ | challenge packets; the battle screens already handle any Showdown request |
-| Trading | ⬜ | ⬜ | Cobblemon's trade packets → a form / chest |
+| PvP battle challenges, multi battles, spectating | 🟡 | 🟡 | `Social`: right-click (tap) a player → singles / doubles / triples challenge or trade (`c6-java-player-menu.png`), replies as forms / chests through Cobblemon's challenge handlers; challenge flow not yet tried end to end; ⬜ multi, spectating |
+| Trading | 🟡 | 🟡 | `Social`: offer, accept, the trade screen read from Cobblemon's ActiveTrade (offer, accept, cancel) through Cobblemon's trade handlers; built, the offer didn't reach the Bedrock bot in the first try (open) |
 | NPCs (Professor, trainers) and their dialogues | ⬜ | ⬜ | `NPCEntity` is hidden from these clients; dialogue packets |
 | Fishing with Poké Rods (bobber, bites, reeling) | 🟡 | 🟡 | casting and Cobblemon's fishing run (the rod shows, `New Angles for Angling`), but the bobber still doesn't reach these clients (sent as a vanilla hook, not drawn: open) |
 | Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, monitor, TM machine, campfire pot blocks | ✅ | ✅ | `Furniture`: Cobblemon's block models over a barrier stand-in (`PolyEntry`), following the block state; Java an item display (`f1-java-machine-blocks.png`, `f1-java-pasture-two-halves.png`, vs `f1-cobblemon-client-reference.png`), Bedrock a GeyserModelEngine model from `tools/bedrock_blocks.py` (`f2-bedrock-machine-blocks.log`); clicking the Bedrock model uses the block (`f3-bedrock-click-pc-model.log`). ⬜ the block-entity extras (healing machine's balls, display case item, tank fluid) |
