@@ -23,6 +23,7 @@ final class Companions {
     private static final int RECALL_GUARD_TICKS = 25; // THROW_DURATION + 0.5 s, as in Cobblemon
     private final CobblemonLink pl;
     private final Map<UUID, Map<String, Entity>> out = new HashMap<>(); // player -> Mon.id -> carrier
+    private final Map<UUID, Entity[]> shoulders = new HashMap<>();       // player -> [left, right] carriers
 
     Companions(CobblemonLink pl) { this.pl = pl; }
 
@@ -50,7 +51,73 @@ final class Companions {
     void recall(Player p, String monId) {
         Map<String, Entity> mine = out.get(p.getUniqueId());
         Entity e = mine == null ? null : mine.remove(monId);
-        if (e != null) e.remove();
+        if (e != null) {
+            unshoulder(p, e);
+            e.remove();
+        }
+    }
+
+    /**
+     * Cobblemon's shoulder mounting: Shift + right-click your sent-out Pokémon (a shoulderMountable species) to put it
+     * on a free shoulder, left first; it rides there until Shift + right-click with an empty hand.
+     * ponytail: the carrier is moved to the shoulder every tick (no passenger offset for a model carrier).
+     */
+    boolean shoulder(Player p, Entity e) {
+        Map<String, Entity> mine = out.getOrDefault(p.getUniqueId(), Map.of());
+        String id = mine.entrySet().stream().filter(x -> x.getValue().equals(e)).map(Map.Entry::getKey).findFirst().orElse(null);
+        Mon m = id == null ? null : pl.store.get(p.getUniqueId()).party.stream().filter(x -> x.id.equals(id)).findFirst().orElse(null);
+        if (m == null) return false;
+        Entity[] s = shoulders.computeIfAbsent(p.getUniqueId(), k -> new Entity[2]);
+        if (e.equals(s[0]) || e.equals(s[1])) return true;
+        if (!pl.dex.of(m).shoulder) {
+            p.sendActionBar(Component.text(pl.t(p, "cobblemonlink.shoulder.cant", m.name(pl.dex, CobblemonLink.loc(p))), NamedTextColor.RED));
+            return true;
+        }
+        int side = s[0] == null || !s[0].isValid() ? 0 : s[1] == null || !s[1].isValid() ? 1 : -1;
+        if (side < 0) return true;
+        s[side] = e;
+        e.setGravity(false);
+        return true;
+    }
+
+    /** Shift + right-click with an empty hand: the shoulder Pokémon hop down (the last one up first). */
+    boolean unshoulderLast(Player p) {
+        Entity[] s = shoulders.get(p.getUniqueId());
+        if (s == null) return false;
+        for (int i = 1; i >= 0; i--)
+            if (s[i] != null) {
+                unshoulder(p, s[i]);
+                return true;
+            }
+        return false;
+    }
+
+    private void unshoulder(Player p, Entity e) {
+        Entity[] s = shoulders.get(p.getUniqueId());
+        if (s == null) return;
+        for (int i = 0; i < 2; i++) if (e.equals(s[i])) s[i] = null;
+        if (s[0] == null && s[1] == null) shoulders.remove(p.getUniqueId());
+        e.setGravity(true);
+        if (e.isValid()) e.teleport(spot(p));
+    }
+
+    /** Every tick: shoulder Pokémon sit on the trainer's shoulders, facing where the trainer faces. */
+    void shoulderTick() {
+        shoulders.entrySet().removeIf(en -> {
+            Player p = pl.getServer().getPlayer(en.getKey());
+            Entity[] s = en.getValue();
+            for (int i = 0; i < 2; i++) {
+                if (s[i] == null) continue;
+                if (p == null || !s[i].isValid()) { s[i] = null; continue; }
+                Location l = p.getLocation();
+                double yaw = Math.toRadians(l.getYaw()), side = i == 0 ? 0.38 : -0.38, back = 0.12; // + left, - right of the player
+                Location at = l.clone().add(Math.cos(yaw) * side + Math.sin(yaw) * back, p.isSneaking() ? 0.95 : 1.25,
+                        Math.sin(yaw) * side - Math.cos(yaw) * back);
+                at.setPitch(0);
+                s[i].teleport(at);
+            }
+            return s[0] == null && s[1] == null;
+        });
     }
 
     void recallAll(Player p) {

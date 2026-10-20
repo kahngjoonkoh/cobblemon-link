@@ -21,7 +21,7 @@ final class Dex {
         String hidden; // hidden ability (the Ability Patch's), or null
         int catchRate, baseExp, baseFriendship = 50;
         double weight;     // hectograms
-        boolean ultraBeast;
+        boolean ultraBeast, shoulder; // shoulder: Cobblemon's shoulderMountable
         Map<String, Integer> evYield = Map.of(); // EVs for defeating it (Gen 8), stat -> amount
         List<String> tmMoves = List.of(), eggMoves = List.of(), tutorMoves = List.of();
         String expGroup, desc; // desc: the first Pokédex entry
@@ -142,6 +142,7 @@ final class Dex {
             x.baseFriendship = s.baseFriendship;
             x.weight = s.weight;
             x.ultraBeast = s.ultraBeast;
+            x.shoulder = s.shoulder;
             x.evYield = f.evYield != null ? f.evYield : s.evYield;
             x.tmMoves = s.tmMoves;
             x.eggMoves = s.eggMoves;

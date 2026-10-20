@@ -104,5 +104,6 @@
  "cobblemonlink.ui.stat_short.def": "Def",
  "cobblemonlink.ui.stat_short.sp_atk": "SpA",
  "cobblemonlink.ui.stat_short.sp_def": "SpD",
- "cobblemonlink.ui.stat_short.speed": "Spe"
+ "cobblemonlink.ui.stat_short.speed": "Spe",
+ "cobblemonlink.shoulder.cant": "%1$s can't ride on your shoulder."
 }

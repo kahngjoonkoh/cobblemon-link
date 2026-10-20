@@ -131,6 +131,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, spawner::tick, 100, cfg.getLong("spawning.interval-ticks"));
         Bukkit.getScheduler().runTaskTimer(this, spawner::cleanup, 200, 200);
         Bukkit.getScheduler().runTaskTimer(this, () -> companions.tick(), 10, 10);
+        Bukkit.getScheduler().runTaskTimer(this, () -> companions.shoulderTick(), 1, 1);
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, this::partySecond, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, () -> machines.tick(), 40, 20); // Cobblemon's machine blocks
@@ -359,7 +360,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent e) {
         entityClick.put(e.getPlayer().getUniqueId(), Bukkit.getCurrentTick());
-        if (spawner.isCompanion(e.getRightClicked())) e.setCancelled(true); // no saddles or leads on your Pokémon
+        if (spawner.isCompanion(e.getRightClicked())) {
+            e.setCancelled(true); // no saddles or leads on your Pokémon
+            if (e.getHand() == EquipmentSlot.HAND && e.getPlayer().isSneaking()) companions.shoulder(e.getPlayer(), e.getRightClicked());
+            return;
+        }
         if (npcs.isNpc(e.getRightClicked())) {
             e.setCancelled(true);
             if (e.getHand() == EquipmentSlot.HAND) npcs.challenge(e.getPlayer(), e.getRightClicked());
@@ -435,6 +440,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon (not on a crafting
         // table, chest or other block that opens)
         if (clicked != null && clicked.getType().isInteractable() && !e.getPlayer().isSneaking()) return;
+        if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && e.getPlayer().isSneaking()
+                && e.getPlayer().getInventory().getItemInMainHand().isEmpty() && companions.unshoulderLast(e.getPlayer())) return;
         // the client follows a cancelled right-click on an entity with a use of the held item: not an item use
         if (Bukkit.getCurrentTick() - entityClick.getOrDefault(e.getPlayer().getUniqueId(), -100) <= 1) return;
         if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && items != null

@@ -52,6 +52,8 @@ def fields(d):
             out['evos'] = evos
     if 'evYield' in d:  # Gen 8 EV gain for defeating it
         out['evYield'] = {STATS[k]: v for k, v in d['evYield'].items() if v}
+    if d.get('shoulderMountable'):
+        out['shoulder'] = True  # Companions.shoulder
     if 'ultra_beast' in d.get('labels', []):
         out['ultraBeast'] = True  # Beast Ball
     for k, to in (('catchRate', 'catchRate'), ('maleRatio', 'maleRatio'), ('baseFriendship', 'baseFriendship'),

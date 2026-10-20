@@ -88,7 +88,7 @@ Counts: see [the summary at the end](#summary).
 | Pokédex (seen / caught, entries, forms) | ✓ | `/pokedex`; no regional dexes or scanner | 🟡 | 🟡 |
 | Sending out / following | ✓ | Send out the lead | 🟡 | 🟡 |
 | Riding (1.7+) | 13 ride settings | — | ⬜ | ⬜ |
-| Shoulder mounting | ✓ | — | ⬜ | ⬜ |
+| Shoulder mounting | ✓ | Shift + right-click your sent-out Pokémon (Cobblemon's 94 shoulderMountable species) to put it on a shoulder, left then right; Shift + right-click with an empty hand to let it down ([evidence](docs/evidence/m14-java-shoulder.png)); no shoulder pose or shoulder effects; Bedrock gets the same carrier moves but wasn't checked on a client | 🟡 | 🟡 |
 | Pasture | ✓ | The Pasture block: party Pokémon put out roam around it, taken back from its chest menu (up to 16) | 🟡 | 🟡 |
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
 | Size variation | ✓ | — | ⬜ | ⬜ |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 48 | 34 | 12 | 1 |
-| Bedrock | 48 | 34 | 12 | 1 |
+| Java | 48 | 35 | 11 | 1 |
+| Bedrock | 48 | 35 | 11 | 1 |
 
 ## Suggested order
 
