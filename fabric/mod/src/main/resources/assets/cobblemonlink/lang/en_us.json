@@ -22,5 +22,6 @@
  "cobblemonlink.trade.click_offer": "Click: offer",
  "cobblemonlink.wheel.take_item": "Take held item",
  "cobblemonlink.wheel.take_cosmetic": "Take cosmetic item",
- "cobblemonlink.cooking.lid": "Lid: open / close (cooks when closed)"
+ "cobblemonlink.cooking.lid": "Lid: open / close (cooks when closed)",
+ "cobblemonlink.dialogue.continue": "Continue"
 }

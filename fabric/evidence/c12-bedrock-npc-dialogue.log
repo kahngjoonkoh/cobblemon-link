@@ -1,0 +1,4 @@
+# Bedrock bot taps Professor Sacchi (/spawnnpcat ... sacchi), shown as a named villager: Cobblemon's dialogue as forms, page by page
+using 13n
+form Professor Sacchi | Hello! You can call me Professor Sacchi, or just 'the professor' as many do! | Continue<textures/cobblemonlink/none>
+form Professor Sacchi | I would offer to heal your Pokémon, but I can't seem to find my healing machine... / I'm sorry about that! | Continue<textures/cobblemonlink/none>

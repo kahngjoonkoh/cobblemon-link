@@ -13,7 +13,7 @@ public final class Mixins {
         if (ui != null) ui.swing();
     }
 
-    public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); Social.packet(p, payload); }
+    public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); Social.packet(p, payload); Dialogues.packet(p, payload); }
 
     public static void pasture(net.minecraft.server.level.ServerPlayer p) { Pasture.open(p); }
 
