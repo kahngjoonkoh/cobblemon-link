@@ -43,6 +43,7 @@ public final class Dex {
 
     static void open(ServerPlayer p, int page, Species chosen) {
         if (Clients.bedrock(p)) bedrock(p, page, chosen);
+        else if (Ui.loaded && Config.vanillaJava().screenArt()) DexArt.open(p);
         else JavaScreens.dex(p, page);
     }
 
