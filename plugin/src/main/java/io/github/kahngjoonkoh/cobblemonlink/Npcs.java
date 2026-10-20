@@ -70,14 +70,15 @@ final class Npcs {
         at.getWorld().spawn(at, Mannequin.class, m -> {
             m.customName(Component.text(pl.lang.getOr("en_us", n.name, n.name)));
             m.setCustomNameVisible(true);
-            m.setDescription(n.pool.isEmpty() ? Component.empty() : Component.text("Trainer", NamedTextColor.GRAY));
+            m.setDescription(n.pool.isEmpty() ? null : Component.text("Trainer", NamedTextColor.GRAY)); // null: no second line under the name
             m.setInvulnerable(true);
             m.setImmovable(true);
             m.setPersistent(true);
             m.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);
             m.getPersistentDataContainer().set(partyKey, PersistentDataType.STRING, Store.GSON.toJson(team));
         });
-        return pl.lang.getOr("en_us", n.name, n.name) + " is here with " + team.size() + " Pokémon.";
+        String name = pl.lang.getOr("en_us", n.name, n.name);
+        return n.pool.isEmpty() ? name + " is here." : name + " is here with " + team.size() + " Pokémon.";
     }
 
     /** Right-click: the NPC's dialogue, or straight into a battle when it has none. */

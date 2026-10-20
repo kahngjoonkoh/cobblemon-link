@@ -259,7 +259,7 @@ def main(a):
     if len(a) != 2:
         sys.exit(__doc__)
     res, out = a
-    modeled = {os.path.basename(p)[:-8] for p in glob.glob(f'{out}/java/*.bbmodel')}
+    modeled = {os.path.basename(p)[:-8] for p in glob.glob(f'{out}/java/*.bbmodel') + glob.glob(f'{out}/cosmetic/java/*.bbmodel')}
     dex = species(res, modeled)
     pokedex_text(res, dex)
     feats = features(res, dex)

@@ -93,7 +93,7 @@ Counts: see [the summary at the end](#summary).
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
 | Size variation | ✓ | Cobblemon's Pokemon.scale: each Pokémon is born 0.95-1.05x, the young grow from 0.9x at level 1 to full size at level 9, alphas by Cobblemon's formula; wild, sent out, in battle and in the pasture, on both clients (the tracker's scale) ([alpha, adult, level 1](docs/evidence/m17-java-sizes.png)) | ✅ | ✅ |
 | Marks (1.7+) | 168 | Wild Pokémon roll Cobblemon's chance marks as the main games do (Rare, Personality, Uncommon, time of day, weather, Fishing, Revival); the title shows when it appears ("A wild Rattata the Peckish", [evidence](docs/evidence/m13-java-marked-wild.png)) and in the Summary ([Summary](docs/evidence/m13-java-marked-summary.png)); no ribbons, mark icons or choosing the shown mark | 🟡 | 🟡 |
-| Cosmetic items | 30 | Cobblemon's 30 cosmetic item sets on the 24 species that wear them (284 extra converted looks, base and shiny): Shift + right-click your sent-out Pokémon with the item to put it on (the old one comes back), right-click with an empty hand to take it off ([Squirtle in Black Glasses](docs/evidence/m20-java-cosmetic-glasses.png)); worn in the world and in battle, not on portraits | 🟡 | 🟡 |
+| Cosmetic items | 30 | Cobblemon's 30 cosmetic item sets on the 24 species that wear them (284 extra converted looks, base and shiny): Shift + right-click your sent-out Pokémon with the item to put it on (the old one comes back), right-click with an empty hand to take it off ([Squirtle in Black Glasses](docs/evidence/m20-java-cosmetic-glasses.png)); worn in the world and in battle; portraits keep the plain look | 🟡 | 🟡 |
 
 ## Interaction and world
 
@@ -101,7 +101,7 @@ Counts: see [the summary at the end](#summary).
 |---|---|---|---|---|
 | Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
 | Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; bait in the other hand (see Influences) | ✅ | ✅ |
-| NPCs and dialogues | ✓ | Cobblemon's dialogues run with a small MoLang interpreter (Molang.java: variables, ternaries, the queries its dialogues use): pages, options, page jumps, battles, healing and callback dialogues; `/spawnnpc sacchi` heals your party at a nearby Healing Machine; Java gets a vanilla dialog, Bedrock a form ([Java](docs/evidence/m21-java-dialogue-sacchi.png), [healed](docs/evidence/m21-java-dialogue-healed.png), [Bedrock](docs/evidence/m21-bedrock-dialogue-bot.log)); no faces, gibber sounds or timed pages | 🟡 | 🟡 |
+| NPCs and dialogues | ✓ | Cobblemon's dialogues run with a small MoLang interpreter (Molang.java: variables, ternaries, the queries its dialogues use): pages, options, page jumps, battles, healing and callback dialogues; `/spawnnpc sacchi` heals your party at a nearby Healing Machine; Java gets a vanilla dialog, Bedrock a form ([Sacchi](docs/evidence/m21-java-npc-sacchi.png), [Java](docs/evidence/m21-java-dialogue-sacchi.png), [healed](docs/evidence/m21-java-dialogue-healed.png), [Bedrock](docs/evidence/m21-bedrock-dialogue-bot.log)); no faces, gibber sounds or timed pages | 🟡 | 🟡 |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries; [evidence](docs/evidence/m11-java-ev-berries.png)), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
@@ -114,7 +114,7 @@ Counts: see [the summary at the end](#summary).
 | Held items | ~80 | Given by right-click (the old one comes back); no taking without a swap | 🟡 | 🟡 |
 | Display Case, Gilded Chests, Pokédex items | ✓ | The Display Case block shows one item (right-click with it, empty hand to take it back; [Java](docs/evidence/m15-java-display-case.png), [Bedrock gets the item](docs/evidence/m15-bedrock-display-case-bot.log)); no Gilded Chests or Pokédex items | 🟡 | 🟡 |
 | Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 347 of them (every one whose ingredients are items: balls, medicine, held items, mints, rods); mint leaves and leeks drop from grass | 🟡 | 🟡 |
-| Structures (ruins, shipwrecks, habitats, villages) | ✓ | — | ⬜ | ⬜ |
+| Structures (ruins, shipwrecks, habitats, villages) | ✓ | Cobblemon's 67 structures (29 ruins incl. Gimmighoul towers, 32 habitats, 3 shipwreck coves, 3 fishing boats; 1,165 pieces) in the datapack, generating in new chunks; its blocks swapped for vanilla look-alikes (Gilded Chests become chests, ores stone), its own processors left out ([Lush Gimmighoul tower](docs/evidence/m22-java-lush-gimmi-tower.png)); no village houses | 🟡 | 🟡 |
 
 ## Languages
 
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 39 | 3 | 1 |
-| Bedrock | 52 | 39 | 3 | 1 |
+| Java | 52 | 40 | 2 | 1 |
+| Bedrock | 52 | 40 | 2 | 1 |
 
 ## Suggested order
 
