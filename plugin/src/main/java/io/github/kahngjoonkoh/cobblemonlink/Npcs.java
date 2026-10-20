@@ -18,7 +18,8 @@ import org.bukkit.persistence.PersistentDataType;
  * Cobblemon's NPC trainers (data/cobblemon/npcs + npc_presets, gamedata.json "npcs"): /spawnnpc puts one down as a
  * Mannequin (a player-shaped entity both clients draw); right-clicking it starts a battle against its party, which
  * picks its moves with the sim's TrainerAI at the NPC's skill.
- * ponytail: the default player skin, not Cobblemon's NPC models; no dialogues.
+ * The Mannequin is invisible under Cobblemon's own NPC model (tools/build_npcs.py: the trainer, Professor Sacchi).
+ * ponytail: models are put on at spawn and on a click, so after a restart an NPC is bare until someone clicks it.
  */
 final class Npcs {
     /** One NPC class: name, skill (0-5), party size, Cobblemon's pool party. */
@@ -67,7 +68,7 @@ final class Npcs {
         Npc n = pl.dex.npcs.get(id);
         if (n == null) throw new IllegalArgumentException("Unknown NPC. Known: " + String.join(", ", pl.dex.npcs.keySet()));
         List<Mon> team = party(pl.dex, n, new Random());
-        at.getWorld().spawn(at, Mannequin.class, m -> {
+        Mannequin spawned = at.getWorld().spawn(at, Mannequin.class, m -> {
             m.customName(Component.text(pl.lang.getOr("en_us", n.name, n.name)));
             m.setCustomNameVisible(true);
             m.setDescription(n.pool.isEmpty() ? null : Component.text("Trainer", NamedTextColor.GRAY)); // null: no second line under the name
@@ -77,12 +78,33 @@ final class Npcs {
             m.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);
             m.getPersistentDataContainer().set(partyKey, PersistentDataType.STRING, Store.GSON.toJson(team));
         });
+        model(spawned);
         String name = pl.lang.getOr("en_us", n.name, n.name);
         return n.pool.isEmpty() ? name + " is here." : name + " is here with " + team.size() + " Pokémon.";
     }
 
+    /** Cobblemon's NPC model on the (invisible) Mannequin, once. */
+    void model(Entity npc) {
+        if (kr.toxicity.model.api.BetterModel.registryOrNull(kr.toxicity.model.api.bukkit.platform.BukkitAdapter.adapt(npc)) != null) return;
+        String id = npc.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        kr.toxicity.model.api.BetterModel.model("sacchi".equals(id) ? "npc_sacchi" : "npc_trainer").ifPresent(r -> {
+            r.create(kr.toxicity.model.api.bukkit.platform.BukkitAdapter.adapt(npc));
+            ((org.bukkit.entity.LivingEntity) npc).setInvisible(true);
+            // the model hides the entity's own name tag: a text display riding it carries the name
+            if (npc.getPassengers().isEmpty() && npc.customName() != null)
+                npc.addPassenger(npc.getWorld().spawn(npc.getLocation(), org.bukkit.entity.TextDisplay.class, t -> {
+                    t.text(npc.customName());
+                    t.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+                    t.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(0, 0.35f, 0),
+                            new org.joml.AxisAngle4f(), new org.joml.Vector3f(1, 1, 1), new org.joml.AxisAngle4f()));
+                }));
+            npc.setCustomNameVisible(false);
+        });
+    }
+
     /** Right-click: the NPC's dialogue, or straight into a battle when it has none. */
     void challenge(Player p, Entity npc) {
+        model(npc);
         Npc n = pl.dex.npcs.get(npc.getPersistentDataContainer().get(key, PersistentDataType.STRING));
         if (n == null || pl.battles.containsKey(p.getUniqueId())) return;
         if (n.dialogue != null && pl.dex.dialogues.containsKey(n.dialogue)) pl.dialogues.start(p, npc, n, n.dialogue);

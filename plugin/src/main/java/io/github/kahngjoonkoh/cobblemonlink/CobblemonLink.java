@@ -409,6 +409,19 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (e instanceof EntityDamageByEntityEvent by && by.getDamager() instanceof Player p) startBattle(p, e.getEntity());
     }
 
+    /**
+     * Bedrock: a tap on a model is an attack (GeyserModelEngine forwards no use), so a tap on your own sent-out Pokémon
+     * rides it, Shift + tap puts it on your shoulder. (Before the attack: companions are invulnerable, so no damage event.)
+     */
+    @EventHandler
+    public void onPreAttack(io.papermc.paper.event.player.PrePlayerAttackEntityEvent e) {
+        Player p = e.getPlayer();
+        if (!spawner.isCompanion(e.getAttacked()) || !Ui.bedrock(p)) return;
+        e.setCancelled(true);
+        if (p.isSneaking()) companions.shoulder(p, e.getAttacked());
+        else companions.ride(p, e.getAttacked());
+    }
+
     /** Java cursor screen: a left click is an arm swing; the seat and the world are off-limits meanwhile. */
     @EventHandler
     public void onSwing(PlayerAnimationEvent e) {
