@@ -40,7 +40,8 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Tap or hit a wild Pokémon starts a battle | pig click/hit → Cobblemon `BattleBuilder.pve` (`InteractMixin`) | ✅ `b1-bedrock-battle-bot.log` |
 | 3D Poké Ball (thrown, shakes, capture/break) | GME `poke_ball` on Cobblemon's `EmptyPokeBallEntity`, animation from its capture state | 🟡 same code as Java (`m3-java-pokeball-capture.png`); not seen on a phone |
 | Bedrock UI pack (forms art, HUD) pushed by Geyser | `bedrock-ui.mcpack` from `tools/build_bedrock_ui.py` in Geyser's `packs/` | ✅ ("packs offered: 3") |
-| Pack versions ≤ 65535 | Reuses the main checkout's fix (uncommitted there) | 🟡 |
+| Pack versions ≤ 65535 | Reuses the main checkout's fix (uncommitted there); our items pack keeps it too | 🟡 |
+| Cobblemon item icons in the Bedrock inventory (Paper: the Poké Ball) | `tools/bedrock_items.py`: Geyser custom item mappings for PolyMc's stand-ins (595 items) + an icon pack | ✅ `b7-bedrock-item-icons-bot.log` |
 | Battle forms (menu, moves, switch, catch, run) + HP boss bars, prompt, `/battle` | Floodgate forms with the Paper titles (MARK 1-3), answers sent as Cobblemon's Showdown responses | ✅ `b1-bedrock-battle-bot.log` (a won battle) |
 | Starter form, `/starter` | Cobblemon's StarterHandler (its starter packet opens the form, `chooseStarter` takes the pick) | ✅ `b3-bedrock-starter-bot.log` |
 | Summary form (tabs, nickname, move order + benched moves, send out, lead, to PC, Evolve), `/party` | Cobblemon Pokémon API | ✅ `b4-bedrock-summary-bot.log` |

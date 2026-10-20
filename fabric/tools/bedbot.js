@@ -10,8 +10,9 @@ c.on('resource_packs_info', p => console.log('packs offered:', (p.texture_packs 
 c.on('text', p => console.log('text', p.type, JSON.stringify(p.message), JSON.stringify(p.parameters || [])))
 c.on('set_title', p => p.text && console.log('title', p.type, JSON.stringify(p.text)))
 const names = it => { const n = it && it.extra && it.extra.nbt && it.extra.nbt.nbt; const d = n && n.value && n.value.display; return d ? JSON.stringify(d.value.Name && d.value.Name.value) : null }
-c.on('inventory_content', p => (p.input || []).forEach((it, i) => { const n = names(it); if (n) console.log('slot', i, n) }))
-c.on('inventory_slot', p => { const n = names(p.item); if (n) console.log('slot', p.slot, n) })
+c.on('inventory_content', p => (p.input || []).forEach((it, i) => { const n = names(it); if (n) console.log('slot', i, it.network_id, n) }))
+c.on('item_registry', p => { const m = (p.itemstates || []).filter(x => x.name.startsWith('cobblemonlink:')); console.log('custom items registered:', m.length, m.slice(0, 2).map(x => x.name + '=' + x.runtime_id).join(' ')) })
+c.on('inventory_slot', p => { const n = names(p.item); if (n) console.log('slot', p.slot, p.item && p.item.network_id, n) })
 c.on('modal_form_request', p => console.log('form', p.form_id, p.data.slice(0, 400)))
 c.on('set_entity_data', p => p.properties && (p.properties.ints || []).length && console.log('props', p.runtime_entity_id, JSON.stringify(p.properties.ints)))
 c.on('add_entity', p => p.properties && (p.properties.ints || []).length && console.log('props@spawn', p.runtime_id, JSON.stringify(p.properties.ints)))
