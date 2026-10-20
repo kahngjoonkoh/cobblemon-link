@@ -139,7 +139,7 @@ final class DexArt {
             Art.glyph(t, 38, 40, UNKNOWN_BIG, 7);
         }
         Art.text(t, "pc_bold", 84, 29, String.format("%04d", s.getNationalPokedexNumber()), false);
-        String formName = Dex.variants(p, s).size() > 1 ? " " + Dex.variant(p, s).label() : "";
+        String formName = Dex.variant(p, s).label().isEmpty() ? "" : " " + Dex.variant(p, s).label();
         Art.text(t, "pc_bold", 104, 29, Art.fit("pc_bold", seen ? Art.plain(Lang.resolve(p, s.getTranslatedName()).getString() + formName) : "-----", 66), false);
         List<String> lines = page(p, v, s, seen, caught);
         int per = LINES, from = lines.size() <= per ? 0 : Math.floorMod(v.scroll, (lines.size() + per - 1) / per) * per;

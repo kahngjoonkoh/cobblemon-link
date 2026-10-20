@@ -73,12 +73,12 @@ public final class Dex {
         for (var f : forms) {
             java.util.Set<String> aspects = new java.util.HashSet<>(f.getAspects());
             String key = "cobblemon.ui.pokedex.info.form." + id + (f == sp.getStandardForm() ? "" : "-" + f.getName().toLowerCase(Locale.ROOT));
-            String label = Lang.has(key) && !Lang.get(p, key).isBlank() ? Lang.get(p, key) : f.getName();
+            String label = f == sp.getStandardForm() ? "" : Lang.has(key) && !Lang.get(p, key).isBlank() ? Lang.get(p, key) : f.getName();
             String look = Models.look(id, aspects);
             if (out.stream().noneMatch(v -> v.look.equals(look))) out.add(new Variant(label, look));
             aspects.add("female");
             String female = Models.look(id, aspects);
-            if (!female.equals(look) && out.stream().noneMatch(v -> v.look.equals(female))) out.add(new Variant(label + " ♀", female));
+            if (!female.equals(look) && out.stream().noneMatch(v -> v.look.equals(female))) out.add(new Variant((label + " ♀").trim(), female));
         }
         return out;
     }
@@ -184,7 +184,7 @@ public final class Dex {
                     kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> { VARIANT.put(p.getUUID(), 0); bedrock(p, pg, sp); }));
         }
         String entry = caught ? Starters.desc(p, sel.getResourceIdentifier().getPath()) : seen ? Lang.t(p, "cobblemonlink.dex.catch_to_read") : "";
-        String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() + (variants(p, sel).size() > 1 ? " (" + look.label() + ")" : "") : "???";
+        String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() + (look.label().isEmpty() ? "" : " (" + look.label() + ")") : "???";
         Forms.send(p, name + Forms.MARK + 8, entry, o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
     }
 
