@@ -6,7 +6,10 @@ const [host, port, secs] = [process.argv[2], +process.argv[3], +(process.argv[4]
 const answers = (process.argv[5] || '0,0').split(',').map(Number)
 const c = bp.createClient({ host, port, offline: true, username: 'PocBedrock', skipPing: true, connectTimeout: 20000 })
 let me, target, n = 0, pos
-c.on('start_game', p => { me = p.runtime_entity_id; pos = p.player_position; console.log('start_game') })
+c.on('start_game', p => {
+  me = p.runtime_entity_id; pos = p.player_position; console.log('start_game')
+  if (process.env.CMD) setTimeout(() => { console.log('command', process.env.CMD); c.queue('command_request', { command: process.env.CMD, origin: { type: 'player', uuid: '00000000-0000-0000-0000-000000000000', request_id: '', player_entity_id: 0n }, internal: false, version: '72' }) }, 6000)
+})
 c.on('move_player', p => { if (p.runtime_id == me) pos = p.position })
 c.on('add_entity', p => {
   console.log('add_entity', p.entity_type, p.runtime_id)
