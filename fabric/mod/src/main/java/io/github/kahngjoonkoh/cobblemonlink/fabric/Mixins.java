@@ -66,7 +66,8 @@ public final class Mixins {
     /** An NPC for a client without the mod: an unlisted player entry (its name, ≤16 letters) and a player entity. */
     public static net.minecraft.network.protocol.Packet<?> npcSpawn(net.minecraft.network.protocol.game.ClientboundAddEntityPacket a,
             com.cobblemon.mod.common.entity.npc.NPCEntity npc, ServerPlayer p) {
-        String name = Lang.resolve(p, npc.getName()).getString().replaceAll("[^A-Za-z0-9_]", "");
+        String raw = npc.getName().getString(); // Cobblemon may keep a lang key as plain text
+        String name = (Lang.has(raw) ? Lang.get(p, raw) : Lang.resolve(p, npc.getName()).getString()).replaceAll("[^A-Za-z0-9_]", "");
         if (name.length() > 16) name = name.substring(0, 16);
         if (name.isEmpty()) name = "NPC";
         var info = eu.pb4.polymer.core.api.entity.PolymerEntityUtils.createMutablePlayerListPacket(java.util.EnumSet.of(

@@ -242,11 +242,13 @@ public final class BattleUi {
         var o = new Ui.Overlay();
         o.fade = hidden ? 4 : 0;
         PokemonBattle b = battle(player);
+        // a tile per active Pokémon, stacked down each corner (doubles, triples, multi): left your side, right theirs
+        int[] row = {0, 0};
         if (b != null) for (ActiveBattlePokemon ap : b.getActivePokemon()) {
             BattlePokemon bp = ap.getBattlePokemon();
             if (bp == null) continue;
-            boolean own = watching == null ? ap.getActor() == actor() : java.util.Arrays.asList(b.getSide1().getActors()).contains(ap.getActor());
-            panel(o, own ? Ui.Overlay.TL : Ui.Overlay.TR, own ? 12 : -152, bp, own);
+            boolean own = ownSide(b, ap);
+            panel(o, own ? Ui.Overlay.TL : Ui.Overlay.TR, own ? 12 : -152, 42 * row[own ? 0 : 1]++, bp, own);
         }
         o.fade = hidden ? 6 : 0;
         o.glyph(Ui.Overlay.BR, -181, 85, '\ue103', 170);
@@ -270,18 +272,25 @@ public final class BattleUi {
     }
 
     /** One 140x40 tile: portrait ring, name, level, HP bar; yours with HP numbers, the foe's a percentage. */
-    private void panel(Ui.Overlay o, int corner, int x, BattlePokemon bp, boolean own) {
+    /** On the player's side (a spectator: the first side): yours and your partners' Pokémon. */
+    private boolean ownSide(PokemonBattle b, ActiveBattlePokemon ap) {
+        BattleActor me = actor();
+        var side = me != null ? me.getSide() : b.getSide1();
+        return java.util.Arrays.asList(side.getActors()).contains(ap.getActor());
+    }
+
+    private void panel(Ui.Overlay o, int corner, int x, int dy, BattlePokemon bp, boolean own) {
         var mon = bp.getEffectedPokemon();
-        o.glyph(corner, x + (own ? 5 : 107), 18, '\ue102', 29);
+        o.glyph(corner, x + (own ? 5 : 107), 18 + dy, '\ue102', 29);
         var face = Ui.portrait(Summary.look(mon), !own);
-        if (face != null) o.add(corner, x + (own ? 5 : 107), 18, face, 29);
-        o.glyph(corner, x, 10, own ? '\ue100' : '\ue101', 141);
+        if (face != null) o.add(corner, x + (own ? 5 : 107), 18 + dy, face, 29);
+        o.glyph(corner, x, 10 + dy, own ? '\ue100' : '\ue101', 141);
         int ib = x + (own ? 40 : 7);
         float ratio = Math.clamp((float) bp.getHealth() / Math.max(1, bp.getMaxHealth()), 0f, 1f);
         int bar = Math.round(ratio * 97);
-        o.label(corner, ib, 17, name(mon)).label(corner, ib + 69, 17, Lang.t(player, "cobblemon.ui.lv")).label(corner, ib + 82, 17, String.valueOf(mon.getLevel()));
-        if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29, (char) (0xE110 + bar), bar + 1);
-        o.small(corner, ib + (own ? 39 : 44), 28, own ? bp.getHealth() + "/" + bp.getMaxHealth() : (int) Math.ceil(ratio * 100) + "%");
+        o.label(corner, ib, 17 + dy, own ? name(mon) : seen(mon)).label(corner, ib + 69, 17 + dy, Lang.t(player, "cobblemon.ui.lv")).label(corner, ib + 82, 17 + dy, String.valueOf(mon.getLevel()));
+        if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29 + dy, (char) (0xE110 + bar), bar + 1);
+        o.small(corner, ib + (own ? 39 : 44), 28 + dy, own ? bp.getHealth() + "/" + bp.getMaxHealth() : (int) Math.ceil(ratio * 100) + "%");
     }
 
     // ---- menus ----
@@ -355,8 +364,10 @@ public final class BattleUi {
             return;
         }
         Chest c = new Chest(1, title);
-        for (int i = 0; i < Math.min(9, opts.size()); i++)
-            c.set(i, Chest.icon(net.minecraft.world.item.Items.TARGET, opts.get(i).text(), List.of()), opts.get(i).action());
+        for (int i = 0; i < Math.min(9, opts.size()); i++) {
+            Runnable r = opts.get(i).action();
+            c.set(i, Chest.icon(net.minecraft.world.item.Items.TARGET, opts.get(i).text(), List.of()), () -> { player.closeContainer(); r.run(); });
+        }
         c.open(player);
     }
 

@@ -62,6 +62,35 @@ public final class Dex {
         return out.isEmpty() ? order() : out;
     }
 
+    /** A way a species can look: its forms, and a female look where it differs. */
+    record Variant(String label, String look) {}
+
+    static List<Variant> variants(ServerPlayer p, Species sp) {
+        String id = sp.getResourceIdentifier().getPath();
+        List<Variant> out = new ArrayList<>();
+        List<com.cobblemon.mod.common.pokemon.FormData> forms = new ArrayList<>(List.of(sp.getStandardForm()));
+        for (var f : sp.getForms()) if (!forms.contains(f)) forms.add(f);
+        for (var f : forms) {
+            java.util.Set<String> aspects = new java.util.HashSet<>(f.getAspects());
+            String key = "cobblemon.ui.pokedex.info.form." + id + (f == sp.getStandardForm() ? "" : "-" + f.getName().toLowerCase(Locale.ROOT));
+            String label = Lang.has(key) && !Lang.get(p, key).isBlank() ? Lang.get(p, key) : f.getName();
+            String look = Models.look(id, aspects);
+            if (out.stream().noneMatch(v -> v.look.equals(look))) out.add(new Variant(label, look));
+            aspects.add("female");
+            String female = Models.look(id, aspects);
+            if (!female.equals(look) && out.stream().noneMatch(v -> v.look.equals(female))) out.add(new Variant(label + " ♀", female));
+        }
+        return out;
+    }
+
+    /** Each player's chosen look in the entry (index into variants), per species. */
+    static final java.util.Map<java.util.UUID, Integer> VARIANT = new java.util.concurrent.ConcurrentHashMap<>();
+
+    static Variant variant(ServerPlayer p, Species sp) {
+        var vs = variants(p, sp);
+        return vs.get(Math.floorMod(VARIANT.getOrDefault(p.getUUID(), 0), vs.size()));
+    }
+
     /** Pick a dex: a dropdown on Bedrock (then the Pokédex again), the next one on Java. */
     static void chooseRegion(ServerPlayer p, Runnable then) {
         var all = regions();
@@ -132,7 +161,13 @@ public final class Dex {
         o.add(new Forms.Opt(">", "none", () -> bedrock(p, pg + 1, null)));
         // the page counter picks the dex (Cobblemon's regional Pokédexes)
         o.add(new Forms.Opt((pg + 1) + "/" + pages, "none", () -> chooseRegion(p, () -> bedrock(p, 0, null))));
-        o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d", sel.getNationalPokedexNumber()), seen ? picture(sel) : "pokedex/unknown", stay));
+        // the picture: the chosen form / gender; tapping it shows the next one
+        Variant look = variant(p, sel);
+        o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d", sel.getNationalPokedexNumber()),
+                seen ? (Models.has(look.look()) ? "body/" + look.look() : picture(sel)) : "pokedex/unknown", () -> {
+                    VARIANT.merge(p.getUUID(), 1, Integer::sum);
+                    bedrock(p, pg, sel);
+                }));
         List<String> types = new ArrayList<>();
         sel.getTypes().forEach(t -> types.add(t.getName().toLowerCase(Locale.ROOT)));
         for (int t = 0; t < 2; t++) o.add(new Forms.Opt("", seen && t < types.size() ? "pc/type/" + types.get(t) : "none", stay));
@@ -146,10 +181,10 @@ public final class Dex {
             Species sp = here.get(i);
             var kk = knowledge(p, sp);
             o.add(new Forms.Opt(String.format("%04d", sp.getNationalPokedexNumber()) + (kk == PokedexEntryProgress.OWNED ? "c" : "") + (sp == sel ? "*" : ""),
-                    kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> bedrock(p, pg, sp)));
+                    kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> { VARIANT.put(p.getUUID(), 0); bedrock(p, pg, sp); }));
         }
         String entry = caught ? Starters.desc(p, sel.getResourceIdentifier().getPath()) : seen ? Lang.t(p, "cobblemonlink.dex.catch_to_read") : "";
-        String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() : "???";
+        String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() + (variants(p, sel).size() > 1 ? " (" + look.label() + ")" : "") : "???";
         Forms.send(p, name + Forms.MARK + 8, entry, o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
     }
 

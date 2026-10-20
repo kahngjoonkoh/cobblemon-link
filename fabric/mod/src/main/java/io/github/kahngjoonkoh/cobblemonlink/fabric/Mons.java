@@ -135,6 +135,15 @@ public final class Mons {
         return npcLooks.getOrDefault(n.getResourceIdentifier().toString(), "npc_trainer");
     }
 
+    /**
+     * An NPC's name for its tag: Cobblemon keeps a lang key as plain text ("npc.sacchi.name"); as a translatable it is
+     * written out by each Java client in its own language (Cobblemon's lang files are in the pack).
+     */
+    static net.minecraft.network.chat.Component npcName(com.cobblemon.mod.common.entity.npc.NPCEntity n) {
+        String s = n.getName().getString();
+        return Lang.has(s) ? net.minecraft.network.chat.Component.translatable(s) : n.getName();
+    }
+
     /** A Cobblemon NPC drawn like a Pokémon: its own model and skin, its name above. */
     private static void npc(com.cobblemon.mod.common.entity.npc.NPCEntity n, ServerLevel level) {
         Models.Model m = Models.get(npcLook(n));
@@ -145,7 +154,7 @@ public final class Mons {
                 level.getChunkSource().broadcast(n, new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(n.getId(), anims)));
             }
         };
-        var name = new eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement(Lang.resolve(n.getName())); // ponytail: in English for everyone (one display for all viewers)
+        var name = new eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement(npcName(n));
         name.setBillboardMode(net.minecraft.world.entity.Display.BillboardConstraints.CENTER);
         name.setOffset(new net.minecraft.world.phys.Vec3(0, n.getBbHeight() + 0.3, 0));
         name.setViewRange(0.5f);

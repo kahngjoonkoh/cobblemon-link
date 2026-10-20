@@ -65,11 +65,14 @@ final class DexArt {
             m.on(Art.raw(i % 9, tileRow(i)), b -> {
                 if (sp != v.sel) {
                     v.sel = sp;
+                    Dex.VARIANT.put(p.getUUID(), 0);
                     v.scroll = 0;
                 }
                 show(p, v);
             });
         }
+        for (int c = 1; c <= 3; c++) for (int r = 0; r <= 2; r++) // the picture: the next form / gender
+            m.on(Art.raw(c, r), b -> { Dex.VARIANT.merge(p.getUUID(), b == 1 ? -1 : 1, Integer::sum); show(p, v); });
         m.on(Art.raw(2, 8), b -> Dex.chooseRegion(p, () -> { v.page = 0; v.sel = null; show(p, v); })); // the next regional dex
         m.on(Art.raw(0, 8), b -> { v.page--; show(p, v); });
         m.on(Art.raw(8, 8), b -> { v.page++; show(p, v); });
@@ -127,7 +130,8 @@ final class DexArt {
         s.getTypes().forEach(ty -> types.add(JavaScreens.type(ty)));
         if (seen) {
             Art.glyph(t, 12, 62, (char) (PLATFORM + Ui.TYPES.indexOf(types.getFirst())), 7);
-            var body = Art.body(s.getResourceIdentifier().getPath(), true);
+            var body = Art.body(Dex.variant(p, s).look(), true);
+            if (body == null) body = Art.body(s.getResourceIdentifier().getPath(), true);
             if (body != null) Art.put(t, 24, 29, body, 45, 7);
             for (int k = 0; k < types.size(); k++) Art.glyph(t, 12 + 8 * k, 29, (char) (TYPE_ICON + Ui.TYPES.indexOf(types.get(k))), 7);
         } else {
@@ -135,7 +139,8 @@ final class DexArt {
             Art.glyph(t, 38, 40, UNKNOWN_BIG, 7);
         }
         Art.text(t, "pc_bold", 84, 29, String.format("%04d", s.getNationalPokedexNumber()), false);
-        Art.text(t, "pc_bold", 104, 29, Art.fit("pc_bold", seen ? Lang.resolve(p, s.getTranslatedName()).getString() : "-----", 66), false);
+        String formName = Dex.variants(p, s).size() > 1 ? " " + Dex.variant(p, s).label() : "";
+        Art.text(t, "pc_bold", 104, 29, Art.fit("pc_bold", seen ? Art.plain(Lang.resolve(p, s.getTranslatedName()).getString() + formName) : "-----", 66), false);
         List<String> lines = page(p, v, s, seen, caught);
         int per = LINES, from = lines.size() <= per ? 0 : Math.floorMod(v.scroll, (lines.size() + per - 1) / per) * per;
         for (int k = from; k < Math.min(lines.size(), from + per); k++) {
