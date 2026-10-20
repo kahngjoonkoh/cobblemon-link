@@ -80,6 +80,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Machines machines;
     Npcs npcs;
     Dialogues dialogues;
+    CustomBlocks blocks; // Cobblemon's ores and apricorns as real blocks (tools/build_custom_blocks.py)
     private final Map<java.util.UUID, Integer> entityClick = new java.util.HashMap<>(); // tick of each player's last entity right-click
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
@@ -109,6 +110,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             Hotbar.cobblemonIcons = tex;
         } catch (IOException e) {
             getLogger().warning("items.json unreadable: " + e);
+        }
+        try {
+            blocks = new CustomBlocks(this, getDataFolder().toPath().resolve("custom-blocks.json")); // setup.sh installs it
+        } catch (IOException e) {
+            getLogger().warning("custom-blocks.json unreadable, Cobblemon's blocks stay vanilla stand-ins: " + e);
         }
         evolutions = new Evolutions(this);
         machines = new Machines(this, dex.fossils);
@@ -151,6 +157,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         loadPack("cobblemon-link-icons.zip");
         loadPack("cobblemon-link-items.zip"); // Cobblemon's item art (tools/build_items.py)
         loadPack("cobblemon-link-sounds.zip"); // Cobblemon's sounds (tools/build_sounds.py)
+        loadPack("cobblemon-link-blocks.zip"); // Cobblemon's blocks (tools/build_custom_blocks.py)
         try (var pics = Files.list(getDataFolder().toPath().resolveSibling("BetterModel"))) { // the Pokémon pictures, a pack a region
             pics.map(f -> f.getFileName().toString()).filter(n -> n.startsWith("cobblemon-link-pics-") && n.endsWith(".zip"))
                     .sorted().forEach(this::loadPack);
@@ -869,6 +876,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             else b.reveal();
         });
         new AdminCommands(this).register();
+        playerCommand("clblock", "/clblock <ore> [amount]: one of Cobblemon's ores, placeable; /clblock scan: the custom blocks around you", "cobblemonlink.admin", (p, a) -> {
+            if (blocks != null && a.length == 1 && a[0].equals("scan")) { p.sendMessage(Component.text(blocks.scan(p.getLocation(), 3), NamedTextColor.GRAY)); return; }
+            ItemStack it = blocks == null || a.length == 0 ? null : blocks.item(a[0], a.length > 1 ? Integer.parseInt(a[1]) : 1);
+            if (it == null) p.sendMessage(Component.text("Usage: /clblock <ore> [amount], e.g. moon_stone_ore", NamedTextColor.RED));
+            else p.getInventory().addItem(it);
+        });
         playerCommand("challenge", "/challenge <player> [singles|doubles|triples]: a Pokémon battle; /challenge accept <player>", null, this::challenge);
         playerCommand("spectate", "/spectate <player>: watch their battle (64 blocks); again to stop", null, (p, a) -> {
             for (Battle b : battles.values()) // stop watching any battle

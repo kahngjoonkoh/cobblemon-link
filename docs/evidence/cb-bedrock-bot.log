@@ -1,0 +1,26 @@
+# Bedrock bot (bedrock-protocol, protocol of 26.52) through Geyser on the clblocks test server, toby 2026-10-20
+# node tools/testclient/bedblocks.js 100.106.192.12 19140 45 2,70,3 3,70,3 4,70,3 5,70,3; rcon placed:
+#   2,70,3 the moon_stone_ore state note_block[harp,note=6], then note=7; 3,70,3 a real note block (harp,0); 4,70,3 red apricorn age 3 facing north; 5,70,3 real string
+packs offered: 4057036a-99fc-76f5-0483-1a664b4d5788 4c581c0f-bd83-bf96-5f20-7870c0889fba b0453084-3d39-5422-65c7-287839bd8a83 28447f7e-da4c-d359-eb32-4224e678dfbb 00495237-232f-1a1e-52bb-64199d320c89 6058bc84-1a7f-3eb3-ac0f-f82702be6a88
+custom blocks registered: 107 - ours: 2 geyser_custom:cl_tripwire geyser_custom:cl_note_block
+in the world at {"x":0,"y":69,"z":0} block_network_ids_are_hashes: false
+text "§r§6Type /starter to choose your first Pokémon and begin your journey!"
+text "§r§e.BotBlocks joined the game"
+update_block 2,70,3 runtime 9953
+update_block 2,70,3 runtime 17270
+update_block 3,70,3 runtime 2423
+update_block 3,70,3 runtime 17270
+update_block 4,70,3 runtime 21289
+update_block 4,70,3 runtime 17270
+update_block 5,70,3 runtime 19916
+update_block 5,70,3 runtime 17270
+update_block 2,70,3 runtime 9955
+update_block 2,70,3 runtime 17270
+still connected after 45 s
+# reading: Bedrock note blocks have one vanilla state (2423 = the real note block). The ore states get their own
+# runtime ids (9953, 9955: one per Java state, two apart = powered false/true), the apricorn 21289 vs real string 19916:
+# Geyser sends the custom blocks geyser_custom:cl_note_block / cl_tripwire it registered at start_game. 17270 = the water layer.
+# packs offered: the bot prints UUIDs in two little-endian halves; 4c581c0f-bd83-bf96-5f20-7870c0889fba is the blocks pack 96bf83bd-0f1c-584c-ba9f-88c07078205f (manifest.json)
+[m>....[K[23:51:35 INFO]: [Geyser-Spigot] Registered 357 custom block overrides.
+>....[K[23:51:35 INFO]: [Geyser-Spigot] Registered 2 custom block item overrides.
+>....[K[23:51:35 INFO]: [Geyser-Spigot] Registered 9 custom blocks.

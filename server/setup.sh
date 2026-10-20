@@ -54,6 +54,13 @@ cp ../assets/items.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-items.m
 cp ../assets/sounds-pack.zip "$D/plugins/BetterModel/cobblemon-link-sounds.zip"
 cp ../assets/sounds.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-sounds.mcpack"
 cp ../assets/geyser-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-items.json"
+# Cobblemon's ores and apricorns as real blocks (tools/build_custom_blocks.py, docs/custom-blocks.md), when built
+if [ -f ../assets/custom-blocks.json ]; then
+  cp ../assets/custom-blocks.json "$D/plugins/CobblemonLink/"
+  cp ../assets/blocks-pack.zip "$D/plugins/BetterModel/cobblemon-link-blocks.zip"
+  cp ../assets/blocks.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-blocks.mcpack"
+  cp ../assets/geyser-blocks.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-blocks.json"
+fi
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
@@ -66,6 +73,7 @@ for x in npcs cosmetic shoulder; do [ -d ../assets/$x/java ] && cp ../assets/$x/
 cp -r ../assets/blocks/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 
 # configs only exist after the first boot
+set_key() { [ -f "$1" ] && sed -i "s|^\(\s*\)$2:.*|\1$2: $3|" "$1"; }
 G="$D/plugins/Geyser-Spigot/config.yml"
 if [ -f "$G" ]; then
   sed -i 's/^\(\s*\)auth-type: online/\1auth-type: floodgate/' "$G"
@@ -74,8 +82,10 @@ if [ -f "$G" ]; then
 else
   echo "first run: start the server once, stop it, then run setup.sh again"
 fi
+# the note block and tripwire states custom blocks use stay as placed (Paper's own switches for this)
+P="$D/config/paper-global.yml"
+for k in disable-noteblock-updates disable-tripwire-updates; do set_key "$P" "$k" true 2>/dev/null || true; done
 # CPU (see README "Performance"): nothing a player can see changes
-set_key() { [ -f "$1" ] && sed -i "s|^\(\s*\)$2:.*|\1$2: $3|" "$1"; }
 B="$D/plugins/BetterModel/config.yml"
 set_key "$B" lerp-frame-time 0          # converter keyframes are already linear; no frames to insert
 set_key "$B" packet-bundling-size 0     # one bundle per model update instead of one per 4 bones

@@ -1,0 +1,11 @@
+# Java client (BlockTest) on Paper 26.3 + this branch, toby 2026-10-20
+ore placed from /clblock item, hand 1.5 s: not broken (vanilla note block: 1.2 s) -> cb-java-ore-hand-1.5s-unbroken.png
+iron axe 1 s: not broken (vanilla note block with an axe: 0.2 s) -> cb-java-ore-axe-1s-unbroken.png
+iron pickaxe <=1.1 s: broken, a Moon Stone dropped (Cobblemon loot) -> cb-java-ore-pickaxe-mined-moon-stone.png
+apricorn: planted on a leaf side, 3 bone meal -> ripe, picked -> age 0 and dropped: Paper has the following entity data: "cobblemon:red_apricorn"
+real note block placed on a gold block (would be instrument=bell), harp/0: Test passed; after 3 right-clicks: Test passed; next to a redstone block, still harp/0/powered=false: Test passed
+real string placed: all-false: Test failed; with a pig standing in it 3 s: still all-false: Test failed
+real string placed by the player: all seven properties false: Test passed; a pig in it for 4 s: still all-false: Test passed
+after the chunks unloaded (player 8,500 blocks away) and loaded again: lineup block 6 still its state: Test passed -> cb-java-after-chunk-reload.png
+after a server restart: an ore still its state: That position is not loaded; an apricorn still its state: That position is not loaded; the real note block still harp/0: That position is not loaded
+after a server restart (chunks force-loaded to test): an ore still its state: Test passed; an apricorn still its state: Test passed; the real note block still harp/0: Test passed
