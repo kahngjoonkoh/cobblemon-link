@@ -287,6 +287,8 @@ public final class BattleUi {
                 new Forms.Opt("Switch", "menu_switch", () -> openSwitch(true)),
                 new Forms.Opt("Catch", "menu_bag", this::capture), new Forms.Opt("Run", "menu_run", () -> respond(new FleeAttemptActionResponse()))));
         if (trapped) opts.remove(1);
+        var b = battle(player);
+        if (b != null && !b.isPvW()) opts.removeIf(o -> o.image().equals("menu_bag")); // only wild Pokémon can be caught
         form(1, opts);
     }
 
