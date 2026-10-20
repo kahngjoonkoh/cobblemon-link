@@ -4,7 +4,7 @@ uses becomes a GeyserModelEngine model "clb_<model>" (geometry from the Java mod
 one atlas), which the server shows on a carrier at the block (Furniture.java). Java models are Blockbench's: the
 same conversion as geo2bb.py, backwards (x mirrored, rotations' x and y negated).
 ponytail: no per-face UV rotation; animated textures show their first frame.
-usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK..."""
+usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint)"""
 import io, json, os, sys, zipfile
 from PIL import Image
 
@@ -107,6 +107,13 @@ def models_of(src, block):
     return sorted(out)
 
 
+def plants(src):
+    """Cobblemon's berry bushes, apricorns and mints (Furniture.plant): every blockstate named so."""
+    base = 'assets/cobblemon/blockstates/'
+    names = src.z.namelist() if src.z else [base + f for f in os.listdir(os.path.join(src.dir, base))]
+    return sorted(n[len(base):-5] for n in names if n.startswith(base) and n.endswith(('_berry.json', '_apricorn.json', '_mint.json')))
+
+
 def demo():
     import tempfile
     with tempfile.TemporaryDirectory() as t:
@@ -126,5 +133,6 @@ if __name__ == '__main__':
     src, out = Src(sys.argv[1]), sys.argv[2]
     n = 0
     for b in sys.argv[3:]:
-        for m in models_of(src, b): n += convert(src, m, out)
+        for name in plants(src) if b == 'plants' else [b]:
+            for m in models_of(src, name): n += convert(src, m, out)
     print(n, 'block models')

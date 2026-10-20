@@ -43,8 +43,42 @@ public final class Furniture {
     /** Cobblemon's campfires: Minecraft's campfire stands in (PolyEntry), the pot on it is ours. */
     static final List<String> CAMPFIRES = List.of("campfire", "soul_campfire");
 
-    /** A blockstate variant: its properties (all must match), model and turn. */
-    record Variant(Map<String, String> when, String model, int y) {}
+    /** Cobblemon's plants (berry bushes, apricorns, mints): drawn the same way, over a stand-in you can walk through. */
+    static boolean plant(String id) { return id.endsWith("_berry") || id.endsWith("_apricorn") || id.endsWith("_mint"); }
+
+    /** Every block drawn here: the machines above and Cobblemon's plants. */
+    static List<String> blocks() {
+        List<String> out = new ArrayList<>(BLOCKS);
+        for (var k : BuiltInRegistries.BLOCK.keySet())
+            if (k.getNamespace().equals("cobblemon") && plant(k.getPath())) out.add(k.getPath());
+        return out;
+    }
+
+    /** A blockstate variant or multipart part: when it applies, its model and turn. */
+    record Variant(java.util.function.Predicate<Map<String, String>> when, String model, int y) {}
+
+    /** A variant key ("facing=east,charge=6"): every property it names must match. */
+    static java.util.function.Predicate<Map<String, String>> matching(Map<String, String> want) {
+        return state -> state.entrySet().containsAll(want.entrySet());
+    }
+
+    /** A multipart "when": AND / OR lists, or properties each with "a|b" alternatives. */
+    static java.util.function.Predicate<Map<String, String>> when(com.google.gson.JsonElement w) {
+        if (w == null) return st -> true;
+        JsonObject o = w.getAsJsonObject();
+        for (String join : new String[]{"AND", "OR"})
+            if (o.has(join)) {
+                List<java.util.function.Predicate<Map<String, String>>> all = new ArrayList<>();
+                for (var e : o.getAsJsonArray(join)) all.add(when(e));
+                return join.equals("AND") ? st -> all.stream().allMatch(c -> c.test(st)) : st -> all.stream().anyMatch(c -> c.test(st));
+            }
+        Map<String, List<String>> props = new HashMap<>();
+        for (var e : o.entrySet()) props.put(e.getKey(), List.of(e.getValue().getAsString().split("\\|")));
+        return st -> props.entrySet().stream().allMatch(e -> e.getValue().contains(st.get(e.getKey())));
+    }
+
+    /** Blocks whose blockstate is multipart: every matching part is drawn (variants: the first match). */
+    private static final java.util.Set<Block> MULTIPART = new java.util.HashSet<>();
 
     private static final Map<Block, List<Variant>> VARIANTS = new HashMap<>();
     private static final Map<String, PolymerModelData> ITEMS = new HashMap<>();
@@ -53,16 +87,26 @@ public final class Furniture {
     private Furniture() {}
 
     static void register() {
-        for (String id : BLOCKS) {
+        for (String id : blocks()) {
             Block b = BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("cobblemon", id));
             var in = Furniture.class.getClassLoader().getResourceAsStream("assets/cobblemon/blockstates/" + id + ".json");
             if (in == null) continue;
-            JsonObject vs = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonObject("variants");
+            JsonObject bs = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
             List<Variant> list = new ArrayList<>();
-            for (var e : vs.entrySet()) {
+            if (bs.has("variants")) for (var e : bs.getAsJsonObject("variants").entrySet()) {
                 JsonObject v = e.getValue().isJsonArray() ? e.getValue().getAsJsonArray().get(0).getAsJsonObject() : e.getValue().getAsJsonObject();
-                list.add(new Variant(props(e.getKey()), v.get("model").getAsString(), v.has("y") ? v.get("y").getAsInt() : 0));
+                list.add(new Variant(matching(props(e.getKey())), v.get("model").getAsString(), v.has("y") ? v.get("y").getAsInt() : 0));
             }
+            if (bs.has("multipart")) {
+                MULTIPART.add(b);
+                for (var part : bs.getAsJsonArray("multipart")) {
+                    JsonObject po = part.getAsJsonObject();
+                    var apply = po.get("apply");
+                    JsonObject v = apply.isJsonArray() ? apply.getAsJsonArray().get(0).getAsJsonObject() : apply.getAsJsonObject();
+                    list.add(new Variant(when(po.get("when")), v.get("model").getAsString(), v.has("y") ? v.get("y").getAsInt() : 0));
+                }
+            }
+            if (list.isEmpty()) continue;
             VARIANTS.put(b, list);
             for (Variant v : list)
                 ITEMS.computeIfAbsent(v.model, m -> PolymerResourcePackUtils.requestModel(
@@ -128,16 +172,19 @@ public final class Furniture {
 
     /** The first variant whose properties the state all has (Minecraft's rule); null if none. */
     static Variant variant(List<Variant> vs, Map<String, String> state) {
-        for (Variant v : vs) if (state.entrySet().containsAll(v.when.entrySet())) return v;
+        for (Variant v : vs) if (v.when.test(state)) return v;
         return null;
+    }
+
+    private static Map<String, String> state(BlockState s) {
+        Map<String, String> m = new HashMap<>();
+        s.getValues().forEach((p, v) -> m.put(p.getName(), net.minecraft.Util.getPropertyName(p, v)));
+        return m;
     }
 
     static Variant variant(BlockState s) {
         List<Variant> vs = VARIANTS.get(s.getBlock());
-        if (vs == null) return null;
-        Map<String, String> m = new HashMap<>();
-        s.getValues().forEach((p, v) -> m.put(p.getName(), net.minecraft.Util.getPropertyName(p, v)));
-        return variant(vs, m);
+        return vs == null ? null : variant(vs, state(s));
     }
 
     /** A machine block may be at pos (a chunk loaded, or a block was set there): drawn from next tick. */
@@ -158,6 +205,10 @@ public final class Furniture {
      * Minecraft's) only its pot, open or with its lid on.
      */
     static List<Variant> models(BlockState s, ServerLevel level, BlockPos pos) {
+        if (MULTIPART.contains(s.getBlock())) {
+            Map<String, String> st = state(s);
+            return VARIANTS.get(s.getBlock()).stream().filter(v -> v.when.test(st)).toList();
+        }
         Variant v = variant(s);
         if (v == null) return null;
         List<Variant> out = new ArrayList<>();
@@ -165,7 +216,7 @@ public final class Furniture {
         if (level.getBlockEntity(pos) instanceof com.cobblemon.mod.common.block.entity.CampfireBlockEntity be && !be.getPotItem().isEmpty()) {
             boolean lid = s.getValues().entrySet().stream().anyMatch(e -> e.getKey().getName().equals("lid") && Boolean.TRUE.equals(e.getValue()));
             String m = "cobblemon:block/" + BuiltInRegistries.ITEM.getKey(be.getPotItem().getItem()).getPath() + (lid ? "" : "_open");
-            if (ITEMS.containsKey(m)) out.add(new Variant(Map.of(), m, v.y));
+            if (ITEMS.containsKey(m)) out.add(new Variant(st -> true, m, v.y));
         }
         return out;
     }
@@ -195,6 +246,13 @@ public final class Furniture {
                     return super.startWatching(h);
                 }
             };
+            // a plant's stand-in can't be clicked (you walk through it): a Java click box over it uses the block
+            if (plant(BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).getPath())) {
+                var box = new eu.pb4.polymer.virtualentity.api.elements.InteractionElement(click);
+                box.setSize(0.9f, 0.9f);
+                box.setOffset(new net.minecraft.world.phys.Vec3(0, -0.5, 0));
+                java.addElement(box);
+            }
             ChunkAttachment.ofTicking(java, level, net.minecraft.world.phys.Vec3.atCenterOf(pos));
             ChunkAttachment.of(bedrock, level, net.minecraft.world.phys.Vec3.atBottomCenterOf(pos));
             check();
