@@ -254,7 +254,10 @@ final class Spawner {
     }
 
     /** The Poké Ball's model (PokeBalls) on a still carrier that PokeBalls moves. */
-    Entity ball(Location loc) {
+    Entity ball(Location loc) { return ball(loc, "poke_ball"); }
+
+    /** id: the ball's own model (tools/build_balls.py), the Poké Ball's if this server has none. */
+    Entity ball(Location loc, String id) {
         Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
             e.setPersistent(false);
             e.setSilent(true);
@@ -263,7 +266,7 @@ final class Spawner {
             e.setGravity(false);
             e.setCollidable(false);
         });
-        model(pig, "poke_ball");
+        model(pig, id != null && BetterModel.model(id).isPresent() ? id : "poke_ball");
         return pig;
     }
 

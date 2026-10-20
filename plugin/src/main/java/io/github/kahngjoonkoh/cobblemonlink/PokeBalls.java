@@ -34,7 +34,8 @@ final class PokeBalls {
     /** A Poké Ball leaves the hand: the model follows the (hidden) snowball. */
     void launch(Snowball s) {
         s.setVisibleByDefault(false);
-        Entity ball = pl.spawner.ball(s.getLocation());
+        String id = pl.items == null ? null : pl.items.id(s.getItem());
+        Entity ball = pl.spawner.ball(s.getLocation(), id);
         Spawner.animate(ball, "throw", AnimationIterator.Type.LOOP);
         flying.put(s.getUniqueId(), ball);
     }
@@ -106,10 +107,13 @@ final class PokeBalls {
     }
 
     /** Throws a ball from the player to a Pokémon just sent out, which stays hidden until the ball opens. */
-    void sendOut(Player p, Entity mon) {
+    void sendOut(Player p, Entity mon) { sendOut(p, mon, "poke_ball"); }
+
+    /** ball: the Pokémon's own ball (Mon.ball), whose model it comes out of. */
+    void sendOut(Player p, Entity mon, String ballId) {
         Spawner.hide(mon, true);
         Location from = p.getEyeLocation(), to = mon.getLocation().add(0, 0.3, 0);
-        Entity b = pl.spawner.ball(from);
+        Entity b = pl.spawner.ball(from, ballId);
         Spawner.animate(b, "throw", AnimationIterator.Type.LOOP);
         for (int t = 1; t <= THROW_TICKS; t++) { // an arc 1.5 blocks high
             double u = t / (double) THROW_TICKS;

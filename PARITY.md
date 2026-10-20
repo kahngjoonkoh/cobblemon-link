@@ -60,7 +60,7 @@ Counts: see [the summary at the end](#summary).
 | Shakes and capture animation | 3D ball, up to 3 shakes | Same timings, Cobblemon's ball model | ✅ | ✅ |
 | Out-of-battle throw | Direct capture at ×0.5; a sleeping Pokémon wakes on a miss | ×0.5; it stays | ✅ | ✅ |
 | Ball in battle | A miss uses your turn | Same (a forced pass) | ✅ | ✅ |
-| Ball types (Great, Ultra, Quick, Dusk, Net, Heal… and ancient balls) | 48 | All 48 with `PokeBalls.kt`'s modifiers and effects; in flight they use the Poké Ball's 3D model; the Lure Ball has no fishing to boost | 🟡 | 🟡 |
+| Ball types (Great, Ultra, Quick, Dusk, Net, Heal… and ancient balls) | 48 | All 48 with `PokeBalls.kt`'s modifiers and effects (the Lure Ball on fished Pokémon), each thrown, opened and sent out as its own 3D model | ✅ | ✅ |
 | Apricorn trees and ball crafting | ✓ | Cobblemon's ball recipes; apricorns drop from leaves instead of growing on apricorn trees | 🟡 | 🟡 |
 | Can't catch owned or busy Pokémon | ✓ | ✓ | ✅ | ✅ |
 

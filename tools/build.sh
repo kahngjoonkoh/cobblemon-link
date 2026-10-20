@@ -7,15 +7,16 @@ cd "$(dirname "$0")/.."
 sha=$(cat COBBLEMON_COMMIT)
 src=$(mktemp -d); trap 'rm -rf "$src"' EXIT
 tools/fetch_cobblemon.sh "$sha" "$src"
-rm -rf assets/sounds-pack.zip assets/sounds.mcpack assets/blocks assets/showdown assets/items.json assets/recipes.json assets/items-pack.zip assets/items.mcpack assets/geyser-items.json assets/java assets/bedrock assets/species.tsv assets/gamedata.json assets/datapack assets/ui-pack.zip assets/bedrock-ui.mcpack assets/geyser-mappings.json assets/portraits assets/cards assets/cards_full assets/tiles assets/bodies
+rm -rf assets/balls assets/sounds-pack.zip assets/sounds.mcpack assets/blocks assets/showdown assets/items.json assets/recipes.json assets/items-pack.zip assets/items.mcpack assets/geyser-items.json assets/java assets/bedrock assets/species.tsv assets/gamedata.json assets/datapack assets/ui-pack.zip assets/bedrock-ui.mcpack assets/geyser-mappings.json assets/portraits assets/cards assets/cards_full assets/tiles assets/bodies
 python3 tools/build_all.py "$src" assets
 python3 tools/build_data.py "$src" assets
 # the battle engine: Cobblemon's own Showdown build and its bag item effects (sim/server.js loads them from here)
-rm -rf assets/sounds-pack.zip assets/sounds.mcpack assets/blocks assets/showdown && mkdir -p assets/showdown && unzip -q "$src/data/cobblemon/showdown.zip" -d assets/showdown
+rm -rf assets/balls assets/sounds-pack.zip assets/sounds.mcpack assets/blocks assets/showdown && mkdir -p assets/showdown && unzip -q "$src/data/cobblemon/showdown.zip" -d assets/showdown
 cp -r "$src/data/cobblemon/bag_items" assets/showdown/
 rm -rf assets/lang && cp -r "$src/assets/cobblemon/lang" assets/lang  # Cobblemon's languages, for Lang.java
 python3 tools/build_items.py "$src" assets
 python3 tools/build_blocks.py "$src" assets  # Cobblemon's machine blocks as models
+python3 tools/build_balls.py "$src" assets   # every Poké Ball's own 3D model
 python3 tools/build_sounds.py "$src" assets  # Cobblemon's sounds for both clients   # Cobblemon's items: what they do, Java and Bedrock art
 python3 tools/build_cards.py "$src" assets
 python3 tools/build_bodies.py "$src" assets

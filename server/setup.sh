@@ -57,7 +57,9 @@ cp ../assets/geyser-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblem
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
-# Cobblemon's machine blocks (tools/build_blocks.py), drawn the same way
+# every Poké Ball's own model (tools/build_balls.py) and Cobblemon's machine blocks (tools/build_blocks.py)
+cp ../assets/balls/java/*.bbmodel "$D/plugins/BetterModel/models/"
+cp -r ../assets/balls/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 cp ../assets/blocks/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/blocks/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 
