@@ -38,7 +38,7 @@ Counts: see [the summary at the end](#summary).
 | Wild AI | `RandomBattleAI` | Random legal choices | ✅ | ✅ |
 | Singles vs wild | ✓ | ✓ | ✅ | ✅ |
 | Doubles, triples, multi, royal | ✓ | — | ⬜ | ⬜ |
-| PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; no spectating | 🟡 | 🟡 |
+| PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; `/spectate <player>` (64 blocks) shows the battle's HP bars and log | ✅ | ✅ |
 | NPC trainers (`StrongBattleAI`) | ✓ | — | ⬜ | ⬜ |
 | Fleeing | Walk 32 blocks away | Run, or walk 24 blocks away | 🟡 | 🟡 |
 | Battle UI (fight / switch / bag / run, tiles, log) | Mod screen | Cobblemon's tile art (Java), Cobblemon-styled forms (Bedrock), HP bars | 🟡 | 🟡 |

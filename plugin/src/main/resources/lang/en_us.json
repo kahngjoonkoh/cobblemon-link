@@ -88,5 +88,8 @@
  "cobblemonlink.ui.prev_page": "Previous page",
  "cobblemonlink.ui.next_page": "Next page",
  "cobblemonlink.ui.open_pc": "Open PC",
- "cobblemonlink.ui.not_seen": "Not seen yet."
+ "cobblemonlink.ui.not_seen": "Not seen yet.",
+ "cobblemonlink.spectate.start": "You are watching %1$s's battle. /spectate again to stop.",
+ "cobblemonlink.spectate.stop": "You stopped watching.",
+ "cobblemonlink.spectate.none": "There's no battle to watch within 64 blocks."
 }

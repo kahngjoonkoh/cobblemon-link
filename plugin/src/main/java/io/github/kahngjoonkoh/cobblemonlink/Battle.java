@@ -48,6 +48,7 @@ final class Battle {
     final String side, foe;  // Showdown's p1 / p2
     Battle rival;            // pvp: the other player's side; the p1 side owns the sim connection
     private boolean forfeited;
+    final Set<java.util.UUID> spectators = new HashSet<>(); // Cobblemon's spectating: the HP bars and the log
     private final List<Integer> order = new ArrayList<>(); // battle slot -> party index
     private final Set<Integer> participants = new HashSet<>();
     private Socket socket;
@@ -221,6 +222,10 @@ final class Battle {
                     if (text == null) continue;
                     if (text.startsWith("—")) continue;
                     turnLog.add(text);
+                    for (var u : spectators) { // spectators read the side this Battle shows (p1 / the challenger)
+                        Player s = Bukkit.getPlayer(u);
+                        if (s != null) s.sendMessage(Component.text(text, NamedTextColor.GRAY));
+                    }
                     log.addAll(Ui.wrap(text, 146));
                 }
             }
@@ -594,9 +599,8 @@ final class Battle {
                     player.sendActionBar(overlay());
                 }, 0, 1);
             player.sendActionBar(overlay());
-            return;
-        }
-        if (overlayTask == null) // BattleOverlay actions_label, while the form is closed
+            if (spectators.isEmpty()) return; // the boss bars below are only for Bedrock players and spectators
+        } else if (overlayTask == null) // BattleOverlay actions_label, while the form is closed
             overlayTask = Bukkit.getScheduler().runTaskTimer(pl, () -> {
                 if (!formOpen && request != null && !request.has("wait"))
                     player.sendActionBar(Component.text("You need to choose an action. Tap the Pokémon."));
@@ -613,8 +617,14 @@ final class Battle {
             ownBar.name(Component.text(name(m) + "  Lv." + m.level + "   " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() + " HP"));
             ownBar.progress(ratio(p));
         }
-        player.showBossBar(wildBar);
-        player.showBossBar(ownBar);
+        if (Ui.bedrock(player)) {
+            player.showBossBar(wildBar);
+            player.showBossBar(ownBar);
+        }
+        for (var u : spectators) {
+            Player s = Bukkit.getPlayer(u);
+            if (s != null) { s.showBossBar(wildBar); s.showBossBar(ownBar); }
+        }
     }
 
     /** Cobblemon's BattleOverlay tiles (top corners) and BattleMessagePane (bottom right), at its GUI-code positions. */
@@ -798,6 +808,10 @@ final class Battle {
         if (screen != null) screen.close();
         player.hideBossBar(wildBar);
         player.hideBossBar(ownBar);
+        for (var u : spectators) {
+            Player s = Bukkit.getPlayer(u);
+            if (s != null) { s.hideBossBar(wildBar); s.hideBossBar(ownBar); }
+        }
         sendOut(-1);
         if (overlayTask != null) {
             overlayTask.cancel();

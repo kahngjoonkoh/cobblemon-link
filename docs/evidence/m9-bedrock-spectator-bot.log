@@ -1,0 +1,11 @@
+start_game
+text system "§r§6Type /starter to choose your first Pokémon and begin your journey!" 
+text system "§r§e.BotW joined the game" 
+command /spectate PDTest
+text system "§r§7You are watching PDTest's battle. /spectate again to stop." 
+text system "§r§7Machamp used Low Sweep!" 
+text system "§r§7It was super effective!" 
+text system "§r§7The wild Rattata fainted!" 
+bossbar §rWild Rattata  Lv.2 0
+bossbar §rMachamp  Lv.30   99/99 HP 1
+done after 80 s

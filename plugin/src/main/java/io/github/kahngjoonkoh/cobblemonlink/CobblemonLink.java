@@ -806,6 +806,19 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         });
         new AdminCommands(this).register();
         playerCommand("challenge", "/challenge <player>: a Pokémon battle; /challenge accept <player>", null, this::challenge);
+        playerCommand("spectate", "/spectate <player>: watch their battle (64 blocks); again to stop", null, (p, a) -> {
+            for (Battle b : battles.values()) // stop watching any battle
+                if (b.spectators.remove(p.getUniqueId())) { p.sendMessage(Component.text(t(p, "cobblemonlink.spectate.stop"), NamedTextColor.GRAY)); return; }
+            Player who = a.length == 1 ? Bukkit.getPlayerExact(a[0]) : null;
+            Battle b = who == null ? null : battles.get(who.getUniqueId());
+            if (b != null && b.rival != null && b.side.equals("p2")) b = b.rival; // watch from the challenger's side
+            if (b == null || !who.getWorld().equals(p.getWorld()) || who.getLocation().distance(p.getLocation()) > 64) {
+                p.sendMessage(Component.text(t(p, "cobblemonlink.spectate.none"), NamedTextColor.RED));
+                return;
+            }
+            b.spectators.add(p.getUniqueId());
+            p.sendMessage(Component.text(t(p, "cobblemonlink.spectate.start", who.getName()), NamedTextColor.GRAY));
+        });
         playerCommand("trade", "/trade <player>: offer a Pokémon trade; /trade accept <player>", null, (p, a) -> trades.command(p, a));
         playerCommand("pokeheal", "Heal your party (admin)", "cobblemonlink.admin", (p, a) -> heal(p));
         playerCommand("pokegive", "/pokegive <species> [level] [properties...] (admin)", "cobblemonlink.admin", (p, a) -> {
