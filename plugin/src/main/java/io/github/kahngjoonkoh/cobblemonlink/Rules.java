@@ -109,4 +109,11 @@ final class Rules {
         return phase >= Integer.parseInt(r.substring(0, dash).trim()) && phase <= Integer.parseInt(r.substring(dash + 1).trim());
     }
 
+
+    /** The species a set of fossils revives into (Cobblemon's fossils: one, or a pair in any order), or null. */
+    static String fossil(java.util.Map<String, java.util.List<String>> recipes, java.util.List<String> fossils) {
+        for (var e : recipes.entrySet())
+            if (e.getValue().size() == fossils.size() && new java.util.HashSet<>(e.getValue()).equals(new java.util.HashSet<>(fossils))) return e.getKey();
+        return null;
+    }
 }

@@ -1,0 +1,3 @@
+add_entity modelengine:clb_pc
+add_entity modelengine:clb_healing_machine
+add_entity modelengine:clb_tm_machine

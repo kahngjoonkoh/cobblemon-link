@@ -71,7 +71,7 @@ Counts: see [the summary at the end](#summary).
 | Species, stats, types, catch rate, EXP groups | ✓ | From Cobblemon's species files | ✅ | ✅ |
 | Level-up moves, the 5th-move prompt | ✓ | ✓ | ✅ | ✅ |
 | Benched moves, relearning | ✓ | — | ⬜ | ⬜ |
-| TMs, TM Machine, Type Gems | 334 TMs | — | ⬜ | ⬜ |
+| TMs, TM Machine, Type Gems | 334 TMs | All 334 TMs (type art), taught to Pokémon whose TM learnset has them; the TM Machine block makes them from a Blank TM and Cobblemon's ingredients; gems from amethyst clusters; no unlocking | 🟡 | 🟡 |
 | Egg and tutor moves | ✓ | — | ⬜ | ⬜ |
 | Natures, mints | ✓ | Random nature; 21 mints change the effective nature | ✅ | ✅ |
 | IVs | ✓ | ✓ | ✅ | ✅ |
@@ -80,8 +80,8 @@ Counts: see [the summary at the end](#summary).
 | Stone, trade, friendship, held-item, time, biome, move evolutions | ✓ | Items (stones, apples, Link Cable…) evolve at once; friendship, time, biome, held item, moves, party, stats, moon, weather become the pending evolution; no trades yet, nor defeat / use-move / distance / structure ones | 🟡 | 🟡 |
 | Party of 6 | ✓ | ✓ | ✅ | ✅ |
 | PC (40 × 30, sort, filter, release, names, wallpapers) | ✓ | ✓ | ✅ | ✅ |
-| PC block | ✓ | — (`/pc`) | ⬜ | ⬜ |
-| Healing (Healing Machine, passive) | Machine; 5% every 60 s; fainted wake at 20% after 300 s; statuses wear off | Passive healing, faint recovery and status expiry as Cobblemon; a bed is the machine | 🟡 | 🟡 |
+| PC block | ✓ | Placed from its item (Cobblemon's model: BetterModel / GeyserModelEngine), right-click opens the PC | ✅ | ✅ |
+| Healing (Healing Machine, passive) | Machine; 5% every 60 s; fainted wake at 20% after 300 s; statuses wear off | The Healing Machine block (no charge to wait for), beds too; passive healing, faint recovery and status expiry as Cobblemon | 🟡 | 🟡 |
 | Starter selection | Starter screen | Cobblemon's screen, 27 starters | ✅ | ✅ |
 | Party HUD (left side, EXP / level-up notices) | ✓ | ✓, `/partyhud` | ✅ | ✅ |
 | Summary (info, moves, stats, nickname, evolve) | ✓ | ✓, with EVs, friendship, held item and mint; no markings | 🟡 | 🟡 |
@@ -89,7 +89,7 @@ Counts: see [the summary at the end](#summary).
 | Sending out / following | ✓ | Send out the lead | 🟡 | 🟡 |
 | Riding (1.7+) | 13 ride settings | — | ⬜ | ⬜ |
 | Shoulder mounting | ✓ | — | ⬜ | ⬜ |
-| Pasture | ✓ | — | ⬜ | ⬜ |
+| Pasture | ✓ | The Pasture block: party Pokémon put out roam around it, taken back from its chest menu (up to 16) | 🟡 | 🟡 |
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
 | Size variation | ✓ | — | ⬜ | ⬜ |
 | Marks (1.7+) | 168 | — | ⬜ | ⬜ |
@@ -104,7 +104,7 @@ Counts: see [the summary at the end](#summary).
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | — | ⬜ | ⬜ |
 | Cries and emotes | ✓ | — | ⬜ | ⬜ |
-| Fossils, Fossil Analyzer, Restoration Tank | 15 | — | ⬜ | ⬜ |
+| Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
 | Berries and berry trees | 70 | Held berries work in battle; berries drop from sweet berry bushes; no berry trees, mulch or out-of-battle berry effects | 🟡 | 🟡 |
 | Apricorns | ✓ | The 7 apricorns, from leaves | 🟡 | 🟡 |
 | Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | — | ⬜ | ⬜ |
@@ -144,8 +144,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 43 | 27 | 23 | 1 |
-| Bedrock | 43 | 27 | 23 | 1 |
+| Java | 44 | 30 | 19 | 1 |
+| Bedrock | 44 | 30 | 19 | 1 |
 
 ## Suggested order
 

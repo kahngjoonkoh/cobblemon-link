@@ -214,6 +214,22 @@ final class Spawner {
         return pig;
     }
 
+    /** A pastured Pokémon: wanders like a wild one (pig goals), but can't be hurt or battled. */
+    Entity roamer(Location loc, String model) {
+        Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
+            e.setPersistent(false);
+            e.setSilent(true);
+            e.setInvulnerable(true);
+            e.getPersistentDataContainer().set(pl.companionKey, PersistentDataType.STRING, "pasture");
+        });
+        var goals = Bukkit.getMobGoals();
+        goals.removeGoal(pig, VanillaGoal.TEMPT);
+        goals.removeGoal(pig, VanillaGoal.BREED);
+        goals.removeGoal(pig, VanillaGoal.FOLLOW_PARENT);
+        model(pig, model);
+        return pig;
+    }
+
     boolean isCompanion(Entity e) { return e.getPersistentDataContainer().has(pl.companionKey); }
 
     /** The player's own Pokémon in a battle: same carrier, but still, unhurtable and not wild. */

@@ -13,7 +13,8 @@ for p in assets/cobblemon/bedrock/pokemon assets/cobblemon/textures/pokemon asse
          assets/cobblemon/textures/item assets/cobblemon/models/item data/cobblemon/species \
          data/cobblemon/species_features data/cobblemon/species_feature_assignments \
          data/cobblemon/spawn_pool_world data/cobblemon/tags/worldgen/biome assets/cobblemon/lang \
-         data/cobblemon/bag_items data/cobblemon/mechanics data/cobblemon/recipe data/cobblemon/tags/item; do
+         data/cobblemon/bag_items data/cobblemon/mechanics data/cobblemon/recipe data/cobblemon/tags/item \
+         assets/cobblemon/blockstates assets/cobblemon/models/block assets/cobblemon/textures/block data/cobblemon/fossils data/cobblemon/tms; do
   echo "fetching $p"
   curl -sfL "$api?sha=$sha&path=$base/$p" | tar xz -C "$dest" --strip-components=5
 done

@@ -22,6 +22,7 @@ final class Dex {
         double weight;     // hectograms
         boolean ultraBeast;
         Map<String, Integer> evYield = Map.of(); // EVs for defeating it (Gen 8), stat -> amount
+        List<String> tmMoves = List.of(), eggMoves = List.of(), tutorMoves = List.of();
         String expGroup, desc; // desc: the first Pokédex entry
         double maleRatio;
         int dex;               // national Pokédex number
@@ -92,6 +93,7 @@ final class Dex {
     Map<String, Feature> features = Map.of();
     private final Map<String, Species> merged = new java.util.concurrent.ConcurrentHashMap<>();
     List<Spawn> spawns;
+    Map<String, List<String>> fossils = Map.of(); // species -> the fossils it's revived from
     Map<String, Map<String, String>> names; // kind ("move", "ability", "type") -> id -> English name
 
     static Dex load(Path file) throws IOException {
@@ -131,6 +133,9 @@ final class Dex {
             x.weight = s.weight;
             x.ultraBeast = s.ultraBeast;
             x.evYield = f.evYield != null ? f.evYield : s.evYield;
+            x.tmMoves = s.tmMoves;
+            x.eggMoves = s.eggMoves;
+            x.tutorMoves = s.tutorMoves;
             x.expGroup = s.expGroup;
             x.forms = s.forms;
             x.features = s.features;

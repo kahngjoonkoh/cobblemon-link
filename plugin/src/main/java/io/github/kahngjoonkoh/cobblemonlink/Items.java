@@ -35,6 +35,13 @@ final class Items {
     }
 
     final Map<String, Def> defs;
+    /** Cobblemon's TMs (tms.json): move -> its type and the TM Machine's ingredients ([id or #tag, count]). */
+    Map<String, Tm> tms = Map.of();
+
+    static final class Tm {
+        String type;
+        List<List<Object>> recipe = List.of();
+    }
     private final CobblemonLink pl;
     private final NamespacedKey key;
 
@@ -42,13 +49,63 @@ final class Items {
         this.pl = pl;
         this.defs = defs;
         this.key = new NamespacedKey(pl, "item");
+        this.tmKey = new NamespacedKey(pl, "tm");
     }
 
     static Items load(CobblemonLink pl, Path file) throws IOException {
         if (!Files.exists(file)) return new Items(pl, Map.of());
+        Items it;
         try (Reader r = Files.newBufferedReader(file)) {
-            return new Items(pl, new Gson().fromJson(r, new TypeToken<Map<String, Def>>() {}.getType()));
+            it = new Items(pl, new Gson().fromJson(r, new TypeToken<Map<String, Def>>() {}.getType()));
         }
+        Path tms = file.resolveSibling("tms.json");
+        if (Files.exists(tms)) try (Reader r = Files.newBufferedReader(tms)) {
+            it.tms = new Gson().fromJson(r, new TypeToken<Map<String, Tm>>() {}.getType());
+        }
+        return it;
+    }
+
+    /** A TM of this move: Cobblemon's TM art for its type; the move lives on the item. */
+    ItemStack tm(String move) {
+        Tm t = tms.get(move);
+        if (t == null) return null;
+        ItemStack it = new ItemStack(Material.PAPER);
+        it.editMeta(m -> {
+            m.customName(Component.text("TM ").append(Component.translatable("cobblemon.move." + move, pl.dex.label("move", move)))
+                    .decoration(TextDecoration.ITALIC, false));
+            m.setItemModel(new NamespacedKey("cobblemon", "tm_" + t.type));
+            m.getPersistentDataContainer().set(tmKey, PersistentDataType.STRING, move);
+        });
+        return it;
+    }
+
+    String tmMove(ItemStack it) {
+        return it == null || !it.hasItemMeta() ? null : it.getPersistentDataContainer().get(tmKey, PersistentDataType.STRING);
+    }
+
+    private final NamespacedKey tmKey;
+
+    /** Using a TM: a party Pokémon that can learn it (Cobblemon's TM learnset) learns it; the TM is used up. */
+    private boolean useTm(Player p, ItemStack stack, String move) {
+        List<Mon> party = pl.store.get(p.getUniqueId()).party;
+        if (party.isEmpty()) return true;
+        String loc = CobblemonLink.loc(p), label = pl.dex.label("move", move, loc);
+        pickPokemon(p, pl.t(p, "cobblemonlink.item.use_on", "TM " + label), party,
+                m -> pl.dex.of(m).tmMoves.contains(move) && !m.moves.contains(move), m -> {
+            if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return;
+            if (m.moves.size() < 4) {
+                m.moves.add(move);
+                if (m.pp != null) { m.pp = null; m.ppMax = null; }
+                p.sendMessage(Component.text(pl.t(p, "cobblemon.tms.teach_move", m.name(pl.dex, loc), label), NamedTextColor.GREEN));
+            } else { // Cobblemon asks which move to forget
+                if (m.learnable == null) m.learnable = new java.util.ArrayList<>();
+                m.learnable.add(0, move);
+                MoveLearn.next(pl, p);
+            }
+            if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) p.getInventory().getItemInMainHand().subtract();
+            pl.store.save(p.getUniqueId());
+        });
+        return true;
     }
 
     ItemStack create(String id, int amount) {
@@ -143,9 +200,14 @@ final class Items {
      * item's effect; in battle, the bag item goes to Showdown and takes the turn.
      */
     boolean use(Player p, ItemStack stack) {
+        String tm = tmMove(stack);
+        if (tm != null) {
+            if (pl.battles.containsKey(p.getUniqueId())) return true;
+            return useTm(p, stack, tm);
+        }
         String id = id(stack);
         Def d = id == null ? null : defs.get(id);
-        if (d == null || d.kind.equals("ball") || d.kind.equals("rod")) return false;
+        if (d == null || d.kind.equals("ball") || d.kind.equals("rod") || d.kind.equals("machine") || d.kind.equals("fossil")) return false;
         Battle b = pl.battles.get(p.getUniqueId());
         List<Mon> party = pl.store.get(p.getUniqueId()).party;
         if (party.isEmpty()) return true;

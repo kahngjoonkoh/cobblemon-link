@@ -59,5 +59,15 @@
  "cobblemonlink.challenge.sent": "You challenged %1$s to a battle.",
  "cobblemonlink.challenge.received": "%1$s challenges you to a Pokémon battle! ",
  "cobblemonlink.challenge.busy": "Someone is already in a battle.",
- "cobblemonlink.healed": "Your Pokémon are fully healed."
+ "cobblemonlink.healed": "Your Pokémon are fully healed.",
+ "cobblemonlink.machine.analyzer": "The Fossil Analyzer studies fossils in the Restoration Tank beside it.",
+ "cobblemonlink.machine.reviving": "Reviving... %1$s min %2$s s left.",
+ "cobblemonlink.machine.tank_hint": "Right-click the tank with a fossil to revive it.",
+ "cobblemonlink.machine.revive_start": "The fossil is being revived. Come back in 12 minutes!",
+ "cobblemonlink.machine.fossil_in": "The fossil went in. It needs another one.",
+ "cobblemonlink.machine.revived": "%1$s came out of the Restoration Tank! Catch it!",
+ "cobblemonlink.machine.pasture_put": "Click to let it roam here",
+ "cobblemonlink.machine.pasture_take": "Click to take it back",
+ "cobblemonlink.machine.tm_none": "You don't carry the ingredients for any TM yet (type gems from amethyst clusters).",
+ "cobblemonlink.machine.tm_missing": "You need a Blank TM and the ingredients."
 }

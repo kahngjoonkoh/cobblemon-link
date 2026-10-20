@@ -25,6 +25,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Input;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.Tag;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
@@ -76,6 +77,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Items items;
     Evolutions evolutions;
     Lang lang = Lang.load(null);
+    Machines machines;
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
@@ -102,6 +104,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             getLogger().warning("items.json unreadable: " + e);
         }
         evolutions = new Evolutions(this);
+        machines = new Machines(this, dex.fossils);
         try {
             getLogger().info(Recipes.register(this, getDataFolder().toPath().resolve("recipes.json")) + " of Cobblemon's recipes");
         } catch (IOException e) {
@@ -126,6 +129,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, () -> companions.tick(), 10, 10);
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, this::partySecond, 20, 20);
+        Bukkit.getScheduler().runTaskTimer(this, () -> machines.tick(), 40, 20); // Cobblemon's machine blocks
         Bukkit.getScheduler().runTaskTimer(this, this::showStarterToasts, 40, 40);
         Bukkit.getScheduler().runTaskTimer(this, this::unlockWallpapers, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, () -> panel.tick(), 20, 1); // Cobblemon's party overlay, vanilla Java
@@ -149,6 +153,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     public void onDisable() {
         new ArrayList<>(battles.values()).forEach(b -> b.finish(null, false));
         if (spawner != null) spawner.removeAll();
+        if (machines != null) machines.removeAll();
         if (store != null) Bukkit.getOnlinePlayers().forEach(p -> store.save(p.getUniqueId()));
     }
 
@@ -390,6 +395,23 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     public void onUse(PlayerInteractEvent e) {
         Battle b = battles.get(e.getPlayer().getUniqueId());
         if (b != null && b.screen() != null) e.setCancelled(true);
+        // Cobblemon's machine blocks: use, pick up (Shift + left-click), place (right-click with the item)
+        Block clicked = e.getClickedBlock();
+        Machines.Machine machine = clicked == null || machines == null ? null : machines.at(clicked);
+        if (machine != null && e.getHand() == EquipmentSlot.HAND) {
+            e.setCancelled(true);
+            if (e.getAction().isRightClick()) machines.use(e.getPlayer(), machine, e.getPlayer().getInventory().getItemInMainHand());
+            else if (e.getPlayer().isSneaking()) machines.pickUp(e.getPlayer(), machine);
+            return;
+        }
+        String held = items == null ? null : items.id(e.getPlayer().getInventory().getItemInMainHand());
+        if (held != null && clicked != null && e.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK && e.getHand() == EquipmentSlot.HAND
+                && items.defs.containsKey(held) && items.defs.get(held).kind.equals("machine")) {
+            e.setCancelled(true);
+            if (machines.place(e.getPlayer(), held, clicked, e.getBlockFace()) && e.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE)
+                e.getPlayer().getInventory().getItemInMainHand().subtract();
+            return;
+        }
         // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon
         if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && items != null
                 && items.use(e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand())) e.setCancelled(true);
@@ -463,7 +485,13 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (Tag.LEAVES.isTagged(t) && r.nextInt(40) == 0) id = APRICORNS[r.nextInt(APRICORNS.length)] + "_apricorn";
         else if ((t == Material.SHORT_GRASS || t == Material.TALL_GRASS) && r.nextInt(60) == 0)
             id = r.nextInt(4) == 0 ? "medicinal_leek" : MINT_LEAVES[r.nextInt(MINT_LEAVES.length)] + "_mint_leaf";
-        else if (t == Material.SWEET_BERRY_BUSH && r.nextInt(8) == 0) {
+        else if (t == Material.AMETHYST_CLUSTER && r.nextInt(3) == 0) { // type gems, for the TM Machine
+            var gems = items.defs.keySet().stream().filter(k -> k.endsWith("_gem")).sorted().toList();
+            id = gems.isEmpty() ? null : gems.get(r.nextInt(gems.size()));
+        } else if ((t == Material.STONE || t == Material.DEEPSLATE || t == Material.SANDSTONE) && r.nextInt(400) == 0) { // fossils
+            var fossils = items.defs.entrySet().stream().filter(x -> x.getValue().kind.equals("fossil")).map(Map.Entry::getKey).sorted().toList();
+            id = fossils.isEmpty() ? null : fossils.get(r.nextInt(fossils.size()));
+        } else if (t == Material.SWEET_BERRY_BUSH && r.nextInt(8) == 0) {
             var berries = items.defs.keySet().stream().filter(k -> k.endsWith("_berry")).sorted().toList();
             id = berries.isEmpty() ? null : berries.get(r.nextInt(berries.size()));
         }
@@ -787,8 +815,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         });
         playerCommand("pokeballs", "/pokeballs [amount] (admin)", "cobblemonlink.admin",
                 (p, a) -> p.getInventory().addItem(ball(a.length > 0 ? Integer.parseInt(a[0]) : 16)));
-        playerCommand("pokeitem", "/pokeitem <item> [amount]: one of Cobblemon's items (admin)", "cobblemonlink.admin", (p, a) -> {
-            ItemStack it = a.length < 1 ? null : items.create(a[0], a.length > 1 ? Integer.parseInt(a[1]) : 1);
+        playerCommand("pokeitem", "/pokeitem <item> [amount]: one of Cobblemon's items (admin); tm:<move> for a TM", "cobblemonlink.admin", (p, a) -> {
+            ItemStack it = a.length < 1 ? null : a[0].startsWith("tm:") ? items.tm(a[0].substring(3))
+                    : items.create(a[0], a.length > 1 ? Integer.parseInt(a[1]) : 1);
             if (it == null) p.sendMessage(Component.text("Unknown item.", NamedTextColor.RED));
             else p.getInventory().addItem(it);
         });

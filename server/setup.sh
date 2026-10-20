@@ -39,7 +39,7 @@ for f in ../plugin/cobblemon-link.jar ../plugin/build/libs/cobblemon-link-*.jar;
 rm -f "$D"/plugins/cobblemon-link*.jar
 cp "$jar" "$D/plugins/cobblemon-link.jar"
 mkdir -p "$D/plugins/CobblemonLink"
-cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json "$D/plugins/CobblemonLink/"
+cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json ../assets/tms.json "$D/plugins/CobblemonLink/"
 rm -rf "$D/plugins/CobblemonLink/lang" && cp -r ../assets/lang "$D/plugins/CobblemonLink/lang"  # Cobblemon's 29 languages
 # Java battle-menu art; the pack server serves it next to BetterModel's build.zip
 cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
@@ -54,6 +54,9 @@ cp ../assets/geyser-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblem
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
+# Cobblemon's machine blocks (tools/build_blocks.py), drawn the same way
+cp ../assets/blocks/java/*.bbmodel "$D/plugins/BetterModel/models/"
+cp -r ../assets/blocks/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 
 # configs only exist after the first boot
 G="$D/plugins/Geyser-Spigot/config.yml"

@@ -31,6 +31,10 @@ def fields(d):
         out['abilities'] = [a for a in d['abilities'] if not a.startswith('h:')] or ['noability']
     if 'moves' in d:
         out['moves'] = sorted([int(lvl), move] for lvl, _, move in (m.partition(':') for m in d['moves']) if lvl.isdigit())
+        for kind in ('tm', 'egg', 'tutor'):  # TMs teach these; egg and tutor moves come back through the relearner
+            ms = sorted({m.split(':', 1)[1] for m in d['moves'] if m.startswith(kind + ':')})
+            if ms:
+                out[kind + 'Moves'] = ms
     if 'evolutions' in d:
         # ponytail: plain level-ups only; stones, trades, friendship etc. need items/UI that don't exist yet.
         # The result keeps its own form through the Pokémon's aspects (raichu alolan -> the evolution's alolan form)
@@ -181,7 +185,9 @@ def main(a):
     feats = features(res, dex)
     species_looks(res, dex, modeled)
     sp = spawns(res, dex)
-    json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex)},
+    fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
+               for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
+    json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')

@@ -59,5 +59,15 @@
  "cobblemonlink.challenge.sent": "%1$s에게 승부를 걸었다.",
  "cobblemonlink.challenge.received": "%1$s이(가) 포켓몬 승부를 걸어왔다! ",
  "cobblemonlink.challenge.busy": "누군가 이미 배틀 중이다.",
- "cobblemonlink.healed": "포켓몬이 모두 회복되었다."
+ "cobblemonlink.healed": "포켓몬이 모두 회복되었다.",
+ "cobblemonlink.machine.analyzer": "화석 분석기는 옆의 복원 탱크에 든 화석을 분석한다.",
+ "cobblemonlink.machine.reviving": "복원 중... %1$s분 %2$s초 남았다.",
+ "cobblemonlink.machine.tank_hint": "화석을 들고 탱크를 우클릭하면 복원한다.",
+ "cobblemonlink.machine.revive_start": "화석을 복원하고 있다. 12분 뒤에 다시 오자!",
+ "cobblemonlink.machine.fossil_in": "화석을 넣었다. 하나 더 필요하다.",
+ "cobblemonlink.machine.revived": "복원 탱크에서 %1$s이(가) 나왔다! 잡아보자!",
+ "cobblemonlink.machine.pasture_put": "클릭해서 여기에 풀어놓기",
+ "cobblemonlink.machine.pasture_take": "클릭해서 데려오기",
+ "cobblemonlink.machine.tm_none": "아직 만들 수 있는 기술머신 재료가 없다 (타입 주얼은 자수정 군집에서).",
+ "cobblemonlink.machine.tm_missing": "빈 기술머신과 재료가 필요하다."
 }

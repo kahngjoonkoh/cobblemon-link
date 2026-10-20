@@ -46,6 +46,7 @@ KINDS = {
     **{f: {'kind': 'ev', 'stat': s, 'amount': 1} for f, s in (('health_feather', 'hp'), ('muscle_feather', 'atk'),
        ('resist_feather', 'def'), ('genius_feather', 'spa'), ('clever_feather', 'spd'), ('swift_feather', 'spe'))},
 }
+MACHINES = ['healing_machine', 'pc', 'pasture', 'restoration_tank', 'fossil_analyzer', 'tm_machine']  # Machines.java's blocks
 NATURES = ['hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid',
            'hasty', 'serious', 'jolly', 'naive', 'modest', 'mild', 'quiet', 'bashful', 'rash', 'calm', 'gentle', 'sassy',
            'careful', 'quirky']
@@ -81,12 +82,17 @@ def table(res):
         items[os.path.basename(f)[:-5]] = {'kind': 'rod'}
     for i in evolution_items(res):
         items.setdefault(i, {'kind': 'evolution'})
+    for m in MACHINES:  # placed as Machines.java's blocks
+        items[m] = {'kind': 'machine'}
+    for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json'):  # into the restoration tank
+        for i in json.load(open(f))['fossils']:
+            items[i.split(':')[1]] = {'kind': 'fossil'}
     # held items: anything else Showdown knows (Leftovers, Choice Band, berries, gems...); fossils wait for their machine
     sd = showdown_items(res) | {'luckyegg', 'expshare', 'everstone', 'soothebell', 'amuletcoin', 'smokeball',
                                 'cleansetag'}  # Cobblemon's own held items (EXP, evolution, friendship)
     for f in glob.glob(f'{res}/assets/cobblemon/models/item/*.json'):
         i = os.path.basename(f)[:-5]
-        if i.replace('_', '') in sd and 'fossil' not in i:
+        if i.replace('_', '') in sd and 'fossil' not in i:  # fossils have their own kind
             items.setdefault(i, {'kind': 'held'})
     global RECIPES
     RECIPES = recipes(res, items)
@@ -138,6 +144,8 @@ def recipes(res, items):
 
     def has_model(i):  # an item, not a block (blocks would need placing) or a boat/sign/door
         path = f'{res}/assets/cobblemon/models/item/{i}.json'
+        if i in MACHINES:
+            return os.path.exists(path)
         if not os.path.exists(path) or re.search(r'(boat|sign|door|fence|button|pressure_plate|_block|tm_machine|display_case)$', i):
             return False
         return not json.load(open(path)).get('parent', '').startswith('cobblemon:block')
@@ -221,6 +229,23 @@ def build(res, out):
     java['pack.mcmeta'] = json.dumps({'pack': {'description': "Cobblemon's items (Cobblemon art, CC BY-NC 3.0)",
                                                'pack_format': 97, 'supported_formats': [46, 999],
                                                'min_format': 46, 'max_format': 999}}).encode()
+    # TMs (Cobblemon's tms/*.json): one item model per type, the move is on the item (Items.tm)
+    tms = {}
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/tms/*.json')):
+        d = json.load(open(f))
+        tms[d['moveName']] = {'type': d['type'], 'recipe': [[r['item'] if 'item' in r else '#' + r['tag'], r.get('count', 1)] for r in d.get('recipe', [])]}
+    for t in sorted({v['type'] for v in tms.values()}):
+        tex = f'{res}/assets/cobblemon/textures/item/tms/{t}_tm.png'
+        if not os.path.exists(tex):
+            continue
+        java[f'assets/cobblemon/textures/item/tms/{t}_tm.png'] = open(tex, 'rb').read()
+        java[f'assets/cobblemon/models/item/tm_{t}.json'] = json.dumps({'parent': 'minecraft:item/generated',
+                                                                         'textures': {'layer0': f'cobblemon:item/tms/{t}_tm'}}).encode()
+        java[f'assets/cobblemon/items/tm_{t}.json'] = json.dumps({'model': model(f'cobblemon:item/tm_{t}')}).encode()
+        bedrock[f'textures/items/cobblemon/tm_{t}.png'] = open(tex, 'rb').read()
+        textures[f'cobblemonlink:tm_{t}'] = {'textures': [f'textures/items/cobblemon/tm_{t}']}
+        icons[f'tm_{t}'] = tex
+    json.dump(tms, open(f'{out}/tms.json', 'w'), indent=1)
     write_zip(f'{out}/items-pack.zip', java)
 
     bedrock['textures/item_texture.json'] = json.dumps({'resource_pack_name': 'cobblemon-link items',
@@ -241,6 +266,10 @@ def build(res, out):
     for i in items:
         if icons[i]:
             maps.setdefault(base(i), []).append(mapping(i))
+    for i in icons:  # the TM models
+        if i.startswith('tm_'):
+            maps.setdefault('minecraft:paper', []).append({'type': 'definition', 'model': f'cobblemon:{i}', 'bedrock_identifier': f'cobblemonlink:{i}',
+                                                           'display_name': 'TM', 'bedrock_options': {'icon': f'cobblemonlink:{i}'}})
     json.dump({'format_version': 2, 'items': maps}, open(f'{out}/geyser-items.json', 'w'), indent=1)
     json.dump(items, open(f'{out}/items.json', 'w'), indent=1, ensure_ascii=False)
     json.dump(RECIPES, open(f'{out}/recipes.json', 'w'), indent=1)
