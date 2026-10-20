@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
 /**
@@ -44,6 +45,12 @@ public final class Mons {
                 burst(p, net.minecraft.core.particles.ParticleTypes.FLASH, 1, 0);
                 redraw(p);
             }
+            for (var e : new java.util.ArrayList<>(CAMERAS.entrySet()))
+                if (e.getValue().until() <= tick[0] || e.getValue().player().hasDisconnected()) {
+                    CAMERAS.remove(e.getKey());
+                    e.getValue().player().connection.send(new net.minecraft.network.protocol.game.ClientboundSetCameraPacket(e.getValue().player()));
+                    e.getValue().stand().discard();
+                }
             if (tick[0] % 20 != 0) return;
             for (var e : new java.util.ArrayList<>(HOLDERS.entrySet())) {
                 if (!(e.getValue().entity() instanceof PokemonEntity p) || p.isRemoved() || CHANGING.containsKey(e.getKey())) continue;
@@ -51,6 +58,7 @@ public final class Mons {
                 if (look.equals(e.getValue().model().name()) || Models.get(look) == null) continue;
                 CHANGING.put(e.getKey(), 0);
                 Sounds.play(p, "evolution.full");
+                camera(p, tick[0] + SCENE + 30); // the scene, the new look, then back
             }
         });
     }
@@ -59,6 +67,26 @@ public final class Mons {
     /** Pokémon whose look changed, and the ticks of their scene so far. */
     private static final Map<Integer, Integer> CHANGING = new ConcurrentHashMap<>();
     static final int SCENE = 60;
+
+    /** The owner's view during a look change: Cobblemon's cutscene camera, shortly (Java only; Bedrock keeps its own view). */
+    private record Camera(ServerPlayer player, net.minecraft.world.entity.decoration.ArmorStand stand, int until) {}
+    private static final Map<Integer, Camera> CAMERAS = new ConcurrentHashMap<>();
+
+    /** Looks at p from in front of it, a little above, through an invisible marker armor stand. */
+    private static void camera(PokemonEntity p, int until) {
+        if (!(p.getOwner() instanceof ServerPlayer owner) || owner.distanceToSqr(p) > 32 * 32 || Clients.bedrock(owner) || !Clients.bridged(owner.connection)) return;
+        var level = (ServerLevel) p.level();
+        var stand = new net.minecraft.world.entity.decoration.ArmorStand(level, 0, 0, 0);
+        var front = net.minecraft.world.phys.Vec3.directionFromRotation(0, p.getYRot()).scale(2 + p.getBbWidth());
+        stand.setPos(p.position().add(front).add(0, p.getBbHeight() * 0.6 - stand.getEyeHeight(), 0));
+        stand.setInvisible(true);
+        stand.setNoGravity(true);
+        stand.setSilent(true);
+        stand.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, p.position().add(0, p.getBbHeight() / 2, 0));
+        level.addFreshEntity(stand);
+        owner.connection.send(new net.minecraft.network.protocol.game.ClientboundSetCameraPacket(stand));
+        CAMERAS.put(p.getId(), new Camera(owner, stand, until));
+    }
 
     /** Particles round p for every player without the mod near it. */
     private static void burst(PokemonEntity p, net.minecraft.core.particles.ParticleOptions type, int count, float speed) {
