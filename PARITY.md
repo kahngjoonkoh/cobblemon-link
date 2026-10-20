@@ -112,7 +112,7 @@ Counts: see [the summary at the end](#summary).
 | Vitamins, EXP candies, Rare Candy | ✓ | Vitamins (+10 EVs), feathers (+1), EXP candies, Rare Candy | ✅ | ✅ |
 | Evolution stones and ores | ✓ | The items work; no ores or other ways to find them yet (`/pokeitem`) | 🟡 | 🟡 |
 | Held items | ~80 | Given by right-click (the old one comes back); no taking without a swap | 🟡 | 🟡 |
-| Display Case, Gilded Chests, Pokédex items | ✓ | — | ⬜ | ⬜ |
+| Display Case, Gilded Chests, Pokédex items | ✓ | The Display Case block shows one item (right-click with it, empty hand to take it back; [Java](docs/evidence/m15-java-display-case.png), [Bedrock gets the item](docs/evidence/m15-bedrock-display-case-bot.log)); no Gilded Chests or Pokédex items | 🟡 | 🟡 |
 | Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 347 of them (every one whose ingredients are items: balls, medicine, held items, mints, rods); mint leaves and leeks drop from grass | 🟡 | 🟡 |
 | Structures (ruins, shipwrecks, habitats, villages) | ✓ | — | ⬜ | ⬜ |
 
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 48 | 35 | 11 | 1 |
-| Bedrock | 48 | 35 | 11 | 1 |
+| Java | 48 | 36 | 10 | 1 |
+| Bedrock | 48 | 36 | 10 | 1 |
 
 ## Suggested order
 

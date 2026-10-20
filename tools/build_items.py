@@ -56,7 +56,7 @@ KINDS = {
     **{b: {'kind': 'berry', 'stat': s, 'amount': -10} for b, s in (('pomeg_berry', 'hp'), ('kelpsy_berry', 'atk'),
        ('qualot_berry', 'def'), ('hondew_berry', 'spa'), ('grepa_berry', 'spd'), ('tamato_berry', 'spe'))},
 }
-MACHINES = ['healing_machine', 'pc', 'pasture', 'restoration_tank', 'fossil_analyzer', 'tm_machine']  # Machines.java's blocks
+MACHINES = ['healing_machine', 'pc', 'pasture', 'restoration_tank', 'fossil_analyzer', 'tm_machine', 'display_case']  # Machines.java's blocks
 NATURES = ['hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid',
            'hasty', 'serious', 'jolly', 'naive', 'modest', 'mild', 'quiet', 'bashful', 'rash', 'calm', 'gentle', 'sassy',
            'careful', 'quirky']

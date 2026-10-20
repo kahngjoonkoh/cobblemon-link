@@ -34,6 +34,7 @@ import org.bukkit.inventory.ItemStack;
  *   and comes out wild beside the tank, to be caught. The Fossil Analyzer is decoration beside it.
  * - Pasture: party Pokémon left to roam around it, taken back from its menu.
  * - TM Machine: makes TMs from a Blank TM and Cobblemon's TM ingredients.
+ * - Display Case: shows one item (right-click with it); right-click with an empty hand takes it back.
  */
 final class Machines {
     static final List<String> TALL = List.of("pc", "pasture", "restoration_tank");
@@ -48,7 +49,8 @@ final class Machines {
         String owner;           // who placed it (the pasture's Pokémon belong to their owners)
         List<Mon> pastured = new ArrayList<>();
         List<String> pasturedBy = new ArrayList<>();
-        transient Entity carrier;
+        String shown;           // display case: the item inside (ItemStack bytes, Base64)
+        transient Entity carrier, display;
         transient List<Entity> roaming = new ArrayList<>();
 
         String key() { return world + "/" + x + "/" + y + "/" + z; }
@@ -95,6 +97,7 @@ final class Machines {
             if (m.carrier == null || !m.carrier.isValid()) m.carrier = carrier(m.at(w), "clb_" + m.type);
             if (m.type.equals("restoration_tank") && m.reviveAt > 0 && now >= m.reviveAt) revive(m, w);
             if (m.type.equals("pasture")) roam(m, w);
+            if (m.shown != null && (m.display == null || !m.display.isValid())) m.display = showcase(m, w);
         }
     }
 
@@ -113,8 +116,40 @@ final class Machines {
         return pig;
     }
 
+    /**
+     * The display case's item, worn by a small invisible marker armour stand inside the glass: Geyser draws armour
+     * stands for Bedrock (not item displays), and a dropped item would be pushed out of the barrier.
+     */
+    private Entity showcase(Machine m, World w) {
+        ItemStack it = ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(m.shown));
+        return w.spawn(m.at(w).add(0, -0.72, 0), org.bukkit.entity.ArmorStand.class, d -> {
+            d.setPersistent(false);
+            d.setInvisible(true);
+            d.setMarker(true);
+            d.setSmall(true);
+            d.setGravity(false);
+            d.getEquipment().setHelmet(it);
+        });
+    }
+
+    /** Right-click a display case: put the held item in, or take what's inside. */
+    private void displayCase(Player p, Machine m, ItemStack hand) {
+        World w = Bukkit.getWorld(m.world);
+        if (m.shown != null) {
+            p.getInventory().addItem(ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(m.shown)))
+                    .values().forEach(x -> w.dropItemNaturally(m.at(w).add(0, 0.5, 0), x));
+            m.shown = null;
+            if (m.display != null) m.display.remove();
+        } else if (hand != null && !hand.isEmpty()) {
+            m.shown = java.util.Base64.getEncoder().encodeToString(hand.asOne().serializeAsBytes());
+            if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) hand.subtract();
+        }
+        save();
+    }
+
     void removeAll() {
         for (Machine m : machines.values()) {
+            if (m.display != null) m.display.remove();
             if (m.carrier != null) m.carrier.remove();
             m.roaming.forEach(Entity::remove);
         }
@@ -152,6 +187,8 @@ final class Machines {
         for (int i = 0; i < m.pastured.size(); i++) returnHome(m, i);
         machines.remove(m.key());
         if (m.carrier != null) m.carrier.remove();
+        if (m.shown != null) w.dropItemNaturally(m.at(w).add(0, 0.5, 0), ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(m.shown)));
+        if (m.display != null) m.display.remove();
         m.roaming.forEach(Entity::remove);
         Block b = w.getBlockAt(m.x, m.y, m.z);
         b.setType(Material.AIR);
@@ -188,6 +225,7 @@ final class Machines {
             case "fossil_analyzer" -> p.sendMessage(Component.text(pl.t(p, "cobblemonlink.machine.analyzer"), NamedTextColor.GRAY));
             case "pasture" -> pastureMenu(p, m);
             case "tm_machine" -> tmMenu(p, 0);
+            case "display_case" -> displayCase(p, m, hand);
             default -> {}
         }
     }
