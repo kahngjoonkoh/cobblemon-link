@@ -28,6 +28,19 @@ public final class Chest {
     private final int rows;
     private final Component title;
     private final Map<Integer, IntConsumer> actions = new HashMap<>(); // raw slot -> action(button: 0 left, 1 right)
+    private boolean hideInventory;
+
+    /** The player's own items aren't drawn over the screen's art (only on their screen; the server keeps them). */
+    public Chest hideInventory() {
+        hideInventory = true;
+        return this;
+    }
+
+    private void hide(ServerPlayer p) {
+        var menu = p.containerMenu;
+        for (int i = rows * 9; i < menu.slots.size(); i++)
+            p.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket(menu.containerId, menu.getStateId(), i, ItemStack.EMPTY));
+    }
 
     public Chest(int rows, String title) { this(rows, Component.literal(title)); }
 
@@ -61,6 +74,7 @@ public final class Chest {
             @Override
             public void clicked(int slot, int button, ClickType click, Player who) {
                 sendAllDataToRemote(); // the client thinks it moved something
+                if (hideInventory) hide(p);
                 IntConsumer a = actions.get(slot);
                 if (a != null && click == ClickType.PICKUP) p.server.execute(() -> a.accept(button));
             }
@@ -70,7 +84,14 @@ public final class Chest {
 
             @Override
             public boolean stillValid(Player who) { return true; }
+
+            @Override
+            public void removed(Player who) {
+                super.removed(who);
+                if (hideInventory) p.server.execute(() -> p.inventoryMenu.sendAllDataToRemote()); // the real items again
+            }
         }, title));
+        if (hideInventory) p.server.execute(() -> hide(p)); // after the menu's first sync
     }
 
     /** An item named name (not italic), with grey lore lines. */
