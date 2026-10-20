@@ -38,7 +38,7 @@ final class Items {
     final Map<String, Def> defs;
     /** Kinds used on a party Pokémon (the rest behave as plain items). */
     static final java.util.Set<String> USABLE = java.util.Set.of("potion", "revive", "cure", "ether", "elixir", "x_stat",
-            "dire_hit", "guard_spec", "candy", "ev", "mint", "evolution", "held");
+            "dire_hit", "guard_spec", "candy", "ev", "mint", "evolution", "held", "berry", "ability_capsule", "ability_patch");
     /** Cobblemon's TMs (tms.json): move -> its type and the TM Machine's ingredients ([id or #tag, count]). */
     Map<String, Tm> tms = Map.of();
 
@@ -215,13 +215,18 @@ final class Items {
         Battle b = pl.battles.get(p.getUniqueId());
         List<Mon> party = pl.store.get(p.getUniqueId()).party;
         if (party.isEmpty()) return true;
-        if (d.kind.equals("held")) { // Cobblemon's held item: give it, and get back what the Pokémon held before
+        if (d.kind.equals("held") || d.kind.equals("berry") && b == null) { // Cobblemon's held item: give it, and get back what the Pokémon held before
             if (b != null) {
                 p.sendMessage(Component.text(pl.t(p, "cobblemonlink.item.no_held_in_battle"), NamedTextColor.RED));
                 return true;
             }
             pickPokemon(p, pl.t(p, "cobblemonlink.item.give_to", name(p, id)), party, m -> true, m -> {
                 if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return;
+                if (d.kind.equals("berry") && canUse(d, m)) { // a berry it can eat now is eaten
+                    if (d.pp > 0) pickMove(p, d.name, m, move -> apply(p, null, id, d, m, move));
+                    else apply(p, null, id, d, m, null);
+                    return;
+                }
                 String old = m.held;
                 m.held = id;
                 if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) p.getInventory().getItemInMainHand().subtract();
@@ -242,7 +247,7 @@ final class Items {
         }
         pickPokemon(p, pl.t(p, "cobblemonlink.item.use_on", name(p, id)), party, m -> b != null ? b.canUse(m, d) : canUse(d, m), m -> {
             if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return; // the item left the hand meanwhile
-            if (d.kind.equals("ether")) {
+            if (d.kind.equals("ether") || d.kind.equals("berry") && d.pp > 0) {
                 pickMove(p, d.name, m, move -> apply(p, b, id, d, m, move));
             } else apply(p, b, id, d, m, null);
         });
@@ -284,6 +289,8 @@ final class Items {
             case "x_stat" -> "x_stat " + d.stat + " 2";
             case "dire_hit" -> "dire_hit";
             case "guard_spec" -> "guard_spec";
+            case "berry" -> d.heal > 0 ? "potion " + d.heal : d.ratio > 0 ? "potion_by_portion " + d.ratio
+                    : !d.cure.isEmpty() ? "cure_status " + String.join(" ", d.cure) : d.pp > 0 && move != null ? "ether " + move + " " + d.pp : null;
             default -> null;
         };
     }
@@ -301,6 +308,15 @@ final class Items {
             case "ev" -> m.ev(java.util.Arrays.asList(Dex.STATS).indexOf(d.stat)) < Rules.EV_STAT_MAX;
             case "mint" -> !d.nature.equalsIgnoreCase(m.mint != null ? m.mint : m.nature);
             case "evolution" -> pl.evolutions.byItem(m, d == null ? null : idOf(d)) != null;
+            case "berry" -> !fainted && (d.heal > 0 || d.ratio > 0 ? m.hp(dex) < m.maxHp(dex)
+                    : !d.cure.isEmpty() ? d.cure.contains(m.status)
+                    : d.pp > 0 ? m.pp != null && m.ppMax != null && !m.pp.equals(m.ppMax)
+                    : m.ev(java.util.Arrays.asList(Dex.STATS).indexOf(d.stat)) > 0 || m.friendship(dex) < 255);
+            case "ability_capsule" -> { // the other standard ability; not from a hidden one
+                List<String> a = dex.of(m).abilities;
+                yield a.size() > 1 && a.contains(m.ability);
+            }
+            case "ability_patch" -> dex.of(m).hidden != null && !dex.of(m).hidden.equals(m.ability);
             default -> false;
         };
     }
@@ -359,6 +375,35 @@ final class Items {
             case "evolution" -> {
                 String msg = pl.evolutions.evolveWithItem(m, idOf(d), p);
                 return msg;
+            }
+            case "berry" -> {
+                if (d.heal > 0 || d.ratio > 0) {
+                    int before = m.hp(dex);
+                    m.hp = Math.min(m.maxHp(dex), before + (d.heal > 0 ? d.heal : (int) Math.floor(m.maxHp(dex) * d.ratio)));
+                    if (m.hp >= m.maxHp(dex)) m.hp = -1;
+                    return pl.t(p, "cobblemonlink.item.hp", name, m.hp(dex) - before);
+                }
+                if (!d.cure.isEmpty()) {
+                    m.status = "";
+                    return pl.t(p, "cobblemonlink.battle.cured", name);
+                }
+                if (d.pp > 0) {
+                    for (int i = 0; i < m.pp.size() && i < m.ppMax.size(); i++)
+                        if (m.moves.get(i).equals(move)) m.pp.set(i, Math.min(m.ppMax.get(i), m.pp.get(i) + d.pp));
+                    return pl.t(p, "cobblemonlink.item.pp", name);
+                }
+                // Pomeg and the like: EVs down by 10, friendship up (Gen 4+: 10 / 5 / 2)
+                int k = java.util.Arrays.asList(Dex.STATS).indexOf(d.stat), f = m.friendship(dex);
+                if (m.evs == null) m.evs = new int[6];
+                int before = m.evs[k];
+                m.evs[k] = Math.max(0, before + d.amount);
+                m.addFriendship(dex, f < 100 ? 10 : f < 200 ? 5 : 2);
+                return pl.t(p, "cobblemon.interaction.ev.deduct", name, SummaryScreen.statName(p, k), before - m.evs[k]);
+            }
+            case "ability_capsule", "ability_patch" -> {
+                List<String> a = dex.of(m).abilities;
+                m.ability = d.kind.equals("ability_patch") ? dex.of(m).hidden : a.get((a.indexOf(m.ability) + 1) % a.size());
+                return pl.t(p, "cobblemon.ability_changer.changed", name, dex.label("ability", m.ability, loc));
             }
             default -> {
                 return null;

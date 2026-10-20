@@ -50,7 +50,7 @@ Counts: see [the summary at the end](#summary).
 | Status, HP and PP kept after battle | ✓ | ✓ (packed into Showdown like Cobblemon's `packTeam`) | ✅ | ✅ |
 | EXP | Gen 5 scaled × `experienceMultiplier` 2, Lucky Egg / trade / evolve / friendship bonuses, Exp. Share | Same | ✅ | ✅ |
 | EVs | Gen 8 EV gain, 252 / 510 caps | Same; in stats and battles | ✅ | ✅ |
-| Friendship | Base friendship, level-ups, fainting, items, walking | Base, level-ups (+3/+2), fainting (−1), X items (+1), Friend Ball; shown in the Summary; no berries or walking | 🟡 | 🟡 |
+| Friendship | Base friendship, level-ups, fainting, items, walking | Base, level-ups (+3/+2), fainting (−1), X items (+1), EV-lowering berries (+10/+5/+2), Friend Ball; shown in the Summary; no walking | 🟡 | 🟡 |
 
 ## Capture and Poké Balls
 
@@ -70,12 +70,12 @@ Counts: see [the summary at the end](#summary).
 |---|---|---|---|---|
 | Species, stats, types, catch rate, EXP groups | ✓ | From Cobblemon's species files | ✅ | ✅ |
 | Level-up moves, the 5th-move prompt | ✓ | ✓ | ✅ | ✅ |
-| Benched moves, relearning | ✓ | Moves skipped or replaced go to the bench; Summary → Moves → Relearn swaps one back ([learn](docs/evidence/m10-java-learn-prompt.png), [relearned](docs/evidence/m10-java-relearn-feint.png)) | ✅ | ✅ |
+| Benched moves, relearning | ✓ | Moves skipped or replaced go to the bench; Summary → Moves → Relearn swaps one of them, or any level-up move up to its level, back in ([learn](docs/evidence/m10-java-learn-prompt.png), [relearned](docs/evidence/m10-java-relearn-feint.png)) | ✅ | ✅ |
 | TMs, TM Machine, Type Gems | 334 TMs | All 334 TMs (type art), taught to Pokémon whose TM learnset has them; the TM Machine block makes them from a Blank TM and Cobblemon's ingredients; gems from amethyst clusters; no unlocking | 🟡 | 🟡 |
 | Egg and tutor moves | ✓ | — | ⬜ | ⬜ |
 | Natures, mints | ✓ | Random nature; 21 mints change the effective nature | ✅ | ✅ |
 | IVs | ✓ | ✓ | ✅ | ✅ |
-| Hidden abilities | From snacks / Ability Patch | — | ⬜ | ⬜ |
+| Hidden abilities | From snacks / Ability Patch | The Ability Patch gives the hidden ability, the Ability Capsule swaps the standard two ([evidence](docs/evidence/m11-java-ability-patch-berries.png)); no Poké Snacks | 🟡 | 🟡 |
 | Level evolutions | ✓ | ✓, evolved from the Summary like Cobblemon | ✅ | ✅ |
 | Stone, trade, friendship, held-item, time, biome, move evolutions | ✓ | Items (stones, apples, Link Cable…) evolve at once; friendship, time, biome, held item, moves, party, stats, moon, weather become the pending evolution; no trades yet, nor defeat / use-move / distance / structure ones | 🟡 | 🟡 |
 | Party of 6 | ✓ | ✓ | ✅ | ✅ |
@@ -102,10 +102,10 @@ Counts: see [the summary at the end](#summary).
 | Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
 | Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; no bait | 🟡 | 🟡 |
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
-| Pokémon interactions (feeding, items on Pokémon) | 167 | — | ⬜ | ⬜ |
+| Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
-| Berries and berry trees | 70 | Held berries work in battle; berries drop from sweet berry bushes; no berry trees, mulch or out-of-battle berry effects | 🟡 | 🟡 |
+| Berries and berry trees | 70 | Held berries work in battle; healing, status, Leppa and EV-lowering berries can be fed out of battle (and healing ones used from the bag); berries drop from sweet berry bushes; no berry trees or mulch | 🟡 | 🟡 |
 | Apricorns | ✓ | The 7 apricorns, from leaves | 🟡 | 🟡 |
 | Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | — | ⬜ | ⬜ |
 | Medicine (potions, revives, status cures, ethers) | ✓ | All of them, in and out of battle, with Cobblemon's art | ✅ | ✅ |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 48 | 30 | 16 | 1 |
-| Bedrock | 48 | 30 | 16 | 1 |
+| Java | 48 | 32 | 14 | 1 |
+| Bedrock | 48 | 32 | 14 | 1 |
 
 ## Suggested order
 

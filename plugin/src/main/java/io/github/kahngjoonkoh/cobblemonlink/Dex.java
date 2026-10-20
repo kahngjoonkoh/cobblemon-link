@@ -18,6 +18,7 @@ final class Dex {
         List<String> types;
         Map<String, Integer> baseStats;
         List<String> abilities;
+        String hidden; // hidden ability (the Ability Patch's), or null
         int catchRate, baseExp, baseFriendship = 50;
         double weight;     // hectograms
         boolean ultraBeast;
@@ -40,6 +41,7 @@ final class Dex {
     static final class Form {
         String name, showdown;
         List<String> aspects, types, abilities;
+        String hidden;
         Map<String, Integer> baseStats;
         List<List<String>> moves, evolutions;
         List<Evo> evos;
@@ -123,6 +125,7 @@ final class Dex {
             x.types = f.types != null ? f.types : s.types;
             x.baseStats = f.baseStats != null ? f.baseStats : s.baseStats;
             x.abilities = f.abilities != null ? f.abilities : s.abilities;
+            x.hidden = f.abilities != null ? f.hidden : s.hidden;
             x.moves = f.moves != null ? f.moves : s.moves;
             x.evolutions = f.evolutions != null ? f.evolutions : s.evolutions;
             x.evos = f.evos != null ? f.evos : s.evos;

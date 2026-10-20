@@ -44,9 +44,18 @@ final class Mon {
         if (move != null && !benched.contains(move) && !moves.contains(move)) benched.add(move);
     }
 
-    /** Swaps a benched move into slot k; the move there goes to the bench. */
-    void relearn(String move, int k) {
-        if (benched == null || !benched.remove(move)) return;
+    /** Cobblemon's relearnable moves: the benched ones and every level-up move up to its level, not known now. */
+    List<String> relearnable(Dex dex) {
+        var out = new java.util.LinkedHashSet<String>(benched == null ? List.of() : benched);
+        for (List<String> lm : dex.of(this).moves) if (Integer.parseInt(lm.get(0)) <= level) out.add(lm.get(1));
+        out.removeAll(moves);
+        return new ArrayList<>(out);
+    }
+
+    /** Swaps a relearnable move into slot k; the move there goes to the bench. */
+    void relearn(Dex dex, String move, int k) {
+        if (!relearnable(dex).contains(move)) return;
+        if (benched != null) benched.remove(move);
         if (k < moves.size()) bench(moves.set(k, move));
         else moves.add(move);
         pp = null;

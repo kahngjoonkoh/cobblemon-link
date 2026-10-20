@@ -65,13 +65,16 @@ class MonTest {
     /** Cobblemon's benched moves: a forgotten move can be swapped back in, the one it replaces goes to the bench. */
     @Test
     void benchedMoves() {
-        Mon m = new Mon();
-        m.moves = new java.util.ArrayList<>(List.of("tackle", "growl"));
+        Dex dex = dex();
+        Mon m = Mon.create(dex, "charmander", 12); // growl, ember, smokescreen, dragonbreath; scratch dropped off
         m.bench("vinewhip");
-        m.bench("tackle"); // known: not benched
+        m.bench("ember"); // known: not benched
         assertEquals(List.of("vinewhip"), m.benched);
-        m.relearn("vinewhip", 0);
-        assertEquals(List.of("vinewhip", "growl"), m.moves);
-        assertEquals(List.of("tackle"), m.benched);
+        assertEquals(List.of("vinewhip", "scratch"), m.relearnable(dex)); // benched, then level-up moves up to 12
+        m.relearn(dex, "vinewhip", 0);
+        assertEquals(List.of("vinewhip", "ember", "smokescreen", "dragonbreath"), m.moves);
+        assertEquals(List.of("growl"), m.benched);
+        m.relearn(dex, "firefang", 1); // level 16: not yet
+        assertEquals("ember", m.moves.get(1));
     }
 }

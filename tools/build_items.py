@@ -45,6 +45,16 @@ KINDS = {
                                                               ('calcium', 'spa'), ('zinc', 'spd'), ('carbos', 'spe'))},
     **{f: {'kind': 'ev', 'stat': s, 'amount': 1} for f, s in (('health_feather', 'hp'), ('muscle_feather', 'atk'),
        ('resist_feather', 'def'), ('genius_feather', 'spa'), ('clever_feather', 'spd'), ('swift_feather', 'spe'))},
+    'ability_capsule': {'kind': 'ability_capsule'}, 'ability_patch': {'kind': 'ability_patch'},
+    # berries fed out of battle (Cobblemon's berry items); held otherwise, like any held item
+    'oran_berry': {'kind': 'berry', 'heal': 10}, 'berry_juice': {'kind': 'berry', 'heal': 20},
+    'sitrus_berry': {'kind': 'berry', 'ratio': 0.25},
+    'cheri_berry': {'kind': 'berry', 'cure': ['par']}, 'chesto_berry': {'kind': 'berry', 'cure': ['slp']},
+    'pecha_berry': {'kind': 'berry', 'cure': ['psn', 'tox']}, 'rawst_berry': {'kind': 'berry', 'cure': ['brn']},
+    'aspear_berry': {'kind': 'berry', 'cure': ['frz']}, 'lum_berry': {'kind': 'berry', 'cure': PERSISTENT},
+    'leppa_berry': {'kind': 'berry', 'pp': 10},
+    **{b: {'kind': 'berry', 'stat': s, 'amount': -10} for b, s in (('pomeg_berry', 'hp'), ('kelpsy_berry', 'atk'),
+       ('qualot_berry', 'def'), ('hondew_berry', 'spa'), ('grepa_berry', 'spd'), ('tamato_berry', 'spe'))},
 }
 MACHINES = ['healing_machine', 'pc', 'pasture', 'restoration_tank', 'fossil_analyzer', 'tm_machine']  # Machines.java's blocks
 NATURES = ['hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid',

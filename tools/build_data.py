@@ -29,6 +29,7 @@ def fields(d):
         out['baseStats'] = {STATS[k]: v for k, v in d['baseStats'].items()}
     if 'abilities' in d:
         out['abilities'] = [a for a in d['abilities'] if not a.startswith('h:')] or ['noability']
+        out['hidden'] = next((a[2:] for a in d['abilities'] if a.startswith('h:')), None)  # the Ability Patch's
     if 'moves' in d:
         out['moves'] = sorted([int(lvl), move] for lvl, _, move in (m.partition(':') for m in d['moves']) if lvl.isdigit())
         for kind in ('tm', 'egg', 'tutor'):  # TMs teach these; egg and tutor moves come back through the relearner
@@ -150,7 +151,7 @@ def names(res, dex):
     """English display names for the move/ability/type ids the plugin shows (Cobblemon's en_us lang file)."""
     lang = json.load(open(f'{res}/assets/cobblemon/lang/en_us.json', encoding='utf-8'))
     used = {'move': {m for s in dex.values() for _, m in s['moves']},
-            'ability': {a for s in dex.values() for a in s['abilities']},
+            'ability': {a for s in dex.values() for a in s['abilities'] + [s.get('hidden')] if a},
             'type': {t for s in dex.values() for t in s['types']}}
     return {kind: {i: lang.get(f'cobblemon.{kind}.{i}', i) for i in sorted(ids)} for kind, ids in used.items()}
 
@@ -211,7 +212,7 @@ def demo():
             open(f'{t}/data/cobblemon/spawn_pool_world/0001.json', 'w'))
         dex = species(t, {'bulbasaur'})
         b = dex['bulbasaur']
-        assert b['abilities'] == ['overgrow'] and b['moves'] == [[1, 'tackle'], [3, 'vinewhip']]
+        assert b['abilities'] == ['overgrow'] and b['hidden'] == 'chlorophyll' and b['moves'] == [[1, 'tackle'], [3, 'vinewhip']]
         assert b['evolutions'] == [[16, 'ivysaur']] and b['baseStats']['spa'] == 1
         sp = spawns(t, dex)
         assert len(sp) == 2 and sp[0]['level'] == [3, 9] and sp[0]['cond']['timeRange'] == 'day'

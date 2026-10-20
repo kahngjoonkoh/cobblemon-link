@@ -922,6 +922,7 @@ final class Battle {
             case "cure" -> hp > 0 && d.cure.contains(status);
             case "ether", "elixir" -> hp > 0;
             case "x_stat", "dire_hit", "guard_spec" -> active && hp > 0;
+            case "berry" -> hp > 0 && (d.heal > 0 || d.ratio > 0 ? hp < max : !d.cure.isEmpty() ? d.cure.contains(status) : d.pp > 0);
             default -> false;
         };
     }
