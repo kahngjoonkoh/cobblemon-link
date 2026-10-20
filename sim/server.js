@@ -63,6 +63,23 @@ function pack(team) {
  */
 class TrainerAI extends RandomPlayerAI {
   constructor(stream, battle, skill) { super(stream); this.battle = battle; this.skill = skill; }
+  /** Skill 3+: in singles, switch to a benched Pokémon whose best move hits the foe at least twice as hard. */
+  receiveRequest(request) {
+    const b = this.battle(), me = b && b.p2.active[0], foe = b && b.p1.active[0];
+    if (this.skill >= 3 && me && foe && request.active && request.active.length === 1 && !request.forceSwitch
+        && !request.active[0].trapped && this.prng.next() < this.skill / 5) {
+      const best = p => Math.max(1, ...p.moves.map(m => score(Dex.moves.get(toID(m)), p, foe)));
+      const now = best({ moves: request.active[0].moves.map(m => m.move), getTypes: () => me.getTypes() });
+      let pick = null, top = now * 2;
+      b.p2.pokemon.forEach((p, i) => {
+        if (p.isActive || p.fainted || p.hp <= 0) return;
+        const v = best({ moves: p.moveSlots.map(m => m.move), getTypes: () => p.getTypes() });
+        if (v >= top) { top = v; pick = i + 1; } // side.pokemon is in the request's order too
+      });
+      if (pick > 0) return this.choose(`switch ${pick}`);
+    }
+    return super.receiveRequest(request);
+  }
   chooseMove(active, moves) {
     const b = this.battle(), me = b && b.p2.active[0], foe = b && b.p1.active[0];
     if (!me || !foe || this.prng.next() >= this.skill / 5) return super.chooseMove(active, moves);
