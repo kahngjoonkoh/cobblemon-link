@@ -88,4 +88,18 @@ public final class Mixins {
         for (int id : r.getEntityIds()) { var u = NPCS.get(id); if (u != null) ids.add(u); }
         return ids.isEmpty() ? null : new net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket(ids);
     }
+
+    /** A Cobblemon sign's block-entity data as Minecraft's sign (or hanging sign) data: the same text tags. */
+    public static net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket signData(net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket b) {
+        boolean hanging = net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getPath().contains("hanging");
+        try {
+            var ctor = net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.class.getDeclaredConstructor(net.minecraft.core.BlockPos.class,
+                    net.minecraft.world.level.block.entity.BlockEntityType.class, net.minecraft.nbt.CompoundTag.class);
+            ctor.setAccessible(true);
+            return ctor.newInstance(b.getPos(), hanging ? net.minecraft.world.level.block.entity.BlockEntityType.HANGING_SIGN
+                    : net.minecraft.world.level.block.entity.BlockEntityType.SIGN, b.getTag());
+        } catch (ReflectiveOperationException e) {
+            return b;
+        }
+    }
 }
