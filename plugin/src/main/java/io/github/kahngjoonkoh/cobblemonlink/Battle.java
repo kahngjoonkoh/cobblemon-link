@@ -36,14 +36,18 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 /**
- * One wild battle. Showdown (sim/server.js) runs the rules; this class is the menu, the chat log and the bookkeeping.
+ * One player's side of a battle: against a wild Pokémon, or (pvp) against another player, whose own Battle is the
+ * rival. Showdown (sim/server.js) runs the rules; this class is the menu, the chat log and the bookkeeping.
  * Socket reads happen on an async thread; everything else runs on the main thread.
  */
 final class Battle {
     private final CobblemonLink pl;
     final Player player;
-    final Entity wildEntity;
-    final Mon wild;
+    final Entity wildEntity; // the wild Pokémon, or in pvp the rival player
+    final Mon wild;          // null in pvp
+    final String side, foe;  // Showdown's p1 / p2
+    Battle rival;            // pvp: the other player's side; the p1 side owns the sim connection
+    private boolean forfeited;
     private final List<Integer> order = new ArrayList<>(); // battle slot -> party index
     private final Set<Integer> participants = new HashSet<>();
     private Socket socket;
@@ -64,34 +68,85 @@ final class Battle {
     private final BossBar wildBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
     private final BossBar ownBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.GREEN, BossBar.Overlay.NOTCHED_10);
 
-    Battle(CobblemonLink pl, Player player, Entity wildEntity, Mon wild) {
+    Battle(CobblemonLink pl, Player player, Entity wildEntity, Mon wild) { this(pl, player, wildEntity, wild, "p1"); }
+
+    private Battle(CobblemonLink pl, Player player, Entity wildEntity, Mon wild, String side) {
         this.pl = pl;
         this.player = player;
         this.wildEntity = wildEntity;
         this.wild = wild;
+        this.side = side;
+        this.foe = side.equals("p1") ? "p2" : "p1";
     }
+
+    /** Cobblemon's player-vs-player battle: a's side is p1 and talks to the sim, b's is p2. */
+    static Battle[] pvp(CobblemonLink pl, Player a, Player b) {
+        Battle x = new Battle(pl, a, b, null, "p1"), y = new Battle(pl, b, a, null, "p2");
+        x.rival = y;
+        y.rival = x;
+        return new Battle[] {x, y};
+    }
+
+    boolean pvp() { return wild == null; }
+
+    /** The battle order (party indexes) of this side, for the rival's view. */
+    private List<Mon> team() {
+        List<Mon> party = pl.store.get(player.getUniqueId()).party;
+        return order.stream().map(party::get).toList();
+    }
+
+    /** The opponent's Pokémon now in battle: the wild one, or the rival's active one. */
+    Mon foeMon() {
+        if (!pvp()) return wild;
+        JsonArray f = state == null ? null : state.getAsJsonArray(foe);
+        List<Mon> t = rival.team();
+        if (f != null) for (int i = 0; i < f.size() && i < t.size(); i++) if (f.get(i).getAsJsonObject().get("active").getAsBoolean()) return t.get(i);
+        return t.isEmpty() ? null : t.getFirst();
+    }
+
+    /** The opponent's battle state entry (the active one). */
+    private JsonObject foeState() {
+        JsonArray f = state.getAsJsonArray(foe);
+        for (int i = 0; i < f.size(); i++) if (f.get(i).getAsJsonObject().get("active").getAsBoolean()) return f.get(i).getAsJsonObject();
+        return f.get(0).getAsJsonObject();
+    }
+
+    private Entity foeEntity() { return pvp() ? rival.ally : wildEntity; }
+
+    private String foeLabel(Mon m) { return (pvp() ? rival.player.getName() + "'s " : "Wild ") + m.name(pl.dex); }
 
     /** Returns false (with a message) if the player has nothing able to battle. */
     boolean start() {
-        List<Mon> party = pl.store.get(player.getUniqueId()).party;
-        for (int i = 0; i < party.size(); i++) if (!party.get(i).fainted(pl.dex)) order.add(i);
-        if (order.isEmpty()) {
-            player.sendMessage(Component.text("You have no Pokémon able to battle. Sleep in a bed to heal them.", NamedTextColor.RED));
+        if (!prepare()) return false;
+        if (pvp() && !rival.prepare()) {
+            player.sendMessage(Component.text(rival.player.getName() + " has no Pokémon able to battle.", NamedTextColor.RED));
             return false;
         }
-        for (int i = 0; i < party.size(); i++) if (!order.contains(i)) order.add(i); // fainted ones last
-        wild.hp = -1;
-        List<Map<String, Object>> team = order.stream().map(i -> party.get(i).set(pl.dex)).toList();
+        List<Mon> party = pl.store.get(player.getUniqueId()).party;
         JsonObject init = new JsonObject();
-        init.add("p1", Store.GSON.toJsonTree(team));
-        init.add("p2", Store.GSON.toJsonTree(List.of(wild.set(pl.dex))));
-        for (Mon m : party) names.put(m.id, "Your " + m.name(pl.dex));
-        names.put(wild.id, "The wild " + wild.name(pl.dex));
-        Spawner.freeze(wildEntity, true);
-        Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
-        Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
-        String appeared = "A wild " + wild.name(pl.dex) + " (Lv." + wild.level + ") appeared!";
-        log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
+        init.add("p1", Store.GSON.toJsonTree(team().stream().map(m -> m.set(pl.dex)).toList()));
+        if (pvp()) {
+            init.add("p2", Store.GSON.toJsonTree(rival.team().stream().map(m -> m.set(pl.dex)).toList()));
+            init.addProperty("pvp", true);
+            for (Battle b : List.of(this, rival)) {
+                for (Mon m : b.team()) {
+                    b.names.put(m.id, "Your " + m.name(pl.dex));
+                    b.rival.names.put(m.id, b.player.getName() + "'s " + m.name(pl.dex));
+                    pl.store.get(b.rival.player.getUniqueId()).see(m); // the Pokédex: seen in battle
+                }
+                b.log.addAll(Ui.wrap("You are challenged by " + b.rival.player.getName() + "!", 146));
+            }
+        } else {
+            wild.hp = -1;
+            init.add("p2", Store.GSON.toJsonTree(List.of(wild.set(pl.dex))));
+            for (Mon m : party) names.put(m.id, "Your " + m.name(pl.dex));
+            names.put(wild.id, "The wild " + wild.name(pl.dex));
+            Spawner.freeze(wildEntity, true);
+            Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
+            Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
+            String appeared = "A wild " + wild.name(pl.dex) + " (Lv." + wild.level + ") appeared!";
+            log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
+        }
 
         String host = pl.getConfig().getString("sim.host");
         int port = pl.getConfig().getInt("sim.port");
@@ -104,15 +159,32 @@ final class Battle {
                 var in = new BufferedReader(new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
                 for (String line; (line = in.readLine()) != null; ) {
                     JsonObject msg = JsonParser.parseString(line).getAsJsonObject();
-                    onMain(() -> handle(msg));
+                    // pvp: requests and errors go to their side; the log, state and end to both
+                    String to = msg.has("side") ? msg.get("side").getAsString() : null;
+                    if (to == null || to.equals(side)) onMain(() -> handle(msg));
+                    if (rival != null && (to == null || to.equals(rival.side))) onMain(() -> rival.handle(msg));
                 }
             } catch (IOException e) {
                 if (!over) onMain(() -> player.sendMessage(
                         Component.text("Battle server unavailable: " + e.getMessage(), NamedTextColor.RED)));
             } finally {
                 onMain(() -> finish(null, false));
+                if (rival != null) onMain(() -> rival.finish(null, false));
             }
         });
+        return true;
+    }
+
+    /** The battle order: able Pokémon first, fainted ones last. False (with a message) if none can battle. */
+    private boolean prepare() {
+        List<Mon> party = pl.store.get(player.getUniqueId()).party;
+        order.clear();
+        for (int i = 0; i < party.size(); i++) if (!party.get(i).fainted(pl.dex)) order.add(i);
+        if (order.isEmpty()) {
+            player.sendMessage(Component.text("You have no Pokémon able to battle. Sleep in a bed to heal them.", NamedTextColor.RED));
+            return false;
+        }
+        for (int i = 0; i < party.size(); i++) if (!order.contains(i)) order.add(i);
         return true;
     }
 
@@ -132,7 +204,7 @@ final class Battle {
                 animate(msg.getAsJsonArray("lines"));
                 for (JsonElement l : msg.getAsJsonArray("lines")) {
                     if (l.getAsString().startsWith("|turn|")) turn = Integer.parseInt(l.getAsString().substring(6));
-                    String text = narrate(l.getAsString(), names);
+                    String text = narrate(l.getAsString(), names, side);
                     if (text == null) continue;
                     if (text.startsWith("—")) continue;
                     turnLog.add(text);
@@ -141,7 +213,7 @@ final class Battle {
             }
             case "state" -> {
                 state = msg;
-                JsonArray p1 = state.getAsJsonArray("p1");
+                JsonArray p1 = state.getAsJsonArray(side);
                 for (int i = 0; i < p1.size(); i++)
                     if (p1.get(i).getAsJsonObject().get("active").getAsBoolean()) {
                         participants.add(order.get(i));
@@ -179,7 +251,11 @@ final class Battle {
         List<Integer> art = new ArrayList<>(List.of(0, 1, 2, 3)); // battle_menu_fight/switch/bag/run
         List<Opt> opts = new ArrayList<>(List.of(new Opt("Fight", "menu_fight", this::openFight),
                 new Opt("Switch", "menu_switch", () -> openSwitch(true)),
-                new Opt("Catch", "menu_bag", this::capture), new Opt("Run", "menu_run", this::run)));
+                new Opt("Catch", "menu_bag", this::capture), new Opt(pvp() ? "Forfeit" : "Run", "menu_run", this::run)));
+        if (pvp()) { // Cobblemon: no Catch against a trainer
+            art.remove(2);
+            opts.remove(2);
+        }
         if (trapped) {
             art.remove(1);
             opts.remove(1);
@@ -202,21 +278,28 @@ final class Battle {
         }
         List<ActionButton> buttons = new ArrayList<>(List.of(
                 menuButton(0, "Fight", "", this::openFight),
-                menuButton(1, "Switch", trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true)),
-                menuButton(2, "Catch", "You have " + pl.countBalls(player) + " Poké Balls", this::capture),
-                menuButton(3, "Run", "", this::run)));
+                menuButton(1, "Switch", trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true))));
+        if (!pvp()) buttons.add(menuButton(2, "Catch", "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
+        buttons.add(menuButton(3, pvp() ? "Forfeit" : "Run", "", this::run));
         List<DialogBody> body = info();
         List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of("What will you do?") : turnLog);
         while (log.size() < 4) log.add(" "); // fixed height, so the buttons don't move between turns
         body.add(DialogBody.plainMessage(Component.text(String.join("\n", log)), 300));
         turnLog.clear();
-        show("Wild " + wild.name(pl.dex) + "  Lv." + wild.level, body, buttons);
+        show(foeLabel(foeMon()) + "  Lv." + foeMon().level, body, buttons);
     }
 
     private void run() {
+        if (pvp()) { // Cobblemon's Forfeit
+            rival.out().println("{\"forfeit\":\"" + side + "\"}");
+            return;
+        }
         player.sendMessage(Component.text("Got away safely!", NamedTextColor.YELLOW));
         finish(null, false);
     }
+
+    /** The sim connection: the p1 side's. */
+    private PrintWriter out() { return side.equals("p1") ? out : rival.out; }
 
     private void openFight() {
         JsonArray moves = request.getAsJsonArray("active").get(0).getAsJsonObject().getAsJsonArray("moves");
@@ -449,9 +532,9 @@ final class Battle {
     private List<DialogBody> info() {
         List<DialogBody> body = new ArrayList<>();
         if (state == null) return body;
-        JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
-        body.add(DialogBody.plainMessage(infoLine(wild, w, false), 300));
-        JsonArray p1 = state.getAsJsonArray("p1");
+        JsonObject w = foeState();
+        body.add(DialogBody.plainMessage(infoLine(foeMon(), w, false), 300));
+        JsonArray p1 = state.getAsJsonArray(side);
         for (int i = 0; i < p1.size(); i++) {
             JsonObject p = p1.get(i).getAsJsonObject();
             if (p.get("active").getAsBoolean())
@@ -462,7 +545,7 @@ final class Battle {
 
     /** Bedrock's form text (Java gets the overlay). Numbers only for your own side, like the main games. */
     private Component infoLine(Mon m, JsonObject p, boolean own) {
-        String name = (own ? "" : "Wild ") + m.name(pl.dex) + " Lv." + m.level;
+        String name = (own ? m.name(pl.dex) : foeLabel(m)) + " Lv." + m.level;
         String hp = own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : "";
         String status = p.get("status").getAsString();
         int filled = Math.round(ratio(p) * 20);
@@ -504,11 +587,11 @@ final class Battle {
                 if (!formOpen && request != null && !request.has("wait"))
                     player.sendActionBar(Component.text("You need to choose an action. Tap the Pokémon."));
             }, 20, 20);
-        JsonObject w = state.getAsJsonArray("p2").get(0).getAsJsonObject();
+        JsonObject w = foeState();
         String status = w.get("status").getAsString();
-        wildBar.name(Component.text("Wild " + wild.name(pl.dex) + "  Lv." + wild.level + (status.isEmpty() ? "" : "  " + status.toUpperCase())));
+        wildBar.name(Component.text(foeLabel(foeMon()) + "  Lv." + foeMon().level + (status.isEmpty() ? "" : "  " + status.toUpperCase())));
         wildBar.progress(ratio(w));
-        JsonArray p1 = state.getAsJsonArray("p1");
+        JsonArray p1 = state.getAsJsonArray(side);
         for (int i = 0; i < p1.size(); i++) {
             JsonObject p = p1.get(i).getAsJsonObject();
             if (!p.get("active").getAsBoolean()) continue;
@@ -524,11 +607,11 @@ final class Battle {
     private Component overlay() {
         var o = new Ui.Overlay();
         o.fade = hidden ? 4 : 0; // BattleOverlay MIN_OPACITY 0.5 while minimised
-        JsonArray p1 = state.getAsJsonArray("p1");
+        JsonArray p1 = state.getAsJsonArray(side);
         for (int i = 0; i < p1.size(); i++)
             if (p1.get(i).getAsJsonObject().get("active").getAsBoolean())
                 panel(o, Ui.Overlay.TL, 12, pl.store.get(player.getUniqueId()).party.get(order.get(i)), p1.get(i).getAsJsonObject(), true);
-        panel(o, Ui.Overlay.TR, -152, wild, state.getAsJsonArray("p2").get(0).getAsJsonObject(), false);
+        panel(o, Ui.Overlay.TR, -152, foeMon(), foeState(), false);
         o.fade = hidden ? 6 : 0; // BattleMessagePane at 0.3 with no screen open
         o.glyph(Ui.Overlay.BR, -181, 85, '\ue103', 170);
         List<String> last = log.subList(Math.max(0, log.size() - 4), log.size());
@@ -569,7 +652,8 @@ final class Battle {
     }
 
     private void choose(String choice) {
-        if (out != null) out.println("{\"choose\":\"" + choice + "\"}");
+        PrintWriter o = out();
+        if (o != null) o.println("{\"choose\":\"" + choice + "\",\"side\":\"" + side + "\"}");
     }
 
     /**
@@ -584,7 +668,7 @@ final class Battle {
         allyIndex = partyIndex;
         if (partyIndex < 0) return;
         var pos = player.getLocation();
-        var toWild = wildEntity.getLocation().toVector().subtract(pos.toVector()).setY(0);
+        var toWild = wildEntity.getLocation().toVector().subtract(pos.toVector()).setY(0); // toward the opponent
         if (toWild.lengthSquared() < 0.01) toWild = pos.getDirection().setY(0);
         toWild.normalize();
         var right = new org.bukkit.util.Vector(-toWild.getZ(), 0, toWild.getX());
@@ -607,7 +691,7 @@ final class Battle {
         for (JsonElement l : lines) {
             String[] p = l.getAsString().split("\\|");
             if (p.length < 3 || !p[1].equals("move") && !p[1].equals("-damage")) continue;
-            Entity who = p[2].startsWith("p1") ? ally : p[2].startsWith("p2") ? wildEntity : null;
+            Entity who = p[2].startsWith(side) ? ally : p[2].startsWith(foe) ? foeEntity() : null;
             if (who == null) continue;
             boolean move = p[1].equals("move");
             Bukkit.getScheduler().runTaskLater(pl, () -> {
@@ -643,7 +727,7 @@ final class Battle {
      * Cobblemon's capture sequence with the ball's model (PokeBalls.capture), then the result. A failed throw uses the turn.
      */
     void ballHit(Entity ball, String ballId) {
-        if (over) return;
+        if (over || pvp()) return;
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
         if (state != null) {
@@ -681,6 +765,12 @@ final class Battle {
     /** Ends the battle exactly once: writes HP back, awards EXP, releases or removes the wild Pokémon. */
     void finish(String winner, boolean caught) {
         if (over) return;
+        if (pvp() && winner == null && !forfeited && !rival.over) { // walking away or logging out forfeits (Cobblemon)
+            forfeited = true;
+            run();
+            if (pl.isEnabled()) Bukkit.getScheduler().runTaskLater(pl, () -> { finish(null, false); rival.finish(null, false); }, 60);
+            return;
+        }
         over = true;
         try {
             if (socket != null) socket.close();
@@ -697,7 +787,7 @@ final class Battle {
 
         List<Mon> party = pl.store.get(player.getUniqueId()).party;
         if (state != null) { // as Cobblemon: HP, status and PP stay as the battle left them
-            JsonArray p1 = state.getAsJsonArray("p1");
+            JsonArray p1 = state.getAsJsonArray(side);
             for (int i = 0; i < p1.size() && i < order.size(); i++) {
                 Mon m = party.get(order.get(i));
                 JsonObject p = p1.get(i).getAsJsonObject();
@@ -714,7 +804,16 @@ final class Battle {
                 m.ppMax = ppMax;
             }
         }
-        if ("p1".equals(winner)) {
+        boolean won = side.equals(winner), lost = foe.equals(winner);
+        // what was beaten: the wild Pokémon, or every rival Pokémon that fainted (Cobblemon awards the winner for each)
+        List<Mon> beaten = new ArrayList<>();
+        if (won && !pvp()) beaten.add(wild);
+        if (won && pvp() && state != null) {
+            JsonArray f = state.getAsJsonArray(foe);
+            List<Mon> t = rival.team();
+            for (int i = 0; i < f.size() && i < t.size(); i++) if (f.get(i).getAsJsonObject().get("hp").getAsInt() == 0) beaten.add(t.get(i));
+        }
+        if (won) for (Mon foeMon : beaten) {
             Set<Integer> earners = new java.util.LinkedHashSet<>(participants); // and Exp. Share holders that sat out
             for (int i = 0; i < party.size(); i++) if ("exp_share".equals(party.get(i).held)) earners.add(i);
             for (int idx : earners) {
@@ -723,9 +822,9 @@ final class Battle {
                 double share = participants.contains(idx) ? 1 : Rules.EXP_SHARE;
                 int level = m.level, moves = m.moves.size() + (m.learnable == null ? 0 : m.learnable.size());
                 String evolution = m.evolution;
-                int exp = Rules.expGain(pl.dex.of(wild).baseExp, wild.level, m.level, share, expBonus(m));
+                int exp = Rules.expGain(pl.dex.of(foeMon).baseExp, foeMon.level, m.level, share, expBonus(m));
                 if (m.evs == null) m.evs = new int[6];
-                for (var ev : pl.dex.of(wild).evYield.entrySet()) { // Generation8EvCalculator, Power items +8
+                for (var ev : pl.dex.of(foeMon).evYield.entrySet()) { // Generation8EvCalculator, Power items +8
                     int k = java.util.Arrays.asList(Dex.STATS).indexOf(ev.getKey());
                     Rules.addEv(m.evs, k, ev.getValue() + (POWER_ITEMS[k].equals(m.held) ? 8 : 0));
                 }
@@ -735,6 +834,11 @@ final class Battle {
                 if (panel) pl.panel.gain(player, m, level, exp, m.moves.size() + (m.learnable == null ? 0 : m.learnable.size()) - moves,
                         m.evolution != null && !m.evolution.equals(evolution) ? 1 : 0);
             }
+        }
+        if (pvp()) {
+            player.sendMessage(Component.text(won ? "You defeated " + rival.player.getName() + "!" : lost
+                    ? rival.player.getName() + " won the battle." : "The battle is over.", won ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+        } else if (won) {
             wildEntity.getPersistentDataContainer().remove(pl.wildKey); // no longer wild while it faints
             faint(wildEntity);
         } else if (caught) {
@@ -743,16 +847,16 @@ final class Battle {
                     + (toParty ? "" : " It was sent to the PC."), NamedTextColor.GREEN));
             wildEntity.remove();
         } else {
-            if ("p2".equals(winner))
+            if (lost)
                 player.sendMessage(Component.text("All your Pokémon fainted! Sleep in a bed to heal them.", NamedTextColor.RED));
             Spawner.freeze(wildEntity, false);
             Spawner.stopAnimation(wildEntity, "battle_idle");
         }
         pl.store.save(player.getUniqueId());
         pl.battles.remove(player.getUniqueId());
-        var outcome = "p1".equals(winner) ? WildBattleEndEvent.Outcome.WON : caught ? WildBattleEndEvent.Outcome.CAUGHT
-                : "p2".equals(winner) ? WildBattleEndEvent.Outcome.LOST : WildBattleEndEvent.Outcome.FLED;
-        if (pl.isEnabled()) new WildBattleEndEvent(player, wild.species, wild.level, wild.shiny, outcome).callEvent();
+        var outcome = won ? WildBattleEndEvent.Outcome.WON : caught ? WildBattleEndEvent.Outcome.CAUGHT
+                : lost ? WildBattleEndEvent.Outcome.LOST : WildBattleEndEvent.Outcome.FLED;
+        if (pl.isEnabled() && !pvp()) new WildBattleEndEvent(player, wild.species, wild.level, wild.shiny, outcome).callEvent();
         if (pl.isEnabled()) pl.onMain(() -> MoveLearn.next(pl, player));
     }
 
@@ -813,12 +917,12 @@ final class Battle {
      * Showdown protocol line -> chat text, or null to skip (HP is shown in the menu instead). Cobblemon's Showdown names
      * each Pokémon by its UUID ("p1a: <uuid>"); names maps the UUID to "Your Pikachu" / "The wild Rattata".
      */
-    static String narrate(String line, Map<String, String> names) {
+    static String narrate(String line, Map<String, String> names, String side) {
         String[] p = line.split("\\|");
         if (p.length < 2) return null;
         return switch (p[1]) {
             case "move" -> who(p[2], names) + " used " + p[3] + "!";
-            case "switch" -> p[2].startsWith("p1") ? "Go! " + who(p[2], names).substring(5) + "!" : null;
+            case "switch" -> p[2].startsWith(side) ? "Go! " + who(p[2], names).substring(5) + "!" : null;
             case "bagitem" -> "You used your " + item(p[3]) + " on " + names.getOrDefault(p[2], "it").replaceFirst("^Your ", "") + "!";
             case "-heal" -> who(p[2], names) + " restored its HP.";
             case "-curestatus" -> who(p[2], names) + " was cured of its status.";

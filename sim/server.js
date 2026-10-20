@@ -1,11 +1,13 @@
 // Battle sidecar: one battle per TCP connection, newline-delimited JSON. Runs Cobblemon's own Showdown build
 // (data/cobblemon/showdown.zip, unpacked by tools/build.sh into assets/showdown and mounted at $SHOWDOWN), so HP,
 // status and PP carry in and out of battle and bag items work exactly like Cobblemon's.
-//   in : {"p1":[set...],"p2":[set...]}   then {"choose":"move 1" | "switch 2" | "pass" | "useitem <uuid> <name> <item> [data...]"}
+//   in : {"p1":[set...],"p2":[set...],"pvp":false}   then {"choose":"move 1" | "switch 2" | "pass" | "useitem <uuid> <name> <item> [data...]",
+//        "side":"p1"}  or  {"forfeit":"p1"}
 //   out: {"type":"request","request":{...}}  {"type":"log","lines":[...]}
 //        {"type":"state","p1":[...],"p2":[...]}  {"type":"end","winner":"p1"|"p2"|null}
 // A set is Showdown's PokemonSet plus Cobblemon's fields: uuid, hp (null = full), status, pp ([current...] or null),
-// happiness, ball. p2 (the wild Pokémon) picks random legal moves.
+// happiness, ball. p2 (the wild Pokémon) picks random legal moves, unless pvp: then p2 is a player too and its
+// requests come out with "side":"p2".
 'use strict';
 const fs = require('fs');
 const net = require('net');
@@ -61,20 +63,20 @@ function startBattle(sock, init) {
   const send = o => sock.writable && sock.write(JSON.stringify(o) + '\n');
   const stream = new BattleStream();
   const streams = getPlayerStreams(stream);
-  new RandomPlayerAI(streams.p2).start();
+  if (!init.pvp) new RandomPlayerAI(streams.p2).start();
 
-  (async () => {
-    for await (const chunk of streams.p1) {
+  for (const side of init.pvp ? ['p1', 'p2'] : ['p1']) (async () => {
+    for await (const chunk of streams[side]) {
       for (const line of chunk.split('\n')) {
         if (line.startsWith('|request|') && line.length > 9) {
           const request = JSON.parse(line.slice(9));
           // move types, for the type-coloured move tiles
           for (const a of request.active || []) for (const m of a.moves) m.type = Dex.moves.get(m.id).type.toLowerCase();
           // side.pokemon is in Showdown's switch-reordered order; slot = position in the team we sent
-          if (request.side) request.side.pokemon.forEach((p, i) => { p.slot = stream.battle.p1.pokemon[i].clSlot; });
-          send({ type: 'request', request });
+          if (request.side) request.side.pokemon.forEach((p, i) => { p.slot = stream.battle[side].pokemon[i].clSlot; });
+          send({ type: 'request', request, side });
         }
-        else if (line.startsWith('|error|')) send({ type: 'error', message: line.slice(7) });
+        else if (line.startsWith('|error|')) send({ type: 'error', message: line.slice(7), side });
       }
     }
   })().catch(e => send({ type: 'error', message: String(e) }));
@@ -85,7 +87,7 @@ function startBattle(sock, init) {
       const b = stream.battle;
       if (b) send({ type: 'state', p1: state(b.p1), p2: state(b.p2) });
       if (b && b.ended) {
-        send({ type: 'end', winner: b.winner === 'Player' ? 'p1' : b.winner === 'Wild' ? 'p2' : null });
+        send({ type: 'end', winner: b.winner === 'Player' ? 'p1' : b.winner === 'Wild' || b.winner === 'Rival' ? 'p2' : null });
         sock.end();
       }
     }
@@ -94,9 +96,13 @@ function startBattle(sock, init) {
   streams.omniscient.write(`>start ${JSON.stringify({ format: FORMAT })}`);
   streams.omniscient.write(`>player p1 ${JSON.stringify({ name: 'Player', team: pack(init.p1) })}`);
   stream.battle.p1.pokemon.forEach((p, i) => { p.clSlot = i; });
-  streams.omniscient.write(`>player p2 ${JSON.stringify({ name: 'Wild', team: pack(init.p2) })}`);
+  streams.omniscient.write(`>player p2 ${JSON.stringify({ name: init.pvp ? 'Rival' : 'Wild', team: pack(init.p2) })}`);
   stream.battle.p2.pokemon.forEach((p, i) => { p.clSlot = i; });
-  return { choose: c => streams.omniscient.write(`>p1 ${c}`), end: () => stream.writeEnd() };
+  return {
+    choose: (c, side) => streams.omniscient.write(`>${init.pvp && side === 'p2' ? 'p2' : 'p1'} ${c}`),
+    forfeit: side => streams.omniscient.write(`>forcelose ${side === 'p2' ? 'p2' : 'p1'}`),
+    end: () => stream.writeEnd(),
+  };
 }
 
 // useitem <pokemon uuid> <item name> <bag item id> [data...]: Cobblemon's BagItemActionResponse
@@ -114,7 +120,8 @@ net.createServer(sock => {
       try {
         const msg = JSON.parse(line);
         if (!battle) battle = startBattle(sock, msg);
-        else if (typeof msg.choose === 'string' && CHOICE.test(msg.choose)) battle.choose(msg.choose);
+        else if (typeof msg.choose === 'string' && CHOICE.test(msg.choose)) battle.choose(msg.choose, msg.side);
+        else if (msg.forfeit) battle.forfeit(msg.forfeit);
       } catch (e) {
         sock.write(JSON.stringify({ type: 'error', message: String(e) }) + '\n');
       }

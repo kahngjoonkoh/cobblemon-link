@@ -1,0 +1,12 @@
+start_game
+text system "§r§6Type /starter to choose your first Pokémon and begin your journey!" 
+text system "§r§e.BotB joined the game" 
+text system "§r§aGave Pikachu Lv.20" 
+text system "§r§aGave Eevee Lv.18" 
+text system "§r§e.BotA challenges you to a Pokémon battle! §r§a[Accept]" 
+command /challenge accept .BotA
+form "Battle§r§l§1" | You are challenged by .BotA! | Fight ; Switch ; Forfeit
+form "Battle§r§l§2" | You are challenged by .BotA! / Go! Pikachu! | Double Team           15/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | You are challenged by .BotA! / Go! Pikachu! | Fight ; Switch ; Forfeit
+form "Battle§r§l§2" | Your Pikachu used Double / Team! / Your Pikachu's evasiveness / rose! | Double Team           14/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | Your Pikachu used Double / Team! / Your Pikachu's evasiveness / rose! | Fight ; Switch ; Forfeit

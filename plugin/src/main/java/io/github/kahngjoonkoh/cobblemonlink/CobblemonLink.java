@@ -500,6 +500,44 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (e.getView().getTopInventory().getHolder() instanceof Menu) e.setCancelled(true);
     }
 
+    private final Map<UUID, UUID> challenges = new HashMap<>(); // challenged -> challenger
+
+    /** Cobblemon's battle challenge between players (32 blocks), accepted from a clickable chat line. */
+    private void challenge(Player p, String[] a) {
+        if (a.length == 2 && a[0].equalsIgnoreCase("accept")) {
+            Player by = Bukkit.getPlayerExact(a[1]);
+            if (by == null || !by.getUniqueId().equals(challenges.remove(p.getUniqueId()))) {
+                p.sendMessage(Component.text("There's no challenge from " + a[1] + ".", NamedTextColor.RED));
+                return;
+            }
+            if (battles.containsKey(p.getUniqueId()) || battles.containsKey(by.getUniqueId())) {
+                p.sendMessage(Component.text("Someone is already in a battle.", NamedTextColor.RED));
+                return;
+            }
+            Battle[] b = Battle.pvp(this, by, p);
+            battles.put(by.getUniqueId(), b[0]);
+            battles.put(p.getUniqueId(), b[1]);
+            if (!b[0].start()) {
+                battles.remove(by.getUniqueId());
+                battles.remove(p.getUniqueId());
+            }
+            return;
+        }
+        Player other = a.length == 1 ? Bukkit.getPlayerExact(a[0]) : null;
+        if (other == null || other.equals(p)) {
+            p.sendMessage(Component.text("/challenge <player>", NamedTextColor.RED));
+            return;
+        }
+        if (!other.getWorld().equals(p.getWorld()) || other.getLocation().distance(p.getLocation()) > 32) {
+            p.sendMessage(Component.text(other.getName() + " is too far away to battle.", NamedTextColor.RED));
+            return;
+        }
+        challenges.put(other.getUniqueId(), p.getUniqueId());
+        p.sendMessage(Component.text("You challenged " + other.getName() + " to a battle.", NamedTextColor.GRAY));
+        other.sendMessage(Component.text(p.getName() + " challenges you to a Pokémon battle! ", NamedTextColor.YELLOW)
+                .append(Component.text("[Accept]", NamedTextColor.GREEN).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/challenge accept " + p.getName()))));
+    }
+
     // ---- actions ----
 
     void startBattle(Player p, Entity wildEntity) {
@@ -528,7 +566,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     private void guardBattles() {
         int max = getConfig().getInt("battle.max-distance");
         for (Battle b : new ArrayList<>(battles.values())) {
-            boolean gone = !b.wildEntity.isValid() || !b.player.isOnline()
+            boolean gone = !b.wildEntity.isValid() || !b.player.isOnline() || b.wildEntity instanceof Player rp && !rp.isOnline()
                     || !b.player.getWorld().equals(b.wildEntity.getWorld())
                     || b.player.getLocation().distance(b.wildEntity.getLocation()) > max;
             if (gone) {
@@ -714,6 +752,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             if (b == null) p.sendMessage(Component.text("You are not in a battle.", NamedTextColor.RED));
             else b.reveal();
         });
+        new AdminCommands(this).register();
+        playerCommand("challenge", "/challenge <player>: a Pokémon battle; /challenge accept <player>", null, this::challenge);
         playerCommand("trade", "/trade <player>: offer a Pokémon trade; /trade accept <player>", null, (p, a) -> trades.command(p, a));
         playerCommand("pokeheal", "Heal your party (admin)", "cobblemonlink.admin", (p, a) -> heal(p));
         playerCommand("pokegive", "/pokegive <species> [level] [properties...] (admin)", "cobblemonlink.admin", (p, a) -> {

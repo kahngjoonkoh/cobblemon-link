@@ -38,7 +38,7 @@ Counts: see [the summary at the end](#summary).
 | Wild AI | `RandomBattleAI` | Random legal choices | ✅ | ✅ |
 | Singles vs wild | ✓ | ✓ | ✅ | ✅ |
 | Doubles, triples, multi, royal | ✓ | — | ⬜ | ⬜ |
-| PvP challenges, spectating | ✓ | — | ⬜ | ⬜ |
+| PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; no spectating | 🟡 | 🟡 |
 | NPC trainers (`StrongBattleAI`) | ✓ | — | ⬜ | ⬜ |
 | Fleeing | Walk 32 blocks away | Run, or walk 24 blocks away | 🟡 | 🟡 |
 | Battle UI (fight / switch / bag / run, tiles, log) | Mod screen | Cobblemon's tile art (Java), Cobblemon-styled forms (Bedrock), HP bars | 🟡 | 🟡 |
@@ -126,9 +126,9 @@ Counts: see [the summary at the end](#summary).
 | `/pc` | `/pc` | ✅ | ✅ |
 | `/openstarterscreen` | `/starter` | 🟡 | 🟡 |
 | `/pokedex` | `/pokedex` | ✅ | ✅ |
-| `/stopbattle` | — | ⬜ | ⬜ |
-| `/pokemonedit`, `/levelup`, `/teach`, `/held_item`, `/friendship`, `/takepokemon`, `/pctake` | — | ⬜ | ⬜ |
-| `/pokebox`, `/boxcount`, `/renamebox`, `/clearparty`, `/clearpc`, `/pcsearch` | — | ⬜ | ⬜ |
+| `/stopbattle` | `/stopbattle <player>` | ✅ | ✅ |
+| `/pokemonedit`, `/levelup`, `/teach`, `/held_item`, `/friendship`, `/takepokemon`, `/pctake` | All, for a named player (`/pokemonedit` takes level, shiny, nature, ability, gender, nickname, held_item, friendship) | ✅ | ✅ |
+| `/pokebox`, `/boxcount`, `/renamebox`, `/clearparty`, `/clearpc`, `/pcsearch` | `/pokebox`, `/pokeboxall`, `/boxcount`, `/clearparty`, `/clearpc`; box names from the PC screen; no `/pcsearch` | 🟡 | 🟡 |
 | `/givetm`, marks, NPC commands | — | ⬜ | ⬜ |
 | (`/give` of Cobblemon items) | `/pokeitem <item> [amount]` (admin) | ✅ | ✅ |
 
