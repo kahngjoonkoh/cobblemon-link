@@ -29,28 +29,53 @@ public final class Mons {
         // sparkle and sound
         int[] tick = {0};
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
-            if (++tick[0] % 20 != 0) return;
+            tick[0]++;
+            // Cobblemon's evolution scene, shortly: three seconds of light gathering round the old look, a flash, the new one
+            for (var e : new java.util.ArrayList<>(CHANGING.entrySet())) {
+                ModelHolder h = HOLDERS.get(e.getKey());
+                if (h == null || !(h.entity() instanceof PokemonEntity p) || p.isRemoved()) { CHANGING.remove(e.getKey()); continue; }
+                int t = e.getValue() + 1;
+                CHANGING.put(e.getKey(), t);
+                if (t % 4 == 0) burst(p, net.minecraft.core.particles.ParticleTypes.ENCHANT, 12, 0.6f);
+                if (t % 10 == 0) burst(p, net.minecraft.core.particles.ParticleTypes.END_ROD, 4, 0.2f);
+                if (t < SCENE) continue;
+                CHANGING.remove(e.getKey());
+                HOLDERS.remove(e.getKey()).destroy();
+                burst(p, net.minecraft.core.particles.ParticleTypes.FLASH, 1, 0);
+                redraw(p);
+            }
+            if (tick[0] % 20 != 0) return;
             for (var e : new java.util.ArrayList<>(HOLDERS.entrySet())) {
-                if (!(e.getValue().entity() instanceof PokemonEntity p) || p.isRemoved()) continue;
+                if (!(e.getValue().entity() instanceof PokemonEntity p) || p.isRemoved() || CHANGING.containsKey(e.getKey())) continue;
                 String look = look(p);
                 if (look.equals(e.getValue().model().name()) || Models.get(look) == null) continue;
-                HOLDERS.remove(e.getKey()).destroy();
-                redraw(p);
+                CHANGING.put(e.getKey(), 0);
+                Sounds.play(p, "evolution.full");
             }
         });
     }
 
     /** Draw p again after its look changed: Java gets the new model, Bedrock the entity again with the new one. */
+    /** Pokémon whose look changed, and the ticks of their scene so far. */
+    private static final Map<Integer, Integer> CHANGING = new ConcurrentHashMap<>();
+    static final int SCENE = 60;
+
+    /** Particles round p for every player without the mod near it. */
+    private static void burst(PokemonEntity p, net.minecraft.core.particles.ParticleOptions type, int count, float speed) {
+        if (!(p.level() instanceof ServerLevel level)) return;
+        for (var player : level.players())
+            if (player.distanceToSqr(p) < 64 * 64 && Clients.bridged(player.connection))
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket(type, false, p.getX(),
+                        p.getY() + p.getBbHeight() / 2, p.getZ(), p.getBbWidth() / 2, p.getBbHeight() / 2, p.getBbWidth() / 2, speed, count));
+    }
+
     private static void redraw(PokemonEntity p) {
         if (!(p.level() instanceof ServerLevel level)) return;
         ModelHolder h = ensure(p);
         if (h == null) return;
-        Sounds.play(p, "evolution.full");
+        burst(p, net.minecraft.core.particles.ParticleTypes.END_ROD, 40, 0.05f);
         for (var player : level.players()) {
-            if (player.distanceToSqr(p) > 64 * 64 || !Clients.bridged(player.connection)) continue;
-            player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket(net.minecraft.core.particles.ParticleTypes.END_ROD,
-                    false, p.getX(), p.getY() + p.getBbHeight() / 2, p.getZ(), p.getBbWidth() / 2, p.getBbHeight() / 2, p.getBbWidth() / 2, 0.05f, 40));
-            if (!Clients.bedrock(player)) continue;
+            if (player.distanceToSqr(p) > 64 * 64 || !Clients.bedrock(player)) continue;
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket(p.getId()));
             // SendMixin turns the spawn into the model's carrier, as for any Pokémon
             player.connection.send(new net.minecraft.network.protocol.game.ClientboundAddEntityPacket(p.getId(), p.getUUID(), p.getX(), p.getY(), p.getZ(),
