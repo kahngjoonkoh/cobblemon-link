@@ -686,7 +686,7 @@ final class Battle {
             screen.draw(o);
             if (general || screen.idle()) hint(o, t("cobblemon.battle.ui.hide_label", "Shift"), 0.75); // BattleGUI hide_label
         } else if (hidden && request != null && !request.has("wait")) { // BattleOverlay actions_label, pulsing over 4 s
-            hint(o, t("cobblemon.battle.ui.actions_label", "Shift ×2"), 0.5 + 0.5 * Math.sin(Math.PI / 2 * Bukkit.getCurrentTick() / 20.0));
+            hint(o, t("cobblemon.battle.ui.actions_label", "Shift x2"), 0.5 + 0.5 * Math.sin(Math.PI / 2 * Bukkit.getCurrentTick() / 20.0));
         }
         return o.build();
     }
