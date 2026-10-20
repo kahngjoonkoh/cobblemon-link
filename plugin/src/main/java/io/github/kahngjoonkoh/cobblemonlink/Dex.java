@@ -23,6 +23,7 @@ final class Dex {
         double weight;     // hectograms
         boolean ultraBeast, shoulder; // shoulder: Cobblemon's shoulderMountable
         double size = 1;              // max(hitbox width, height) x baseScale (Mon.drawScale)
+        Ride ride;                    // Cobblemon's riding, or null
         Map<String, Integer> evYield = Map.of(); // EVs for defeating it (Gen 8), stat -> amount
         List<String> tmMoves = List.of(), eggMoves = List.of(), tutorMoves = List.of();
         String expGroup, desc; // desc: the first Pokédex entry
@@ -73,6 +74,12 @@ final class Dex {
         List<List<Object>> variations;
         Map<String, String> models; // "model|texture index" -> converted model name
         Map<String, Map<String, String>> cosmetics = Map.of(); // cosmetic aspect -> {look without it: look with it}
+    }
+
+    /** Cobblemon's riding: LAND / AIR / LIQUID and its SPEED stat (0-100). */
+    static final class Ride {
+        List<String> kinds = List.of();
+        int speed = 50;
     }
 
     /** One of Cobblemon's cosmetic_items files: the species that can wear them, item (or #tag) -> aspect. */
@@ -188,6 +195,7 @@ final class Dex {
             x.ultraBeast = s.ultraBeast;
             x.shoulder = s.shoulder;
             x.size = s.size;
+            x.ride = s.ride;
             x.evYield = f.evYield != null ? f.evYield : s.evYield;
             x.tmMoves = s.tmMoves;
             x.eggMoves = s.eggMoves;

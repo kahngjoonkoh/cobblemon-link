@@ -136,7 +136,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, spawner::tick, 100, cfg.getLong("spawning.interval-ticks"));
         Bukkit.getScheduler().runTaskTimer(this, spawner::cleanup, 200, 200);
         Bukkit.getScheduler().runTaskTimer(this, () -> companions.tick(), 10, 10);
-        Bukkit.getScheduler().runTaskTimer(this, () -> companions.shoulderTick(), 1, 1);
+        Bukkit.getScheduler().runTaskTimer(this, () -> { companions.shoulderTick(); companions.rideTick(); }, 1, 1);
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, this::partySecond, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, () -> machines.tick(), 40, 20); // Cobblemon's machine blocks
@@ -376,7 +376,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             if (e.getHand() != EquipmentSlot.HAND) return;
             if (e.getPlayer().isSneaking() && !hand.isEmpty()) companions.cosmetic(e.getPlayer(), e.getRightClicked(), hand);
             else if (e.getPlayer().isSneaking()) companions.shoulder(e.getPlayer(), e.getRightClicked());
-            else if (hand.isEmpty()) companions.cosmetic(e.getPlayer(), e.getRightClicked(), null);
+            else if (hand.isEmpty() && !companions.ride(e.getPlayer(), e.getRightClicked()))
+                companions.cosmetic(e.getPlayer(), e.getRightClicked(), null); // not rideable: empty hand takes a cosmetic off
             return;
         }
         if (npcs.isNpc(e.getRightClicked())) {
@@ -417,6 +418,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDismount(EntityDismountEvent e) {
+        if (e.getEntity() instanceof Player rider && companions.isRidden(e.getDismounted())) companions.dismounted(rider);
         Battle b = e.getEntity() instanceof Player p ? battles.get(p.getUniqueId()) : null;
         if (b != null && b.screen() != null && b.screen().holds(e.getDismounted())) {
             e.setCancelled(true);

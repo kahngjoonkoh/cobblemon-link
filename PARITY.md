@@ -87,7 +87,7 @@ Counts: see [the summary at the end](#summary).
 | Summary (info, moves, stats, nickname, evolve) | ✓ | ✓, with EVs, friendship, held item and mint; no markings | 🟡 | 🟡 |
 | Pokédex (seen / caught, entries, forms) | ✓ | `/pokedex`; no regional dexes or scanner | 🟡 | 🟡 |
 | Sending out / following | ✓ | Send out the lead | 🟡 | 🟡 |
-| Riding (1.7+) | 13 ride settings | — | ⬜ | ⬜ |
+| Riding (1.7+) | 13 ride settings | Right-click your sent-out Pokémon with an empty hand to ride it (the 115 species with Cobblemon riding data), Shift to get off: it goes where you look at its SPEED stat; jumps on land, flies toward your aim if it has AIR, swims if it has LIQUID ([Java](docs/evidence/m24-java-riding-rapidash.png)); one rider, no stamina, sprint or seat offsets (the rider sits low in big models); Bedrock not checked on a client | 🟡 | 🟡 |
 | Shoulder mounting | ✓ | Shift + right-click your sent-out Pokémon (Cobblemon's 94 shoulderMountable species) to put it on a shoulder, left then right; Shift + right-click with an empty hand to let it down ([evidence](docs/evidence/m14-java-shoulder.png)); no shoulder pose or shoulder effects; Bedrock gets the same carrier moves but wasn't checked on a client | 🟡 | 🟡 |
 | Pasture | ✓ | The Pasture block: party Pokémon put out roam around it, taken back from its chest menu (up to 16) | 🟡 | 🟡 |
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 41 | 1 | 1 |
-| Bedrock | 52 | 41 | 1 | 1 |
+| Java | 52 | 42 | 0 | 1 |
+| Bedrock | 52 | 42 | 0 | 1 |
 
 ## Suggested order
 
