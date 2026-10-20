@@ -115,4 +115,10 @@ public final class Mixins {
             }
         });
     }
+
+    /** The lang key of a bare translatable text of ours or Cobblemon's (a text display's), else null. */
+    public static String langKey(Object value) {
+        return value instanceof net.minecraft.network.chat.Component c && c.getSiblings().isEmpty()
+                && c.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents t && Lang.has(t.getKey()) ? t.getKey() : null;
+    }
 }

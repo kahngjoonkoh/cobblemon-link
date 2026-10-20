@@ -160,6 +160,13 @@ public class SendMixin {
         // a chunk with Cobblemon's signs in it: their text right after (the chunk's own copy names a type the client lacks)
         if (packet instanceof ClientboundLevelChunkWithLightPacket ch)
             io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.chunkSigns(h.player, ch.getX(), ch.getZ());
+        // a text display with one of Cobblemon's keys in it (an NPC's name): written out in the player's language
+        if (packet instanceof ClientboundSetEntityDataPacket d && d.packedItems().stream().anyMatch(v -> io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.langKey(v.value()) != null))
+            return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().map(v -> {
+                String key = io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.langKey(v.value());
+                return key == null ? v : new net.minecraft.network.syncher.SynchedEntityData.DataValue<>(v.id(), net.minecraft.network.syncher.EntityDataSerializers.COMPONENT,
+                        (net.minecraft.network.chat.Component) net.minecraft.network.chat.Component.literal(io.github.kahngjoonkoh.cobblemonlink.fabric.Lang.get(h.player, key)));
+            }).toList());
         // Cobblemon's signs: their text, as Minecraft's sign (PolyEntry shows the block as one)
         if (packet instanceof ClientboundBlockEntityDataPacket b && BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getPath().contains("sign")
                 && BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getNamespace().equals("cobblemon"))
