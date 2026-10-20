@@ -62,6 +62,10 @@ public class SendMixin {
             out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
             return new ClientboundBundlePacket(out);
         }
+        // Cobblemon's spawn packets wrap the vanilla one (with extra data only its client reads): the vanilla one
+        if (packet instanceof ClientboundCustomPayloadPacket c
+                && c.payload() instanceof com.cobblemon.mod.common.net.messages.client.spawn.SpawnExtraDataEntityPacket<?, ?> spawn)
+            return clean(spawn.getVanillaSpawnPacket(), h);
         if (packet instanceof ClientboundCustomPayloadPacket c) {
             // GeyserModelEngine's messages are for Bedrock players only
             if (c.payload() instanceof GeyserUtilsPayload && !Clients.bedrock(h.player)) return new ClientboundBundlePacket(List.of());
@@ -79,6 +83,12 @@ public class SendMixin {
             // the rest of Cobblemon's messages mean nothing to a client without it
             if (c.payload().type().id().getNamespace().equals("cobblemon")) return new ClientboundBundlePacket(List.of());
         }
+        // Cobblemon's Poké Rod bobber is a vanilla fishing hook underneath: shown as one, with its line to the player
+        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.projectile.FishingHook)
+            return a.getType() == net.minecraft.world.entity.EntityType.FISHING_BOBBER ? a : new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
+                    net.minecraft.world.entity.EntityType.FISHING_BOBBER, a.getData(), new net.minecraft.world.phys.Vec3(a.getXa(), a.getYa(), a.getZa()), a.getYHeadRot());
+        if (packet instanceof ClientboundSetEntityDataPacket d && h.player.level().getEntity(d.id()) instanceof net.minecraft.world.entity.projectile.FishingHook)
+            return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 10).toList()); // the hook's own fields
         // ponytail: an empty bundle stands for "nothing"; moves etc. for an entity the client never saw are ignored by it
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
             return new ClientboundBundlePacket(List.of());

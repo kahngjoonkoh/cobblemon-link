@@ -39,6 +39,10 @@ public final class Battles {
             p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
             return true;
         }
+        if (p.isShiftKeyDown() && p.getUUID().equals(pe.getOwnerUUID()) && BattleUi.get(p) == null) { // Cobblemon's interaction wheel
+            Wheel.open(p, pe);
+            return true;
+        }
         var ui = BattleUi.get(p);
         if (ui != null) { // in a battle: the menu again
             ui.reveal();

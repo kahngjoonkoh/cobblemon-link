@@ -115,15 +115,15 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
 | Evolution | ✅ | ✅ | Summary's Evolve; ⬜ Cobblemon's evolution animation |
 | Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; ⬜ TM machine screen (1.8 TMs) |
-| Held items (give / take) | ⬜ | ⬜ | Cobblemon's interaction wheel (`InteractPokemonUIPacket`) |
-| Pokémon interaction wheel (shoulder, ride, held item, ...) | ⬜ | ⬜ | `InteractPokemonUIPacket` → a form / chest |
+| Held items (give / take) | 🟡 | 🟡 | `Wheel`: Shift + right-click (tap) your Pokémon → Cobblemon's InteractPokemonHandler; built, not yet tried in a client |
+| Pokémon interaction wheel (shoulder, ride, held item, cosmetic) | 🟡 | 🟡 | `Wheel` (form / chest) → Cobblemon's handler; not yet tried in a client |
 | Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
 | Pokémon on your shoulder | ⬜ | ⬜ | vanilla parrot data with a Pokémon id |
 | Sending out / recalling (R key) | 🟡 | 🟡 | Summary's Send out / Recall; ⬜ a key for it |
 | PvP battle challenges, multi battles, spectating | ⬜ | ⬜ | challenge packets; the battle screens already handle any Showdown request |
 | Trading | ⬜ | ⬜ | Cobblemon's trade packets → a form / chest |
 | NPCs (Professor, trainers) and their dialogues | ⬜ | ⬜ | `NPCEntity` is hidden from these clients; dialogue packets |
-| Fishing with Poké Rods (bobber, bites, reeling) | ⬜ | ⬜ | `PokeBobberEntity` is hidden from these clients |
+| Fishing with Poké Rods (bobber, bites, reeling) | 🟡 | 🟡 | casting and Cobblemon's fishing run (the rod shows, `New Angles for Angling`), but the bobber still doesn't reach these clients (sent as a vanilla hook, not drawn: open) |
 | Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, TM machine blocks | 🟡 | 🟡 | PolyMc stand-in blocks (they work, they don't look like Cobblemon's); PC opens our PC |
 | Pasture block screen | ⬜ | ⬜ | `OpenPasturePacket` |
 | Fossils and the resurrection machine | 🟡 | 🟡 | block interactions work through PolyMc; the revived Pokémon is a normal one |
