@@ -45,6 +45,9 @@ public class SendMixin {
         if (packet instanceof ClientboundSystemChatPacket sc && !sc.overlay() && io.github.kahngjoonkoh.cobblemonlink.fabric.PartyHud.javaPanel(h.player)
                 && sc.content().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents t && t.getKey().startsWith("cobblemon.experience."))
             return new ClientboundBundlePacket(List.of()); // as Cobblemon: on the party panel, not in chat
+        Packet<?> menu = io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.menuOut(packet, h.player); // a chest for a Cobblemon menu
+        if (menu instanceof ClientboundBundlePacket) return menu;
+        if (menu != null) packet = menu;
         if (Clients.bedrock(h.player)) { // Cobblemon's text in English: Geyser only knows Minecraft's keys
             var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
             if (t == null) return new ClientboundBundlePacket(List.of());
@@ -101,9 +104,9 @@ public class SendMixin {
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
             return new ClientboundBundlePacket(List.of());
         if (packet instanceof ClientboundSetEntityDataPacket d && modded(d.id(), h)) return new ClientboundBundlePacket(List.of());
-        // a Cobblemon menu (cooking pot...): the client can't open its type. ponytail: the server keeps it open until Esc
-        if (packet instanceof ClientboundOpenScreenPacket o && !BuiltInRegistries.MENU.getKey(o.getType()).getNamespace().equals("minecraft"))
-            return new ClientboundBundlePacket(List.of());
+        // a Cobblemon menu (cooking pot, TM machine): a chest stands in for it (Menus)
+        if (packet instanceof ClientboundOpenScreenPacket o && io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.moddedMenu(o.getType()))
+            return io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.menuOpen(o, h.player);
         // a Cobblemon block entity (healing machine, PC...): the client can't decode its type
         if (packet instanceof ClientboundBlockEntityDataPacket b && !BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getNamespace().equals("minecraft"))
             return new ClientboundBundlePacket(List.of());

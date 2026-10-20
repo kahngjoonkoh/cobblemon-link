@@ -38,7 +38,10 @@ import org.joml.Quaternionf;
 public final class Furniture {
     static final List<String> BLOCKS = List.of("healing_machine", "pc", "pasture", "display_case", "fossil_analyzer",
             "restoration_tank", "monitor", "tm_machine", "campfire_pot_red", "campfire_pot_blue", "campfire_pot_green",
-            "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black");
+            "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black", "campfire", "soul_campfire");
+
+    /** Cobblemon's campfires: Minecraft's campfire stands in (PolyEntry), the pot on it is ours. */
+    static final List<String> CAMPFIRES = List.of("campfire", "soul_campfire");
 
     /** A blockstate variant: its properties (all must match), model and turn. */
     record Variant(Map<String, String> when, String model, int y) {}
@@ -46,7 +49,6 @@ public final class Furniture {
     private static final Map<Block, List<Variant>> VARIANTS = new HashMap<>();
     private static final Map<String, PolymerModelData> ITEMS = new HashMap<>();
     private static final Map<ServerLevel, Map<BlockPos, Part>> DRAWN = new HashMap<>();
-    private static final List<Runnable> LATER = new ArrayList<>();
 
     private Furniture() {}
 
@@ -86,11 +88,6 @@ public final class Furniture {
         ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> {
             var map = DRAWN.get(level);
             if (map != null) map.values().removeIf(p -> { boolean in = new net.minecraft.world.level.ChunkPos(p.pos).equals(chunk.getPos()); if (in) p.destroy(); return in; });
-        });
-        ServerTickEvents.END_SERVER_TICK.register(s -> {
-            List<Runnable> now = new ArrayList<>(LATER);
-            LATER.clear();
-            now.forEach(Runnable::run);
         });
         System.out.println("[cobblemonlink] " + VARIANTS.size() + " furniture blocks, " + ITEMS.size() + " models");
     }
@@ -147,7 +144,7 @@ public final class Furniture {
     public static void placed(ServerLevel level, BlockPos at) {
         BlockPos pos = at.immutable();
         if (DRAWN.containsKey(level) && DRAWN.get(level).containsKey(pos)) return;
-        LATER.add(() -> {
+        Tasks.next(() -> {
             var map = DRAWN.computeIfAbsent(level, l -> new HashMap<>());
             if (map.containsKey(pos) || !level.isLoaded(pos) || !VARIANTS.containsKey(level.getBlockState(pos).getBlock())) return;
             map.put(pos, new Part(level, pos));
@@ -156,15 +153,32 @@ public final class Furniture {
 
     public static boolean furniture(BlockState s) { return VARIANTS.containsKey(s.getBlock()); }
 
+    /**
+     * The models a block shows (null: not a machine block any more): its blockstate's, but for a campfire (PolyMc shows
+     * Minecraft's) only its pot, open or with its lid on.
+     */
+    static List<Variant> models(BlockState s, ServerLevel level, BlockPos pos) {
+        Variant v = variant(s);
+        if (v == null) return null;
+        List<Variant> out = new ArrayList<>();
+        if (!CAMPFIRES.contains(BuiltInRegistries.BLOCK.getKey(s.getBlock()).getPath())) out.add(v);
+        if (level.getBlockEntity(pos) instanceof com.cobblemon.mod.common.block.entity.CampfireBlockEntity be && !be.getPotItem().isEmpty()) {
+            boolean lid = s.getValues().entrySet().stream().anyMatch(e -> e.getKey().getName().equals("lid") && Boolean.TRUE.equals(e.getValue()));
+            String m = "cobblemon:block/" + BuiltInRegistries.ITEM.getKey(be.getPotItem().getItem()).getPath() + (lid ? "" : "_open");
+            if (ITEMS.containsKey(m)) out.add(new Variant(Map.of(), m, v.y));
+        }
+        return out;
+    }
+
     /** One machine block: a Java holder and a Bedrock holder, checking the block every half second. */
     static final class Part {
         final ServerLevel level;
         final BlockPos pos;
-        BlockState state;
         final ElementHolder java, bedrock;
-        final ItemDisplayElement item = new ItemDisplayElement();
-        SimpleEntityElement pig;
-        String shown, model;
+        final List<ItemDisplayElement> items = new ArrayList<>();
+        final List<SimpleEntityElement> pigs = new ArrayList<>();
+        final Map<Integer, String> gme = new HashMap<>(); // pig id -> GeyserModelEngine model
+        String shown;
         int ticks;
 
         Part(ServerLevel level, BlockPos pos) {
@@ -177,13 +191,10 @@ public final class Furniture {
             bedrock = new ElementHolder() {
                 @Override public boolean startWatching(ServerGamePacketListenerImpl h) {
                     if (!Clients.bedrock(h.player)) return false;
-                    if (model != null && pig != null) h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + model)));
+                    gme.forEach((id, m) -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(id, "modelengine:" + m))));
                     return super.startWatching(h);
                 }
             };
-            item.setModelTransformation(ItemDisplayContext.NONE);
-            item.setViewRange(2);
-            java.addElement(item);
             ChunkAttachment.ofTicking(java, level, net.minecraft.world.phys.Vec3.atCenterOf(pos));
             ChunkAttachment.of(bedrock, level, net.minecraft.world.phys.Vec3.atBottomCenterOf(pos));
             check();
@@ -191,32 +202,38 @@ public final class Furniture {
 
         void check() {
             if (ticks++ % 10 != 0) return;
-            BlockState s = level.getBlockState(pos);
-            if (s == state) return;
-            state = s;
-            Variant v = variant(s);
-            if (v == null) { // broken
+            List<Variant> ms = models(level.getBlockState(pos), level, pos);
+            if (ms == null) { // broken
                 DRAWN.get(level).remove(pos);
                 destroy();
                 return;
             }
-            String key = v.model + "@" + v.y;
+            String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat);
             if (key.equals(shown)) return;
             shown = key;
-            item.setItem(ITEMS.get(v.model).asStack());
-            // an item display shows the model turned half round from the placed block
-            item.setLeftRotation(new Quaternionf().rotateY((float) Math.toRadians(180 - v.y)));
-            item.tick();
-            model = "clb_" + v.model.substring(v.model.lastIndexOf('/') + 1);
-            if (pig != null) bedrock.removeElement(pig);
-            pig = new SimpleEntityElement(EntityType.PIG);
-            pig.setNoGravity(true);
-            pig.setSilent(true);
-            pig.setYaw(v.y + 180);
-            pig.setInteractionHandler(click);
-            for (var h : bedrock.getWatchingPlayers())
-                h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + model)));
-            bedrock.addElement(pig);
+            items.forEach(java::removeElement);
+            pigs.forEach(bedrock::removeElement);
+            items.clear();
+            pigs.clear();
+            gme.clear();
+            for (Variant v : ms) {
+                ItemDisplayElement item = new ItemDisplayElement(ITEMS.get(v.model).asStack());
+                item.setModelTransformation(ItemDisplayContext.NONE);
+                item.setViewRange(2);
+                // an item display shows the model turned half round from the placed block
+                item.setLeftRotation(new Quaternionf().rotateY((float) Math.toRadians(180 - v.y)));
+                items.add(java.addElement(item));
+                SimpleEntityElement pig = new SimpleEntityElement(EntityType.PIG);
+                pig.setNoGravity(true);
+                pig.setSilent(true);
+                pig.setYaw(v.y + 180);
+                pig.setInteractionHandler(click);
+                String m = "clb_" + v.model.substring(v.model.lastIndexOf('/') + 1);
+                gme.put(pig.getEntityId(), m);
+                for (var h : bedrock.getWatchingPlayers())
+                    h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + m)));
+                pigs.add(bedrock.addElement(pig));
+            }
         }
 
         /** A Bedrock player clicking the model clicks the block under it. */

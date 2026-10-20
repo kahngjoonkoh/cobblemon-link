@@ -1,0 +1,5 @@
+# Bedrock: tapping the pot on a campfire opens Cobblemon's cooking pot as a chest: panes (-649), the carrot in the grid (279), the lid button (601, a campfire)
+add_entity modelengine:clb_campfire_pot_red 8n
+using 8n
+container_content first -649,279,0,0,-649,0,-649,-649,-649,-649,0,0,0,-649,0,-649,0,-649,-649,0,0,0,-649,0,-649,601,-649
+container_open first container {"x":0,"y":-58,"z":0}

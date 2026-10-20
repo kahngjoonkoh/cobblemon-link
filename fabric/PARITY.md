@@ -114,7 +114,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
 | Evolution | ✅ | ✅ | Summary's Evolve; ⬜ Cobblemon's evolution animation |
-| Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; ⬜ TM machine screen (1.8 TMs) |
+| Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; TM machine's slots open as a chest (`Menus`, generic layout); ⬜ choosing the move to make a TM |
 | Held items (give / take) | 🟡 | 🟡 | `Wheel`: Shift + right-click (tap) your Pokémon → Cobblemon's InteractPokemonHandler; built, not yet tried in a client |
 | Pokémon interaction wheel (shoulder, ride, held item, cosmetic) | 🟡 | 🟡 | `Wheel` (form / chest) → Cobblemon's handler; not yet tried in a client |
 | Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
@@ -128,7 +128,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Pasture block screen | ✅ | ✅ | `Pasture`: on Cobblemon's `OpenPasturePacket`, the pastured Pokémon, recall one / all, put one out from the linked PC, through Cobblemon's pasture handlers; Bedrock forms (`c3-bedrock-pasture-bot.log`: out and back), Java chests (`c3-java-pasture-chest.png`) |
 | Fossils and the resurrection machine | 🟡 | 🟡 | block interactions work through PolyMc; the revived Pokémon is a normal one |
 | Berries, apricorns, mints, saplings, gem clusters (blocks and growth) | 🟡 | 🟡 | PolyMc stand-ins; some berry block models fail to generate |
-| Campfire pot cooking, Poké Snacks, seasonings | ⬜ | ⬜ | Cobblemon's menu type is hidden from these clients (`SendMixin`) |
+| Campfire pot cooking, Poké Snacks, seasonings | ✅ | ✅ | `Menus`: Cobblemon's cooking pot menu shown as a chest with its slots renumbered both ways (grid, seasonings, result, a lid button through Cobblemon's lid handler); the pot drawn on Minecraft's campfire (`Furniture`). Java `c4-java-cooking-pot-*.png`, `c4-java-pot-on-campfire.png`; Bedrock `c4-bedrock-cooking-pot-bot.log`. ⬜ cooking progress bar, Poké Snack block visuals |
 | Apricorn boats, signs, gilded chests | 🟡 | 🟡 | boats are Cobblemon entities (hidden) ⬜ |
 | Pokédex (all of it: forms, genders, scanner) | 🟡 | 🟡 | ours shows seen/caught and entries; ⬜ scanner, regional dexes |
 | Toasts (new Pokédex entries, ...) | ✅ | 🟡 | action bar (Java only with the UI pack) |

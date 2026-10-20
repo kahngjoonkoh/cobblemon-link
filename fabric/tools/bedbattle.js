@@ -26,6 +26,8 @@ c.on('add_entity', p => {
     }, 3000)
   }
 })
+c.on('container_open', p => console.log('container_open', p.window_id, p.window_type, JSON.stringify(p.coordinates)))
+c.on('inventory_content', p => { if (p.window_id !== 'inventory' && p.window_id !== 0) console.log('container_content', p.window_id, (p.input || []).map(it => it.network_id).join(',')) })
 c.on('inventory_slot', p => { if (p.window_id === 'inventory' || p.window_id === 0) held[p.slot] = p.item })
 c.on('inventory_content', p => { if (p.window_id === 'inventory' || p.window_id === 0) (p.input || []).forEach((it, i) => held[i] = it) })
 if (process.env.USE_ITEM) setTimeout(() => {
