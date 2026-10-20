@@ -346,7 +346,7 @@ final class Items {
                 if (m.evs == null) m.evs = new int[6];
                 int k = java.util.Arrays.asList(Dex.STATS).indexOf(d.stat);
                 int added = Rules.addEv(m.evs, k, d.amount);
-                return added == 0 ? null : pl.t(p, "cobblemonlink.item.ev", name, SummaryScreen.STAT_NAMES[k], added);
+                return added == 0 ? null : pl.t(p, "cobblemonlink.item.ev", name, SummaryScreen.statName(p, k), added);
             }
             case "mint" -> {
                 m.mint = Character.toUpperCase(d.nature.charAt(0)) + d.nature.substring(1);

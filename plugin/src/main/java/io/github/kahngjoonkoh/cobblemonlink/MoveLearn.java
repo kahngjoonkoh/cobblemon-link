@@ -60,13 +60,14 @@ final class MoveLearn {
                 next(pl, p);
             }));
         }
-        o.add(new Battle.Opt("Don't learn", "none", skip));
+        o.add(new Battle.Opt(Ui.tr(p, "cobblemonlink.ui.dont_learn", "Don't learn"), "none", skip));
         if (!Mod.form(p) && SummaryScreen.art(pl, p)) { // vanilla Java with the UI pack: the Summary's Moves page
             SummaryScreen.learn(pl, p, new SummaryScreen.Learn(m, move, o.subList(0, 4).stream().map(Battle.Opt::action).toList(), skip));
             return;
         }
         if (Mod.form(p)) {
-            Mod.send(p, name + " wants to learn " + label + Forms.MARK + 7, "Which move should " + name + " forget?", o,
+            Mod.send(p, Ui.tr(p, "cobblemonlink.ui.wants_to_learn", "%1$s wants to learn %2$s").replace("%1$s", name).replace("%2$s", label) + Forms.MARK + 7,
+                    Ui.tr(p, "cobblemonlink.ui.forget", "Which move should %1$s forget?").replace("%1$s", name), o,
                     i -> pl.onMain(() -> { if (i >= 0 && i < o.size()) o.get(i).action().run(); }));
             return;
         }
@@ -77,7 +78,7 @@ final class MoveLearn {
                     .action(DialogAction.customClick((r, w) -> pl.onMain(opt.action()), once)).build());
         p.showDialog(Dialog.create(f -> f.empty().base(DialogBase.builder(Component.text(name + " wants to learn " + label))
                         .canCloseWithEscape(false)
-                        .body(List.of(DialogBody.plainMessage(Component.text("Which move should " + name + " forget?"), 240))).build())
+                        .body(List.of(DialogBody.plainMessage(Component.text(Ui.tr(p, "cobblemonlink.ui.forget", "Which move should %1$s forget?").replace("%1$s", name)), 240))).build())
                 .type(DialogType.multiAction(buttons).columns(2).build())));
     }
 }

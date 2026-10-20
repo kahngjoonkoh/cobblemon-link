@@ -96,6 +96,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
         lang = Lang.load(getDataFolder().toPath().resolve("lang")); // Cobblemon's 29 languages (setup.sh), and ours
         dex.lang = lang;
+        Ui.lang = lang;
         lang.registerItemNames();
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
         try {

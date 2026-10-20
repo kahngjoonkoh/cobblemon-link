@@ -120,7 +120,7 @@ Counts: see [the summary at the end](#summary).
 
 | Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
 |---|---|---|---|---|
-| Multi-language (each player's client language, en_us fallback) | 29 languages | Cobblemon's 29 lang files plus the plugin's own keys (en_us, ko_kr), rendered per player on the server: species, moves, abilities, types, stats, item names, the whole battle (menus, log, HP bars), items, trading, challenges, EXP / level / evolution messages. Still English: the starter, PC, Summary and Pokédex screens, the Bedrock party HUD (ASCII field), menu tooltips | 🟡 | 🟡 |
+| Multi-language (each player's client language, en_us fallback) | 29 languages | Cobblemon's 29 lang files plus the plugin's own keys (en_us, ko_kr), rendered per player: species, moves, abilities, types, natures, stats, items, the battle, item use, trading, challenges, EXP / evolution messages, and the Summary, PC, Pokédex and move-learning screens (Java's art fonts fall back to Minecraft's font for Korean/CJK). Still English: the starter screen's art, some PC and Pokédex art labels, the Bedrock party HUD (ASCII field) | 🟡 | 🟡 |
 
 ## Commands
 

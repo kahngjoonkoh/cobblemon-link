@@ -105,6 +105,13 @@ final class Ui {
         return i == null ? null : Component.text(Character.toString(0xF0000 + 2 * i + (mirrored ? 1 : 0))).font(PORTRAIT);
     }
 
+    static Lang lang = Lang.load(null); // the plugin's, with Cobblemon's languages
+
+    /** A screen label in the player's language: Cobblemon's (or our) key, else the English. */
+    static String tr(org.bukkit.entity.Player p, String key, String english) {
+        return lang.getOr(CobblemonLink.loc(p), key, english);
+    }
+
     /** A look's name in Bedrock texture paths: long ones shortened like build_bedrock_ui.py's short() (paths under 80). */
     static String bedrockName(String name) {
         if (name.length() <= 40) return name;

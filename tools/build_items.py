@@ -246,6 +246,10 @@ def build(res, out):
         textures[f'cobblemonlink:tm_{t}'] = {'textures': [f'textures/items/cobblemon/tm_{t}']}
         icons[f'tm_{t}'] = tex
     json.dump(tms, open(f'{out}/tms.json', 'w'), indent=1)
+    # the chest's "Inventory" label is drawn over the plugin's screens (build_ui.py blanks it in en_us): in every
+    # language Cobblemon has, too
+    for f in glob.glob(f'{res}/assets/cobblemon/lang/*.json'):
+        java[f'assets/minecraft/lang/{os.path.basename(f)}'] = json.dumps({'container.inventory': ''}).encode()
     write_zip(f'{out}/items-pack.zip', java)
 
     bedrock['textures/item_texture.json'] = json.dumps({'resource_pack_name': 'cobblemon-link items',

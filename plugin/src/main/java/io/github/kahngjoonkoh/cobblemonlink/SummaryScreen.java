@@ -29,6 +29,13 @@ final class SummaryScreen {
     static final int EVOLVE = 17 + 3 * 8; // the Evolve button, after the 8 rows
     private static final String[] TABS = {"Info", "Moves", "Stats"};
     static final String[] STAT_NAMES = {"HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"};
+    private static final String[] STAT_KEYS = {"hp", "attack", "defence", "special_attack", "special_defence", "speed"};
+
+    /** A stat's name in the player's language (Cobblemon's cobblemon.stat.*.name). */
+    static String statName(Player p, int k) { return Ui.tr(p, "cobblemon.stat." + STAT_KEYS[k] + ".name", STAT_NAMES[k]); }
+
+    /** A tab's name (Cobblemon's cobblemon.ui.info / moves / stats). */
+    static String tab(Player p, int t) { return Ui.tr(p, "cobblemon.ui." + TABS[t].toLowerCase(), TABS[t]); }
     private static final int[] NATURE_STATS = {1, 2, 5, 3, 4}; // the order natures raise and lower: Atk, Def, Spe, SpA, SpD
 
     private SummaryScreen() {}
@@ -49,19 +56,19 @@ final class SummaryScreen {
         List<Battle.Opt> o = new ArrayList<>();
         for (int t = 0; t < TABS.length; t++) {
             int tt = t;
-            o.add(new Battle.Opt(TABS[t] + (t == tab ? "*" : ""), "summary/tab_" + TABS[t].toLowerCase(), () -> open(pl, p, i, tt)));
+            o.add(new Battle.Opt(tab(p, t) + (t == tab ? "*" : ""), "summary/tab_" + TABS[t].toLowerCase(), () -> open(pl, p, i, tt)));
         }
         boolean out = pl.companions.isOut(p, m);
-        o.add(new Battle.Opt(battling ? "" : out ? "Recall" : "Send out", "none", () -> {
+        o.add(new Battle.Opt(battling ? "" : out ? Ui.tr(p, "cobblemonlink.ui.recall", "Recall") : Ui.tr(p, "cobblemonlink.ui.send_out", "Send out"), "none", () -> {
             pl.companions.toggle(p, m);
             open(pl, p, i, tab);
         }));
-        o.add(new Battle.Opt(battling || i == 0 ? "" : "Lead", "none", () -> {
+        o.add(new Battle.Opt(battling || i == 0 ? "" : Ui.tr(p, "cobblemonlink.ui.lead", "Lead"), "none", () -> {
             d.party.addFirst(d.party.remove(i));
             pl.store.save(p.getUniqueId());
             open(pl, p, 0, tab);
         }));
-        o.add(new Battle.Opt(battling || d.party.size() <= 1 ? "" : "To PC", "none", () -> {
+        o.add(new Battle.Opt(battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC"), "none", () -> {
             if (d.toPc(m)) {
                 pl.companions.recall(p, m.id);
                 d.party.remove(m);
@@ -74,7 +81,7 @@ final class SummaryScreen {
         o.add(new Battle.Opt("M".equals(m.gender) ? "♂" : "F".equals(m.gender) ? "♀" : "", "none", stay));
         for (int k = 0; k < 2; k++)
             o.add(new Battle.Opt("", k < s.types.size() ? "pc/type/" + s.types.get(k) : "none", stay));
-        o.add(new Battle.Opt("Rename", "none", () -> rename(pl, p, m, i, tab))); // a tap on the name, as Cobblemon's
+        o.add(new Battle.Opt(Ui.tr(p, "cobblemonlink.ui.rename", "Rename"), "none", () -> rename(pl, p, m, i, tab))); // a tap on the name, as Cobblemon's
         for (int k = 0; k < Store.PARTY; k++) {
             int kk = k;
             Mon pm = k < d.party.size() ? d.party.get(k) : null;
@@ -87,11 +94,11 @@ final class SummaryScreen {
             o.add(new Battle.Opt("", row[2], stay));
         }
         while (o.size() < EVOLVE) o.add(new Battle.Opt("", "none", stay)); // the rows are fewer on Moves and Stats
-        o.add(new Battle.Opt(m.evolution == null || battling ? "" : "Evolve", "none", () -> {
+        o.add(new Battle.Opt(m.evolution == null || battling ? "" : Ui.tr(p, "cobblemon.ui.evolve", "Evolve"), "none", () -> {
             evolve(pl, p, m);
             open(pl, p, i, tab);
         }));
-        String title = m.name(pl.dex) + (m.shiny ? " ★" : "") + Forms.MARK + 6;
+        String title = m.name(pl.dex, CobblemonLink.loc(p)) + (m.shiny ? " ★" : "") + Forms.MARK + 6;
         Mod.send(p, title, "", o, c -> pl.onMain(() -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); }));
     }
 
@@ -118,7 +125,7 @@ final class SummaryScreen {
         });
         String current = m.nickname == null ? "" : m.nickname;
         if (Ui.bedrock(p) && Forms.available()) {
-            Forms.input(p, "Nickname", pl.dex.name(m.species), current, done);
+            Forms.input(p, Ui.tr(p, "cobblemonlink.ui.nickname", "Nickname"), pl.dex.name(m.species, CobblemonLink.loc(p)), current, done);
             return;
         }
         var once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build();
@@ -145,22 +152,24 @@ final class SummaryScreen {
                 int[] st = stats(pl.dex, m);
                 for (int k = 0; k < 6; k++) {
                     String mark = k == 0 ? "" : nature(m.mint != null ? m.mint : m.nature, k) > 0 ? " +" : nature(m.mint != null ? m.mint : m.nature, k) < 0 ? " -" : "";
-                    rows.add(new String[]{STAT_NAMES[k] + mark, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k] + "   IV " + m.ivs[k] + "  EV " + m.ev(k), "none"});
+                    rows.add(new String[]{statName(p, k) + mark, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k] + "   IV " + m.ivs[k] + "  EV " + m.ev(k), "none"});
                 }
-                rows.add(new String[]{"Friendship", String.valueOf(m.friendship(pl.dex)), "none"}); // Cobblemon's Stats tab meter
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.stats.friendship", "Friendship"), String.valueOf(m.friendship(pl.dex)), "none"}); // Cobblemon's Stats tab meter
                 String held = m.held == null ? "None" : pl.items != null && pl.items.defs.containsKey(m.held) ? pl.items.defs.get(m.held).name : m.held;
-                rows.add(new String[]{"Held Item", held, "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemonlink.ui.held_item", "Held Item"), held, "none"});
             }
             default -> {
                 long next = m.level >= 100 ? 0 : Rules.expFor(s.expGroup, m.level + 1) - m.exp;
-                rows.add(new String[]{"Pokédex No.", String.format("%04d", s.dex), "none"});
-                rows.add(new String[]{"Species", pl.dex.name(m.species), "none"});
-                rows.add(new String[]{"Type", String.join(" / ", s.types.stream().map(t -> pl.dex.label("type", t)).toList()), "none"});
-                rows.add(new String[]{"OT", p.getName(), "none"});
-                rows.add(new String[]{"Nature", m.mint != null && !m.mint.equals(m.nature) ? m.nature + " (" + m.mint + ")" : m.nature, "none"});
-                rows.add(new String[]{"Ability", pl.dex.label("ability", m.ability), "none"});
-                rows.add(new String[]{"EXP. Points", String.valueOf(m.exp), "none"});
-                rows.add(new String[]{"To Next Lv.", String.valueOf(next), "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.pokedex_number", "Pokédex No."), String.format("%04d", s.dex), "none"});
+                String loc = CobblemonLink.loc(p);
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.species", "Species"), pl.dex.name(m.species, loc), "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.type", "Type"), String.join(" / ", s.types.stream().map(t -> pl.dex.label("type", t, loc)).toList()), "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.original_trainer", "OT"), p.getName(), "none"});
+                String nat = Ui.tr(p, "cobblemon.nature." + m.nature.toLowerCase(), m.nature);
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.nature", "Nature"), m.mint != null && !m.mint.equals(m.nature) ? nat + " (" + Ui.tr(p, "cobblemon.nature." + m.mint.toLowerCase(), m.mint) + ")" : nat, "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.ability", "Ability"), pl.dex.label("ability", m.ability, loc), "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.experience_points", "EXP. Points"), String.valueOf(m.exp), "none"});
+                rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.to_next_level", "To Next Lv."), String.valueOf(next), "none"});
             }
         }
         return rows;
@@ -231,7 +240,8 @@ final class SummaryScreen {
         boolean battling = pl.battles.containsKey(p.getUniqueId()), out = pl.companions.isOut(p, m);
         if (tab != MOVES) picked.remove(p.getUniqueId());
         Integer pick = picked.get(p.getUniqueId());
-        String[] actions = {battling ? "" : out ? "Recall" : "Send out", battling || i == 0 ? "" : "Lead", battling || d.party.size() <= 1 ? "" : "To PC"};
+        String[] actions = {battling ? "" : out ? Ui.tr(p, "cobblemonlink.ui.recall", "Recall") : Ui.tr(p, "cobblemonlink.ui.send_out", "Send out"),
+                battling || i == 0 ? "" : Ui.tr(p, "cobblemonlink.ui.lead", "Lead"), battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC")};
         Menu menu = new Menu(45, title(pl, p, d, m, i, tab, pick, actions, m.evolution != null && !battling, null));
         for (int c = 0; c < 3; c++) menu.on(PokedexScreen.raw(c, 5), e -> pl.pc.open(p)); // Open PC, where the party's title was
         for (int t = 0; t < TABS.length; t++) {
@@ -302,7 +312,7 @@ final class SummaryScreen {
         // name card, picture, types, held item, Evolve
         PcScreen.text(t, "pc_bold", cardX + 5, cardY + 1, "Lv." + m.level, false);
         PcScreen.glyph(t, cardX + 4, cardY + 11, BALL, 6);
-        PcScreen.text(t, "pc_bold", cardX + 11, cardY + 11, PcScreen.fit("pc_bold", m.name(pl.dex), m.shiny ? 30 : 36), false);
+        PcScreen.text(t, "pc_bold", cardX + 11, cardY + 11, PcScreen.fit("pc_bold", m.name(pl.dex, CobblemonLink.loc(p)), m.shiny ? 30 : 36), false);
         if (m.shiny) PcScreen.glyph(t, cardX + 43, cardY + 10, SHINY, 7);
         if (!m.gender.isEmpty()) PcScreen.glyph(t, cardX + 51, cardY + 13, "M".equals(m.gender) ? MALE : FEMALE, 4);
         Integer b = Ui.bodies.get(m.model(pl.dex));
@@ -310,13 +320,13 @@ final class SummaryScreen {
         for (int k = 0; k < s.types.size(); k++) PcScreen.glyph(t, 12 + 8 * k, 47, (char) (TYPE_INFO + Ui.TYPES.indexOf(s.types.get(k))), 7);
         if (evolve) {
             PcScreen.glyph(t, PokedexScreen.x(1) - 1, PokedexScreen.y(4) - 1, EVOLVE_PLATE, 7);
-            PcScreen.text(t, "pc_bold", PokedexScreen.x(1) + 18, PokedexScreen.y(4) + 5, "Evolve", true);
+            PcScreen.text(t, "pc_bold", PokedexScreen.x(1) + 18, PokedexScreen.y(4) + 5, Ui.tr(p, "cobblemon.ui.evolve", "Evolve"), true);
         }
         // the party
         if (learn == null) { // Open PC, where the party's title was (the party chest's PC button before)
             PcScreen.glyph(t, PokedexScreen.x(0) - 1, PokedexScreen.y(5) - 1, PLATE, 7);
-            PcScreen.text(t, "pc_label", PokedexScreen.x(0) + 26.5, PokedexScreen.y(5) + 4, "Open PC", true);
-        } else PcScreen.text(t, "pc_label", 36, PokedexScreen.y(5) + 3, "Party", true);
+            PcScreen.text(t, "pc_label", PokedexScreen.x(0) + 26.5, PokedexScreen.y(5) + 4, Ui.tr(p, "cobblemonlink.ui.open_pc", "Open PC"), true);
+        } else PcScreen.text(t, "pc_label", 36, PokedexScreen.y(5) + 3, Ui.tr(p, "cobblemon.ui.party", "Party"), true);
         for (int k = 0; k < d.party.size(); k++) {
             Mon pm = d.party.get(k);
             int cx = PokedexScreen.x(k % 3), cy = PokedexScreen.y(6 + k / 3);
@@ -345,7 +355,7 @@ final class SummaryScreen {
                     if (pick != null && pick == k) PcScreen.glyph(t, px, my, MOVE_SEL, 7);
                 }
                 if (learn != null) { // the new move under the four, outlined
-                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(4) + 20, m.name(pl.dex) + " wants to learn:", false);
+                    PcScreen.text(t, "pc_text", px + 6, PokedexScreen.y(4) + 20, m.name(pl.dex, CobblemonLink.loc(p)) + " wants to learn:", false);
                     int ny = PokedexScreen.y(5) - 1;
                     PcScreen.glyph(t, px, ny, MOVE, 7);
                     PcScreen.text(t, "pc_bold", px + 6, ny + 6, pl.dex.label("move", learn.move()), false);
@@ -378,17 +388,20 @@ final class SummaryScreen {
             default -> {
                 PcScreen.glyph(t, px, py, PAGE_INFO, 7);
                 long next = m.level >= 100 ? 0 : Rules.expFor(s.expGroup, m.level + 1) - m.exp;
-                String[][] rows = {{"Dex No.", String.format("%04d", s.dex)}, {"Species", pl.dex.name(m.species)},
-                        {"Type", String.join(" / ", s.types.stream().map(ty -> pl.dex.label("type", ty)).toList())},
-                        {"OT", p.getName()}, {"Nature", m.nature}, {"Ability", pl.dex.label("ability", m.ability)}};
+                String loc = CobblemonLink.loc(p);
+                String[][] rows = {{Ui.tr(p, "cobblemon.ui.info.pokedex_number", "Dex No."), String.format("%04d", s.dex)},
+                        {Ui.tr(p, "cobblemon.ui.info.species", "Species"), pl.dex.name(m.species, loc)},
+                        {Ui.tr(p, "cobblemon.ui.info.type", "Type"), String.join(" / ", s.types.stream().map(ty -> pl.dex.label("type", ty, loc)).toList())},
+                        {Ui.tr(p, "cobblemon.ui.info.original_trainer", "OT"), p.getName()}, {Ui.tr(p, "cobblemon.ui.info.nature", "Nature"), Ui.tr(p, "cobblemon.nature." + m.nature.toLowerCase(), m.nature)},
+                        {Ui.tr(p, "cobblemon.ui.info.ability", "Ability"), pl.dex.label("ability", m.ability, loc)}};
                 for (int k = 0; k < rows.length; k++) {
                     int ry = py + 5 + 15 * k;
                     PcScreen.text(t, "pc_bold", px + 7, ry + 3, rows[k][0], false);
                     PcScreen.text(t, "pc_bold", px + 44, ry + 3, PcScreen.fit("pc_bold", rows[k][1], k == 0 ? 28 : 56), false);
                 }
-                PcScreen.text(t, "pc_text", px + 48, py + 118, "Exp. Points", false);
+                PcScreen.text(t, "pc_text", px + 48, py + 118, Ui.tr(p, "cobblemon.ui.info.experience_points", "Exp. Points"), false);
                 PcScreen.text(t, "pc_text", px + 101 - PcScreen.width("pc_text", String.valueOf(m.exp)), py + 118, String.valueOf(m.exp), false);
-                PcScreen.text(t, "pc_text", px + 48, py + 128, "To Next Lv.", false);
+                PcScreen.text(t, "pc_text", px + 48, py + 128, Ui.tr(p, "cobblemon.ui.info.to_next_level", "To Next Lv."), false);
                 PcScreen.text(t, "pc_text", px + 101 - PcScreen.width("pc_text", String.valueOf(next)), py + 128, String.valueOf(next), false);
             }
         }
@@ -398,14 +411,14 @@ final class SummaryScreen {
     /** Vanilla Java without the UI pack: the same, as a dialog with the tabs and the party as buttons. */
     private static void dialog(CobblemonLink pl, Player p, Mon m, int i, int tab) {
         List<DialogBody> body = new ArrayList<>();
-        StringBuilder b = new StringBuilder(m.name(pl.dex) + "  Lv." + m.level + ("M".equals(m.gender) ? "  ♂" : "F".equals(m.gender) ? "  ♀" : "") + "\n");
+        StringBuilder b = new StringBuilder(m.name(pl.dex, CobblemonLink.loc(p)) + "  Lv." + m.level + ("M".equals(m.gender) ? "  ♂" : "F".equals(m.gender) ? "  ♀" : "") + "\n");
         for (String[] row : rows(pl, p, m, tab)) b.append("\n").append(row[0]).append(row[1].isEmpty() ? "" : ":  " + row[1]);
         body.add(DialogBody.plainMessage(Component.text(b.toString()), 300));
         var once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(10)).build();
         List<ActionButton> buttons = new ArrayList<>();
         for (int t = 0; t < TABS.length; t++) {
             int tt = t;
-            buttons.add(ActionButton.builder(Component.text((t == tab ? "▶ " : "") + TABS[t])).width(96)
+            buttons.add(ActionButton.builder(Component.text((t == tab ? "▶ " : "") + tab(p, t))).width(96)
                     .action(DialogAction.customClick((r, w) -> pl.onMain(() -> open(pl, p, i, tt)), once)).build());
         }
         if (m.evolution != null && !pl.battles.containsKey(p.getUniqueId()))
@@ -414,7 +427,7 @@ final class SummaryScreen {
         Store.Data d = pl.store.get(p.getUniqueId());
         for (int k = 0; k < d.party.size(); k++) {
             int kk = k;
-            buttons.add(ActionButton.builder(Component.text((k == i ? "▶ " : "") + d.party.get(k).name(pl.dex))).width(96)
+            buttons.add(ActionButton.builder(Component.text((k == i ? "▶ " : "") + d.party.get(k).name(pl.dex, CobblemonLink.loc(p)))).width(96)
                     .action(DialogAction.customClick((r, w) -> pl.onMain(() -> open(pl, p, kk, tab)), once)).build());
         }
         p.showDialog(Dialog.create(f -> f.empty().base(DialogBase.builder(Component.text("Summary")).canCloseWithEscape(true).body(body).build())

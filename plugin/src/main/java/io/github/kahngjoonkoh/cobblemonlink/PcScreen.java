@@ -122,14 +122,14 @@ final class PcScreen {
             m.set(SORT_SLOT, Menu.icon(Material.HOPPER, "Sort: " + SORTS[sort], List.of("Click: sort this box by the next")), null);
             m.set(FILTER_SLOT, Menu.icon(v.type == null ? Material.WHITE_WOOL : Menu.typeIcon(v.type),
                     "Show: " + (v.type == null ? "all types" : pl.dex.label("type", v.type)), List.of("Click: next type, right-click: back")), null);
-            m.set(PREV, Menu.icon(Material.ARROW, "Previous box", List.of()), null);
-            m.set(NEXT, Menu.icon(Material.ARROW, "Next box", List.of()), null);
+            m.set(PREV, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.prev_box", "Previous box"), List.of()), null);
+            m.set(NEXT, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.next_box", "Next box"), List.of()), null);
             m.set(47, Menu.icon(Material.NAME_TAG, boxName(d, v.box), List.of("Click: rename, wallpaper")), null);
             if (v.selected != null && v.confirm) {
-                m.set(YES, Menu.icon(Material.LIME_WOOL, "Yes, release " + v.selected.name(pl.dex), List.of()), null);
+                m.set(YES, Menu.icon(Material.LIME_WOOL, "Yes, release " + v.selected.name(pl.dex, CobblemonLink.loc(p)), List.of()), null);
                 m.set(NO, Menu.icon(Material.RED_WOOL, "No", List.of()), null);
             } else if (v.selected != null) {
-                m.set(YES, Menu.icon(Material.LAVA_BUCKET, "Release " + v.selected.name(pl.dex), List.of()), null);
+                m.set(YES, Menu.icon(Material.LAVA_BUCKET, "Release " + v.selected.name(pl.dex, CobblemonLink.loc(p)), List.of()), null);
             }
         }
         p.openInventory(m.getInventory());
@@ -181,7 +181,7 @@ final class PcScreen {
 
     private boolean busy(Player p) {
         if (!pl.battles.containsKey(p.getUniqueId())) return false;
-        p.sendMessage(Component.text("You can't change your PC during a battle.", NamedTextColor.RED));
+        p.sendMessage(Component.text(Ui.tr(p, "cobblemonlink.ui.pc_battle", "You can't change your PC during a battle."), NamedTextColor.RED));
         return true;
     }
 
@@ -320,7 +320,7 @@ final class PcScreen {
                 remove(d, at);
                 pl.companions.recall(p, v.selected.id);
                 pl.store.save(p.getUniqueId());
-                p.sendMessage(Component.text(v.selected.name(pl.dex) + " was released.", NamedTextColor.YELLOW));
+                p.sendMessage(Component.text(v.selected.name(pl.dex, CobblemonLink.loc(p)) + " was released.", NamedTextColor.YELLOW));
                 v.selected = null;
             }
         }
@@ -394,9 +394,9 @@ final class PcScreen {
         o.add(new Battle.Opt("<", "none", () -> page(p, -1)));
         o.add(new Battle.Opt(">", "none", () -> page(p, 1)));
         o.add(new Battle.Opt(boxName(d, v.box), "none", () -> rename(p)));
-        o.add(new Battle.Opt(v.type == null ? "Filter" : pl.dex.label("type", v.type), "none", () -> filter(p, false)));
+        o.add(new Battle.Opt(v.type == null ? Ui.tr(p, "cobblemon.ui.pc.filter", "Filter") : pl.dex.label("type", v.type, CobblemonLink.loc(p)), "none", () -> filter(p, false)));
         o.add(new Battle.Opt(" ", v.sort < 0 ? "pc/sort_options" : "pc/sort_" + List.of("name", "level", "type", "pokedex_number", "gender").get(v.sort), () -> sort(p)));
-        o.add(new Battle.Opt(sel != null && !v.confirm ? "Release" : "", "none", () -> release(p, true)));
+        o.add(new Battle.Opt(sel != null && !v.confirm ? Ui.tr(p, "cobblemon.ui.pc.release", "Release") : "", "none", () -> release(p, true)));
         o.add(new Battle.Opt(sel != null && v.confirm ? "Yes" : "", "none", () -> release(p, true)));
         o.add(new Battle.Opt(sel != null && v.confirm ? "No" : "", "none", () -> release(p, false)));
         o.add(new Battle.Opt("", "pc/wall/" + WALLPAPERS.get(box.wallpaper < 0 ? 4 : box.wallpaper), stay));
@@ -417,7 +417,7 @@ final class PcScreen {
             Loc at = new Loc(-1, i);
             o.add(slotOpt(v, i < d.party.size() ? d.party.get(i) : null, () -> click(p, at)));
         }
-        String title = (sel == null ? "" : (v.confirm ? "Release?" : sel.name(pl.dex))) + Forms.MARK + 5;
+        String title = (sel == null ? "" : (v.confirm ? Ui.tr(p, "cobblemonlink.ui.release_q", "Release?") : sel.name(pl.dex, CobblemonLink.loc(p)))) + Forms.MARK + 5;
         Mod.send(p, title, "", o, i -> pl.onMain(() -> { if (i >= 0) o.get(i).action().run(); }));
     }
 
@@ -520,6 +520,11 @@ final class PcScreen {
     }
 
     static void text(Ui.Title t, String font, double x, int y, String s, boolean centre, int grey) {
+        if (s.chars().anyMatch(c -> Ui.wide((char) c))) { // Korean, Japanese, Chinese: Minecraft's own font draws them
+            double w = Ui.width(s);
+            put(t, centre ? x - w / 2 : x, y, Component.text(s), w, 7, grey);
+            return;
+        }
         s = plain(s);
         double w = width(font, s);
         int ascent = font.equals("pc_label") ? 7 : 6;

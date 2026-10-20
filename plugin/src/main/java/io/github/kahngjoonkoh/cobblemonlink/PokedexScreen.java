@@ -46,7 +46,9 @@ final class PokedexScreen {
     /** page 0-based; chosen: a species, or null for the page's first. */
     static void open(CobblemonLink pl, Player p, int page, String chosen) {
         if (!Mod.form(p) && art(p)) {
-            art(pl, p, views.computeIfAbsent(p.getUniqueId(), k -> new View()));
+            View view = views.computeIfAbsent(p.getUniqueId(), k -> new View());
+            view.loc = CobblemonLink.loc(p);
+            art(pl, p, view);
             return;
         }
         List<String> all = order(pl.dex);
@@ -102,11 +104,11 @@ final class PokedexScreen {
             }
             List<String> lore = new ArrayList<>(List.of(String.join(" / ", s.types.stream().map(t -> pl.dex.label("type", t)).toList())));
             if (d.caught.contains(sp) && s.desc != null) lore.addAll(Ui.wrap(s.desc, 180));
-            else lore.add(d.caught.contains(sp) ? "Caught" : "Seen");
+            else lore.add(d.caught.contains(sp) ? Ui.tr(p, "cobblemonlink.ui.caught", "Caught") : Ui.tr(p, "cobblemon.ui.pokedex.filter.seen", "Seen"));
             m.set(i, Menu.icon(Menu.speciesItem(sp, Menu.typeIcon(s.types.getFirst())), no + s.name, lore), null);
         }
-        if (pg > 0) m.set(45, Menu.icon(Material.ARROW, "Previous page", List.of()), e -> chest(pl, p, all, pg - 1, d));
-        if (pg < pages - 1) m.set(53, Menu.icon(Material.ARROW, "Next page", List.of()), e -> chest(pl, p, all, pg + 1, d));
+        if (pg > 0) m.set(45, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.prev_page", "Previous page"), List.of()), e -> chest(pl, p, all, pg - 1, d));
+        if (pg < pages - 1) m.set(53, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.next_page", "Next page"), List.of()), e -> chest(pl, p, all, pg + 1, d));
         p.openInventory(m.getInventory());
     }
 
@@ -125,6 +127,10 @@ final class PokedexScreen {
 
     /** What a player is looking at: page, the chosen one and how it's shown, tab (and how far scrolled), filter, search. */
     static final class View {
+        String loc = Lang.FALLBACK; // the player's language
+
+        String tr(String key, String english) { return Ui.lang.getOr(loc, key, english); }
+
         int page, form, tab, scroll, filter;
         String sel, query = "";
         boolean female, shiny;
@@ -145,6 +151,14 @@ final class PokedexScreen {
 
     /** The list's tile i (0-44): chest rows 3-4, then the inventory rows. */
     static int tileRow(int i) { return 3 + i / 9; }
+
+    static final String[] FILTER_KEYS = {"cobblemon.ui.pokedex.filter.all", "cobblemon.ui.pokedex.filter.seen", "cobblemonlink.ui.caught"};
+
+    /** The region's name in the viewer's language (Cobblemon's cobblemon.ui.pokedex.region.*). */
+    static String region(View v, int dex) {
+        String r = region(dex);
+        return v.tr("cobblemon.ui.pokedex.region." + r.toLowerCase(Locale.ROOT), r);
+    }
 
     static String region(int dex) {
         String r = REGIONS[0][1];
@@ -256,7 +270,7 @@ final class PokedexScreen {
                                    boolean canFemale, boolean canShiny) {
         Ui.Title t = new Ui.Title();
         PcScreen.glyph(t, 0, 0, BASE, 7);
-        PcScreen.text(t, "pc_label", 19, 12, "National", false);
+        PcScreen.text(t, "pc_label", 19, 12, v.tr("cobblemon.ui.pokedex.region.national", "National"), false);
         PcScreen.text(t, "pc_bold", 125, 13, String.format("%04d", d.seen.size()), false);
         PcScreen.text(t, "pc_bold", 155, 13, String.format("%04d", d.caught.size()), false);
         // the list
@@ -273,11 +287,13 @@ final class PokedexScreen {
             if (sp.equals(v.sel)) PcScreen.glyph(t, cx - 1, cy - 1, SELECT, 7);
         }
         String strip;
-        if (all.isEmpty()) strip = v.query.isEmpty() ? "Nothing " + FILTERS[v.filter].toLowerCase(Locale.ROOT) + " yet" : "No match for \"" + v.query + "\"";
+        String filter = v.tr(FILTER_KEYS[v.filter], FILTERS[v.filter]);
+        if (all.isEmpty()) strip = v.query.isEmpty() ? "Nothing " + filter.toLowerCase(Locale.ROOT) + " yet" : "No match for \"" + v.query + "\"";
         else {
             int lo = pl.dex.get(all.get(v.page * PER)).dex, hi = pl.dex.get(all.get(Math.min(all.size(), v.page * PER + PER) - 1)).dex;
-            String where = v.query.isEmpty() ? (region(lo).equals(region(hi)) ? region(lo) : region(lo) + "-" + region(hi)) : "\"" + v.query + "\"";
-            strip = where + "  " + String.format("%04d-%04d", lo, hi) + "  " + FILTERS[v.filter] + "  " + (v.page + 1) + "/" + pages;
+            String rl = region(v, lo), rh = region(v, hi);
+            String where = v.query.isEmpty() ? (rl.equals(rh) ? rl : rl + "-" + rh) : "\"" + v.query + "\"";
+            strip = where + "  " + String.format("%04d-%04d", lo, hi) + "  " + filter + "  " + (v.page + 1) + "/" + pages;
         }
         PcScreen.text(t, "pc_bold", 91, 121, PcScreen.fit("pc_bold", strip, 160), true);
         PcScreen.glyph(t, x(3 + v.tab) - 1, y(8) - 1, TAB_ON, 7);
@@ -332,10 +348,10 @@ final class PokedexScreen {
         Dex.Species s = dex.get(sp);
         int w = 84;
         java.util.function.ToIntFunction<String> width = x -> (int) Math.ceil(PcScreen.width("pc_text", x));
-        if (!seen) return v.tab == 0 ? List.of("Not seen yet.") : List.of();
+        if (!seen) return v.tab == 0 ? List.of(v.tr("cobblemonlink.ui.not_seen", "Not seen yet.")) : List.of();
         return switch (v.tab) {
             case 0 -> caught && s.desc != null ? Ui.wrap(PcScreen.plain(s.desc), w, width) : List.of("Catch it to read its", "Pokédex entry.");
-            case 1 -> (form != null && form.abilities != null ? form.abilities : s.abilities).stream().map(a -> dex.label("ability", a)).toList();
+            case 1 -> (form != null && form.abilities != null ? form.abilities : s.abilities).stream().map(a -> dex.label("ability", a, v.loc)).toList();
             case 2 -> {
                 var stats = form != null && form.baseStats != null ? form.baseStats : s.baseStats;
                 String[] label = {"HP", "Atk", "Def", "SpA", "SpD", "Spe"};
