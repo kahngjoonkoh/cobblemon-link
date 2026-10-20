@@ -1,0 +1,10 @@
+# fresh world, Bedrock bot: /party -> Arcanine -> Send out; sneak + tap it -> the wheel -> Ride; forward 4 s: z 3.5 -> 32.5
+command /party
+form Bulbasaur§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_moves> ; Stats<textures/cobblemonlink/summary/tab_stats> ; Send out<textures/cobb
+sneak true at 8005
+form Arcanine§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_moves> ; Stats<textures/cobblemonlink/summary/tab_stats> ; Send out<textures/cobbl
+form Arcanine§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_moves> ; Stats<textures/cobblemonlink/summary/tab_stats> ; Recall<textures/cobblem
+using 114n
+form Arcanine |  | Shoulder<textures/cobblemonlink/none> ; Ride<textures/cobblemonlink/none> ; Change held item<textures/cobblemonlink/none> ; Change cosmetic item<textures/cobblemonlink/none>
+text system "§r.RegBed has made the advancement §a[Pokémon Jockey!]"
+sneak false at 20046

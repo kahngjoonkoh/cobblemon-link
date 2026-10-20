@@ -53,7 +53,9 @@ c.on('modal_form_request', p => {
     console.log('custom', JSON.stringify((f.content || []).map(e => e.options || e.text)))
     a = (f.content || []).map(e => e.type === 'dropdown' ? +(process.env.DROPDOWN || a) : e.type === 'input' ? (process.env.TEXT || 'bot') : null)
   }
-  setTimeout(() => c.queue('modal_form_response', { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
+  // -1: closed, as a player closing the form (no answer)
+  setTimeout(() => c.queue('modal_form_response', a === -1 ? { form_id: p.form_id, has_response_data: false, has_cancel_reason: true, cancel_reason: 'closed' }
+    : { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
 })
 c.on('set_entity_data', p => p.properties && (p.properties.ints || []).length && console.log('props', p.runtime_entity_id, JSON.stringify(p.properties.ints)))
 c.on('play_sound', p => console.log('sound', p.name))
@@ -75,6 +77,7 @@ if (process.env.INPUT) {
       const sneak = process.env.SNEAK_AT && t > +process.env.SNEAK_AT && t < +process.env.SNEAK_AT + +(process.env.SNEAK_FOR || 2000)
       const fwd = process.env.FORWARD_AT && t > +process.env.FORWARD_AT && t < +process.env.FORWARD_AT + +(process.env.FORWARD_FOR || 3000)
       const flags = []
+      if (sneak !== sneaking) console.log('sneak', sneak, 'at', t)
       if (sneak && !sneaking) flags.push('start_sneaking')
       if (!sneak && sneaking) flags.push('stop_sneaking')
       if (sneak) flags.push('sneaking', 'sneak_down')

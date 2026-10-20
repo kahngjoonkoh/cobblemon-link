@@ -36,16 +36,16 @@ public final class Battles {
     /** A player without the mod used (or hit) a Pokémon; true if this took the click. */
     public static boolean interact(ServerPlayer p, PokemonEntity pe) {
         if (!Clients.bridged(p.connection)) return false;
+        if (p.isShiftKeyDown() && p.getUUID().equals(pe.getOwnerUUID()) && BattleUi.get(p) == null) { // Cobblemon's interaction wheel (before the ball: its held-item choice uses what's in hand)
+            Wheel.open(p, pe);
+            return true;
+        }
         if (p.getMainHandItem().getItem() instanceof PokeBallItem) { // the client sent a click on the Pokémon, not a throw
             p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
             return true;
         }
         if (p.getMainHandItem().getItem() instanceof com.cobblemon.mod.common.item.PokedexItem && BattleUi.get(p) == null) {
             Dex.scan(p, pe);
-            return true;
-        }
-        if (p.isShiftKeyDown() && p.getUUID().equals(pe.getOwnerUUID()) && BattleUi.get(p) == null) { // Cobblemon's interaction wheel
-            Wheel.open(p, pe);
             return true;
         }
         var ui = BattleUi.get(p);
