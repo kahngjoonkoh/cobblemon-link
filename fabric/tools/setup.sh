@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 [ -f .env ] && set -a && . ./.env && set +a
 DATA=${DATA:-./data}; MODELS=${MODELS:-$DATA/models}; ASSETS=${ASSETS:-../assets}
-mkdir -p mods-extra "$DATA/fabric/config/floodgate" "$DATA/geyser/extensions/geysermodelengineextension/input" \
+mkdir -p mods-extra "$DATA/fabric/config/floodgate" "$DATA/fabric/config/cobblemonlink" "$DATA/geyser/extensions/geysermodelengineextension/input" \
     "$DATA/geyser/packs" "$DATA/geyser/custom_mappings" "$DATA/viaproxy" "$MODELS"
 
 # name | url | sha256 (pinned; bump together). GeyserUtils and the GeyserModelEngine extension are the builds the
