@@ -111,6 +111,12 @@ final class Dex {
     Map<String, List<String>> fossils = Map.of(); // species -> the fossils it's revived from
     Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle
     Map<String, Mark> marks = Map.of();             // Cobblemon's marks with a chance on wild Pokémon
+    Map<String, List<Bait>> baits = Map.of();       // Cobblemon's bait (spawn_bait_effects): item -> effects
+
+    static final class Bait {
+        String type, sub;
+        double chance = 1, value;
+    }
 
     static final class Mark {
         double chance;

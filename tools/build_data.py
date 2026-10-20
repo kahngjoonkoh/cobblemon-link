@@ -212,6 +212,17 @@ def npcs(res, dex):
     return out
 
 
+def baits(res):
+    """Cobblemon's bait: item ("aguav_berry", "minecraft:golden_apple") -> its effects [{type, chance, value, sub}]."""
+    out = {}
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/spawn_bait_effects/**/*.json', recursive=True)):
+        d = json.load(open(f))
+        item = d['item'][10:] if d['item'].startswith('cobblemon:') else d['item']
+        out[item] = [{'type': e['type'].split(':')[-1], 'chance': e.get('chance', 1), 'value': e.get('value', 0),
+                      **({'sub': e['subcategory'].split(':')[-1]} if e.get('subcategory') else {})} for e in d['effects']]
+    return out
+
+
 def marks(res):
     """Cobblemon's marks a wild Pokémon can carry: id -> {chance, group} (Rules.mark picks one)."""
     out = {}
@@ -235,7 +246,7 @@ def main(a):
     fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
                for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
-               'npcs': npcs(res, dex), 'marks': marks(res)},
+               'npcs': npcs(res, dex), 'marks': marks(res), 'baits': baits(res)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')

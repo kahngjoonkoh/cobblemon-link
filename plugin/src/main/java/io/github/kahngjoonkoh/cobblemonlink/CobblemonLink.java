@@ -542,7 +542,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                 : inv.getItemInMainHand().getType() == Material.FISHING_ROD ? inv.getItemInMainHand() : inv.getItemInOffHand();
         String rod = items.id(rodItem);
         if (rod == null || !rod.endsWith("_rod") || ThreadLocalRandom.current().nextInt(100) >= 85) return;
-        Entity mon = spawner.fish(e.getPlayer(), e.getHook().getLocation(), rodItem.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.LURE), rod);
+        // Cobblemon's bait: the item in the other hand (a berry, Poké Bait, a golden apple...) is used up on a bite
+        ItemStack baitItem = inv.getItemInMainHand().getType() == Material.FISHING_ROD ? inv.getItemInOffHand() : inv.getItemInMainHand();
+        String bait = baitItem.isEmpty() ? null : java.util.Objects.requireNonNullElse(items.id(baitItem), baitItem.getType().getKey().toString());
+        List<Dex.Bait> effects = bait == null ? List.of() : dex.baits.getOrDefault(bait, List.of());
+        if (!effects.isEmpty() && e.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE) baitItem.subtract();
+        Entity mon = spawner.fish(e.getPlayer(), e.getHook().getLocation(), rodItem.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.LURE), rod, effects);
         if (mon == null) return;
         if (e.getCaught() != null) e.getCaught().remove(); // a Pokémon instead of the fish
         e.setExpToDrop(ThreadLocalRandom.current().nextInt(1, 7));

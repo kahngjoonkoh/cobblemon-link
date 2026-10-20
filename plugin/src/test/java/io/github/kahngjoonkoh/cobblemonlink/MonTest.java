@@ -92,4 +92,20 @@ class MonTest {
         dex.of(m).size = 1;
         assertEquals(1.5f, m.drawScale(dex), 1e-6); // 1.1 + 0.8 x 0.5
     }
+
+    /** Cobblemon's bait on a fished Pokémon: an Aguav-style nature bait and an IV bait. */
+    @Test
+    void bait() {
+        Dex dex = dex();
+        Mon m = Mon.create(dex, "charmander", 10);
+        Dex.Bait nature = new Dex.Bait(), iv = new Dex.Bait();
+        nature.type = "nature";
+        nature.sub = "spd";
+        iv.type = "iv";
+        iv.sub = "atk";
+        iv.value = 40;
+        Rules.bait(dex, m, List.of(nature, iv), new java.util.Random(3));
+        assertEquals(1, SummaryScreen.nature(m.nature, 4)); // raises Sp. Def
+        assertEquals(31, m.ivs[1]);
+    }
 }

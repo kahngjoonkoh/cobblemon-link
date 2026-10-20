@@ -140,4 +140,28 @@ final class Rules {
         }
         return null;
     }
+
+    /**
+     * Cobblemon's bait effects on a fished Pokémon (the spawn-side ones are in Spawner.fish): nature (one raising the
+     * bait's stat), IVs (+value), hidden ability, friendship (+value), more mark rolls.
+     * ponytail: bite_time, drops_reroll, egg_group (no egg groups here), ev and size are left out.
+     */
+    static void bait(Dex dex, Mon m, java.util.List<Dex.Bait> bait, java.util.Random r) {
+        java.util.List<String> stats = java.util.List.of(Dex.STATS);
+        for (Dex.Bait b : bait) {
+            if (r.nextDouble() >= b.chance) continue;
+            int k = b.sub == null ? -1 : stats.indexOf(b.sub);
+            switch (b.type) {
+                case "nature" -> {
+                    java.util.List<String> up = java.util.Arrays.stream(Mon.NATURES).filter(n -> k > 0 && SummaryScreen.nature(n, k) > 0).toList();
+                    if (!up.isEmpty()) m.nature = up.get(r.nextInt(up.size()));
+                }
+                case "iv" -> { if (k >= 0) m.ivs[k] = Math.min(31, m.ivs[k] + (int) b.value); }
+                case "ha_chance" -> { if (dex.of(m).hidden != null) m.ability = dex.of(m).hidden; }
+                case "friendship" -> m.addFriendship(dex, (int) b.value);
+                case "mark_chance" -> { for (int i = 0; i < (int) b.value && m.mark == null; i++) m.mark = mark(dex.marks, r, 3000, null, true, false); }
+                default -> {}
+            }
+        }
+    }
 }

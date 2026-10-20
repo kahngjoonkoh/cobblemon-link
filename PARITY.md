@@ -26,7 +26,7 @@ Counts: see [the summary at the end](#summary).
 | Shinies | 1/8192, shiny textures | Same | ✅ | ✅ |
 | Regional forms, features, gender | ✓ | Spawn properties and species features | ✅ | ✅ |
 | Herds, alphas (1.8.0) | ✓ | Cobblemon's 1,260 herd spawns (`spawn_pool_world/herds`): a leader, then followers around it up to the herd's size, each no more than its maxTimes; alphas are drawn bigger (Cobblemon's formula) on both clients (GeyserModelEngine sends the tracker's scale), get three perfect IVs, their held item and the Alpha Mark ([herd](docs/evidence/m16-java-herd.png), [alpha beside a normal one](docs/evidence/m16-java-alpha-vs-normal.png)); `/spawnherd <leader>` for admins | ✅ | ✅ |
-| Influences (Sweet Incense, Poké Snacks, Saccharine log, bait) | ✓ | — | ⬜ | ⬜ |
+| Influences (Sweet Incense, Poké Snacks, Saccharine log, bait) | ✓ | Fishing bait: Cobblemon's 79 baits (berries, Poké Bait, golden apples...) in the other hand are used up on a bite, with their effects: rarer bucket, type bias, level raise, nature, IVs, hidden ability, alpha, gender, shiny rerolls, friendship, marks ([evidence](docs/evidence/m18-java-fishing-bait.png), [log](docs/evidence/m18-fishing-bait.log)); no Poké Snacks, Sweet Incense or Saccharine logs | 🟡 | 🟡 |
 | Wild model and animations | ✓ | Cobblemon's models: BetterModel (Java), GeyserModelEngine (Bedrock) | ✅ | ✅ |
 
 ## Battles
@@ -100,7 +100,7 @@ Counts: see [the summary at the end](#summary).
 | Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
 |---|---|---|---|---|
 | Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
-| Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; no bait | 🟡 | 🟡 |
+| Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; bait in the other hand (see Influences) | ✅ | ✅ |
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries; [evidence](docs/evidence/m11-java-ev-berries.png)), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 51 | 36 | 7 | 1 |
-| Bedrock | 51 | 36 | 7 | 1 |
+| Java | 52 | 36 | 6 | 1 |
+| Bedrock | 52 | 36 | 6 | 1 |
 
 ## Suggested order
 

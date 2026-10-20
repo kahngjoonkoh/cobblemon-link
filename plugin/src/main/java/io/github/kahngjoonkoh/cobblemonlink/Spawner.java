@@ -196,16 +196,38 @@ final class Spawner {
      * A Poké Rod's catch (Cobblemon's fishing spawns at the bobber): one rarity bucket, the spawns that fit the water
      * there and the rod; the Pokémon is "fished" (Lure Ball) and, under 90 kg, lobbed toward the player. Null: no bite.
      */
-    Entity fish(Player p, Location hook, int lure, String rod) {
+    Entity fish(Player p, Location hook, int lure, String rod, List<Dex.Bait> bait) {
+        var r = ThreadLocalRandom.current();
         String bucket = bucket();
+        for (Dex.Bait b : bait) // a rarer bucket: one tier up per hit
+            if (b.type.equals("rarity_bucket") && r.nextDouble() < b.chance) bucket = switch (bucket) {
+                case "common" -> "uncommon"; case "uncommon" -> "rare"; default -> "ultra-rare"; };
         List<Dex.Spawn> fits = new ArrayList<>();
         for (Dex.Spawn s : pl.dex.spawns) if (s.type.equals("fishing") && bucket.equals(s.bucket) && fits(s, hook.getBlock(), lure, rod)) fits.add(s);
         if (fits.isEmpty()) return null;
-        double roll = ThreadLocalRandom.current().nextDouble(fits.stream().mapToDouble(s -> s.weight).sum());
+        java.util.function.ToDoubleFunction<Dex.Spawn> weight = s -> { // typing bait: its type's Pokémon x value
+            double w = s.weight;
+            for (Dex.Bait b : bait) if (b.type.equals("typing") && pl.dex.get(s.species).types.contains(b.sub)) w *= Math.max(1, b.value);
+            return w;
+        };
+        double roll = r.nextDouble(fits.stream().mapToDouble(weight).sum());
         Dex.Spawn pick = fits.getLast();
-        for (Dex.Spawn s : fits) if ((roll -= s.weight) <= 0) { pick = s; break; }
-        Mon m = Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props);
+        for (Dex.Spawn s : fits) if ((roll -= weight.applyAsDouble(s)) <= 0) { pick = s; break; }
+        List<String> props = new ArrayList<>(pick.props);
+        int level = level(p, pick.level[0], pick.level[1]);
+        for (Dex.Bait b : bait) {
+            if (r.nextDouble() >= b.chance) continue;
+            switch (b.type) {
+                case "level_raise" -> level += (int) b.value;
+                case "alpha_chance" -> props.add("alpha=true");
+                case "gender_chance" -> props.add(b.sub);
+                case "shiny_reroll" -> { for (int i = 0; i < (int) b.value; i++) if (r.nextInt(Mon.shinyRate) == 0) props.add("shiny"); }
+                default -> {}
+            }
+        }
+        Mon m = Mon.create(pl.dex, pick.species, Math.min(100, level), props);
         m.fished = true;
+        Rules.bait(pl.dex, m, bait, r);
         Entity e = spawn(hook, m);
         if (pl.dex.of(m).weight < 900) // Cobblemon's lobPokemonTowardsTarget
             e.setVelocity(p.getLocation().toVector().subtract(hook.toVector()).multiply(0.12).setY(0.6));
