@@ -27,7 +27,7 @@ public final class Starters {
                 net.minecraft.commands.Commands.literal("starter").executes(c -> {
                     var p = c.getSource().getPlayerOrException();
                     if (Cobblemon.INSTANCE.getPlayerDataManager().getGenericData(p).getStarterSelected())
-                        c.getSource().sendFailure(Component.literal("You already chose your starter."));
+                        c.getSource().sendFailure(Component.literal(Lang.t(p, "cobblemon.ui.starter.alreadyselected")));
                     else Cobblemon.INSTANCE.getStarterHandler().requestStarterChoice(p);
                     return 1;
                 })));
@@ -37,7 +37,7 @@ public final class Starters {
                 if (Clients.bridged(p.connection) && PartyHud.party(p).isEmpty() && !Cobblemon.INSTANCE.getPlayerDataManager().getGenericData(p).getStarterSelected())
                     p.connection.send(new ClientboundSetActionBarTextPacket(Ui.loaded && Clients.java(p) && Config.vanillaJava().screenArt()
                             ? Ui.starterToast() // Cobblemon's toast art, top right
-                            : Component.literal("Check out the starters! Type /starter").withStyle(net.minecraft.ChatFormatting.RED)));
+                            : Component.literal(Lang.t(p, "cobblemon.ui.starter.choose_starter_title") + " " + Lang.t(p, "cobblemonlink.starter.hint")).withStyle(net.minecraft.ChatFormatting.RED)));
         });
     }
 
@@ -61,10 +61,10 @@ public final class Starters {
         else JavaScreens.starter(p, regions, 0);
     }
 
-    static String desc(String species) {
+    static String desc(ServerPlayer p, String species) {
         var s = PokemonSpecies.getByName(species);
         if (s == null) return "";
-        return String.join(" ", s.getPokedex().stream().map(Lang::get).toList());
+        return String.join(" ", s.getPokedex().stream().map(k -> Lang.get(p, k)).toList());
     }
 
     /**
@@ -95,6 +95,6 @@ public final class Starters {
             }
         }
         String name = species == null ? selected : Lang.resolve(p, species.getTranslatedName()).getString();
-        Forms.send(p, name + Forms.MARK + 4, desc(selected), opts, i -> { if (i >= 0 && i < opts.size()) opts.get(i).action().run(); });
+        Forms.send(p, name + Forms.MARK + 4, desc(p, selected), opts, i -> { if (i >= 0 && i < opts.size()) opts.get(i).action().run(); });
     }
 }

@@ -35,12 +35,10 @@ public final class Pc {
     static final List<String> WALLPAPERS = List.of("basic_01", "basic_02", "basic_03", "basic_04", "basic_05",
             "basic_06", "basic_07", "basic_08", "basic_09", "basic_10", "basic_11", "biome_cave", "biome_forest",
             "biome_nether", "biome_ocean", "biome_the_end", "pokemon_alpha");
-    static final List<String> WALLPAPER_NAMES = List.of("Red", "Orange", "Yellow", "Green", "Teal", "Blue", "Purple",
-            "Pink", "Light Gray", "Gray", "Dark Gray", "Cave", "Forest", "Nether", "Ocean", "The End", "Alpha");
     static final int BASIC = 11;
     private static final PokemonSortMode[] SORTS = {PokemonSortMode.NAME, PokemonSortMode.LEVEL, PokemonSortMode.TYPE,
             PokemonSortMode.POKEDEX_NUMBER, PokemonSortMode.GENDER};
-    private static final String[] SORT_ART = {"name", "level", "type", "pokedex_number", "gender"};
+    static final String[] SORT_ART = {"name", "level", "type", "pokedex_number", "gender"};
 
     static final class View {
         int box, sort = -1;
@@ -117,7 +115,7 @@ public final class Pc {
         int w = WALLPAPERS.indexOf(wallpaperOf(box));
         do w = (w + 1) % WALLPAPERS.size(); while (locked(p, w));
         box.setWallpaper(wallpaper(w));
-        p.sendSystemMessage(Component.literal("Wallpaper: " + WALLPAPER_NAMES.get(w)));
+        p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemon.ui.pc.wallpaper") + ": " + wallpaperName(p, w)));
         show(p, v);
     }
 
@@ -129,7 +127,7 @@ public final class Pc {
 
     private static boolean busy(ServerPlayer p) {
         if (BattleRegistry.getBattleByParticipatingPlayer(p) == null) return false;
-        p.sendSystemMessage(Component.literal("You can't change your PC during a battle.").withStyle(ChatFormatting.RED));
+        p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.pc.busy")).withStyle(ChatFormatting.RED));
         return true;
     }
 
@@ -157,9 +155,9 @@ public final class Pc {
     /** Moves the Pokémon to at, swapping with whatever is there; null if done, else why not. */
     static String move(ServerPlayer p, UUID id, Loc at) {
         Loc from = where(p, id);
-        if (from == null) return "That Pokémon isn't in your PC any more.";
+        if (from == null) return Lang.t(p, "cobblemonlink.pc.gone");
         Pokemon mon = get(p, from), other = get(p, at);
-        if (other == null && from.box() < 0 && at.box() >= 0 && partyCount(p) <= 1) return "Your party needs at least one Pokémon.";
+        if (other == null && from.box() < 0 && at.box() >= 0 && partyCount(p) <= 1) return Lang.t(p, "cobblemonlink.pc.party_min");
         if (mon.getEntity() != null && at.box() >= 0) mon.recall();
         if (other != null && other.getEntity() != null && from.box() >= 0) other.recall();
         var fromStore = from.box() < 0 ? party(p) : pc(p);
@@ -204,9 +202,9 @@ public final class Pc {
 
     static void filter(ServerPlayer p) { // Cobblemon's Filter field: here a type dropdown
         View v = VIEWS.get(p.getUUID());
-        List<String> names = new ArrayList<>(List.of("All types"));
-        BattleUi.TYPES.forEach(t -> names.add(t.substring(0, 1).toUpperCase(Locale.ROOT) + t.substring(1)));
-        Forms.choice(p, "Filter", "Show", names, v.type == null ? 0 : BattleUi.TYPES.indexOf(v.type) + 1, i -> {
+        List<String> names = new ArrayList<>(List.of(Lang.t(p, "cobblemonlink.pc.all_types")));
+        BattleUi.TYPES.forEach(t -> names.add(Lang.t(p, "cobblemon.type." + t)));
+        Forms.choice(p, Lang.t(p, "cobblemon.ui.pc.filter"), Lang.t(p, "cobblemonlink.pc.show"), names, v.type == null ? 0 : BattleUi.TYPES.indexOf(v.type) + 1, i -> {
             if (i >= 0) v.type = i == 0 ? null : BattleUi.TYPES.get(i - 1);
             v.confirm = false;
             show(p, v);
@@ -221,13 +219,13 @@ public final class Pc {
             Loc at = yes && !busy(p) ? where(p, v.selected) : null;
             int pcCount = 0;
             for (PCBox b : pc(p).getBoxes()) pcCount += 30 - b.getUnoccupiedSlots();
-            if (at != null && partyCount(p) + pcCount <= 1) p.sendSystemMessage(Component.literal("You can't release your last Pokémon.").withStyle(ChatFormatting.RED));
-            else if (at != null && at.box() < 0 && partyCount(p) <= 1) p.sendSystemMessage(Component.literal("Your party needs at least one Pokémon.").withStyle(ChatFormatting.RED));
+            if (at != null && partyCount(p) + pcCount <= 1) p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.pc.last")).withStyle(ChatFormatting.RED));
+            else if (at != null && at.box() < 0 && partyCount(p) <= 1) p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.pc.party_min")).withStyle(ChatFormatting.RED));
             else if (at != null) {
                 Pokemon m = get(p, at);
                 if (m.getEntity() != null) m.recall();
                 remove(p, at);
-                p.sendSystemMessage(Component.literal(BattleUi.name(m) + " was released.").withStyle(ChatFormatting.YELLOW));
+                p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.pc.released", BattleUi.name(m))).withStyle(ChatFormatting.YELLOW));
                 v.selected = null;
             }
         }
@@ -251,7 +249,9 @@ public final class Pc {
         return i >= BASIC && !pc(p).getUnlockedWallpapers().contains(ResourceLocation.fromNamespaceAndPath("cobblemon", WALLPAPERS.get(i)));
     }
 
-    static String boxName(PCBox box, int i) { return box.getName() == null || box.getName().isBlank() ? "Box " + (i + 1) : box.getName(); }
+    static String boxName(ServerPlayer p, PCBox box, int i) { return box.getName() == null || box.getName().isBlank() ? Lang.t(p, "cobblemon.ui.pc.box.title", i + 1) : box.getName(); }
+
+    static String wallpaperName(ServerPlayer p, int w) { return Lang.t(p, "cobblemonlink.pc.wallpaper." + WALLPAPERS.get(w)); }
 
     /** The box's name and wallpaper (Cobblemon's rename and wallpaper requests); locked wallpapers show as "???". */
     static void rename(ServerPlayer p) {
@@ -259,8 +259,8 @@ public final class Pc {
         v.confirm = false;
         PCBox box = pc(p).getBoxes().get(v.box);
         List<String> names = new ArrayList<>();
-        for (int i = 0; i < WALLPAPERS.size(); i++) names.add(locked(p, i) ? "???" : WALLPAPER_NAMES.get(i));
-        Forms.boxSettings(p, "Box", boxName(box, v.box), names, WALLPAPERS.indexOf(wallpaperOf(box)), (name, w) -> {
+        for (int i = 0; i < WALLPAPERS.size(); i++) names.add(locked(p, i) ? "???" : wallpaperName(p, i));
+        Forms.boxSettings(p, Lang.t(p, "cobblemon.ui.pc.box.title", v.box + 1), boxName(p, box, v.box), names, WALLPAPERS.indexOf(wallpaperOf(box)), (name, w) -> {
             if (name != null) {
                 String n = name.strip();
                 box.setName(n.isEmpty() ? null : n.substring(0, Math.min(16, n.length())));
@@ -281,15 +281,15 @@ public final class Pc {
         List<Forms.Opt> o = new ArrayList<>();
         o.add(new Forms.Opt("<", "none", () -> page(p, -1)));
         o.add(new Forms.Opt(">", "none", () -> page(p, 1)));
-        o.add(new Forms.Opt(boxName(box, v.box), "none", () -> rename(p)));
-        o.add(new Forms.Opt(v.type == null ? "Filter" : v.type.substring(0, 1).toUpperCase(Locale.ROOT) + v.type.substring(1), "none", () -> filter(p)));
+        o.add(new Forms.Opt(boxName(p, box, v.box), "none", () -> rename(p)));
+        o.add(new Forms.Opt(Lang.t(p, v.type == null ? "cobblemon.ui.pc.filter" : "cobblemon.type." + v.type), "none", () -> filter(p)));
         o.add(new Forms.Opt(" ", v.sort < 0 ? "pc/sort_options" : "pc/sort_" + SORT_ART[v.sort], () -> sort(p)));
-        o.add(new Forms.Opt(sel != null && !v.confirm ? "Release" : "", "none", () -> release(p, true)));
-        o.add(new Forms.Opt(sel != null && v.confirm ? "Yes" : "", "none", () -> release(p, true)));
-        o.add(new Forms.Opt(sel != null && v.confirm ? "No" : "", "none", () -> release(p, false)));
+        o.add(new Forms.Opt(sel != null && !v.confirm ? Lang.t(p, "cobblemon.ui.pc.release") : "", "none", () -> release(p, true)));
+        o.add(new Forms.Opt(sel != null && v.confirm ? Lang.t(p, "cobblemon.ui.generic.yes") : "", "none", () -> release(p, true)));
+        o.add(new Forms.Opt(sel != null && v.confirm ? Lang.t(p, "cobblemon.ui.generic.no") : "", "none", () -> release(p, false)));
         o.add(new Forms.Opt("", "pc/wall/" + wallpaperOf(box), stay));
         String look = sel == null ? null : Summary.look(sel);
-        o.add(new Forms.Opt(sel == null ? "" : "Lv. " + sel.getLevel(), look != null && Models.has(look) ? "body/" + look : "none", stay));
+        o.add(new Forms.Opt(sel == null ? "" : Lang.t(p, "cobblemon.ui.lv.number", sel.getLevel()), look != null && Models.has(look) ? "body/" + look : "none", stay));
         o.add(new Forms.Opt(sel == null ? "" : Lang.get(p, sel.getNature().getDisplayName()), "none", stay));
         o.add(new Forms.Opt(sel == null ? "" : Lang.get(p, sel.getAbility().getDisplayName()), "none", stay));
         for (int k = 0; k < 4; k++) {
@@ -309,7 +309,7 @@ public final class Pc {
             Loc at = new Loc(-1, i);
             o.add(slot(v, party(p).get(new PartyPosition(i)), () -> click(p, at)));
         }
-        String title = (sel == null ? "" : v.confirm ? "Release?" : BattleUi.name(sel)) + Forms.MARK + 5;
+        String title = (sel == null ? "" : v.confirm ? Lang.t(p, "cobblemonlink.pc.release_confirm") : BattleUi.name(sel)) + Forms.MARK + 5;
         Forms.send(p, title, "", o, i -> { if (i >= 0 && i < o.size()) o.get(i).action().run(); });
     }
 

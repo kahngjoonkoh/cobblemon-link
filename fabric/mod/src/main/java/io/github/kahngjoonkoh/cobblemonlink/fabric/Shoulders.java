@@ -21,6 +21,8 @@ import net.minecraft.world.phys.Vec3;
  * Pokémon on players' shoulders for clients without the mod (Cobblemon keeps them in Minecraft's shoulder data, which
  * only a Cobblemon client draws): vanilla Java a small model (ModelHolder) on the shoulder, Bedrock the
  * GeyserModelEngine model on a carrier moved with the player.
+ * ponytail: others see it, the player doesn't (their first-person camera would sit inside it; the server can't tell
+ * when they look in third person).
  */
 final class Shoulders {
     /** How big Cobblemon draws a shoulder Pokémon against its normal size. ponytail: one factor for all. */
@@ -83,7 +85,6 @@ final class Shoulders {
             java.offset(x, y, 0);
             java.state(() -> "idle");
             EntityAttachment.ofTicking(java, p);
-            java.startWatching(p); // the player sees their own shoulder too (an entity's tracker leaves out itself)
         }
         // Bedrock: the model on a carrier that follows the shoulder
         SimpleEntityElement pig = new SimpleEntityElement(EntityType.PIG);
@@ -108,7 +109,6 @@ final class Shoulders {
         };
         bedrock.addElement(pig);
         EntityAttachment.ofTicking(bedrock, p);
-        bedrock.startWatching(p);
         return new Drawn(key, java, bedrock);
     }
 }

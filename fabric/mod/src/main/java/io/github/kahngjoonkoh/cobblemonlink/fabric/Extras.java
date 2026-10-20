@@ -24,7 +24,7 @@ final class Extras {
             var party = Cobblemon.INSTANCE.getStorage().getParty(p);
             if (PartyHud.party(p).isEmpty()) return;
             party.heal();
-            p.sendSystemMessage(Component.literal("Your Pokémon are fully healed.").withStyle(ChatFormatting.GREEN));
+            p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemon.healingmachine.healed")).withStyle(ChatFormatting.GREEN));
         });
         net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
                 Commands.literal("pokeballs").requires(s -> s.hasPermission(2))

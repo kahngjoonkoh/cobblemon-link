@@ -59,7 +59,7 @@ final class Callbacks {
                 String species = m.getPokemonProperties().getSpecies() == null ? "" : m.getPokemonProperties().getSpecies();
                 String look = Models.look(species.replace("cobblemon:", ""), m.getAspects());
                 int ii = i;
-                opts.add(new Forms.Opt(name(m) + "\n" + m.getCurrentHealth() + "/" + m.getMaxHealth() + (m.getEnabled() ? "" : "  (can't)"),
+                opts.add(new Forms.Opt(name(p, m) + "\n" + m.getCurrentHealth() + "/" + m.getMaxHealth() + (m.getEnabled() ? "" : "  " + Lang.t(p, "cobblemonlink.cant")),
                         Models.has(look) ? "body/" + look : "none", () -> chosen.accept(ii)));
             }
             Forms.send(p, t, "", opts, i -> { if (i >= 0 && i < opts.size() && mons.get(i).getEnabled()) opts.get(i).action().run(); else cancelled.run(); });
@@ -69,7 +69,7 @@ final class Callbacks {
         for (int i = 0; i < mons.size() && i < 9; i++) {
             var m = mons.get(i);
             int ii = i;
-            c.set(i, Chest.icon(m.getEnabled() ? Items.NAME_TAG : Items.BARRIER, name(m), List.of(m.getCurrentHealth() + "/" + m.getMaxHealth() + " HP")),
+            c.set(i, Chest.icon(m.getEnabled() ? Items.NAME_TAG : Items.BARRIER, name(p, m), List.of(m.getCurrentHealth() + "/" + m.getMaxHealth() + " " + Lang.t(p, "cobblemon.ui.stats.hp"))),
                     m.getEnabled() ? () -> { p.closeContainer(); chosen.accept(ii); } : null);
         }
         c.open(p);
@@ -95,16 +95,16 @@ final class Callbacks {
             int ii = i;
             String type = m.getMoveTemplate().getElementalType().getName().toLowerCase(java.util.Locale.ROOT);
             c.set(i, Chest.icon(m.getEnabled() ? JavaScreens.typeIcon(type) : Items.BARRIER, Lang.resolve(p, m.getMoveTemplate().getDisplayName()).getString(),
-                    List.of("PP " + m.getPp() + "/" + m.getPpMax())), m.getEnabled() ? () -> { p.closeContainer(); chosen.accept(ii); } : null);
+                    List.of(Lang.t(p, "cobblemon.ui.pp") + " " + m.getPp() + "/" + m.getPpMax())), m.getEnabled() ? () -> { p.closeContainer(); chosen.accept(ii); } : null);
         }
         c.open(p);
     }
 
-    private static String name(PartySelectPokemonDTO m) {
+    private static String name(ServerPlayer p, PartySelectPokemonDTO m) {
         var props = m.getPokemonProperties();
         String n = props.getNickname() != null ? props.getNickname().getString() : null;
         if (n != null && !n.isBlank()) return n;
         var sp = props.getSpecies() == null ? null : com.cobblemon.mod.common.api.pokemon.PokemonSpecies.getByName(props.getSpecies().replace("cobblemon:", ""));
-        return sp == null ? String.valueOf(props.getSpecies()) : Lang.resolve((net.minecraft.server.level.ServerPlayer) null, sp.getTranslatedName()).getString() + (props.getLevel() != null ? "  Lv." + props.getLevel() : "");
+        return sp == null ? String.valueOf(props.getSpecies()) : Lang.resolve(p, sp.getTranslatedName()).getString() + (props.getLevel() != null ? "  " + Lang.t(p, "cobblemon.ui.lv.number", props.getLevel()) : "");
     }
 }

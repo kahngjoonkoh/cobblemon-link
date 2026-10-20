@@ -39,28 +39,28 @@ public final class JavaScreens {
     static String type(ElementalType t) { return t.getName().toLowerCase(Locale.ROOT); }
 
     /** A Pokémon as an item: its first type's wool (a barrier when fainted), name, level and a summary in the lore. */
-    static ItemStack mon(Pokemon m, String... extra) {
+    static ItemStack mon(ServerPlayer p, Pokemon m, String... extra) {
         List<String> lore = new ArrayList<>();
-        lore.add("HP " + m.getCurrentHealth() + "/" + m.getMaxHealth() + (m.isFainted() ? "  (fainted)" : ""));
+        lore.add(Lang.t(p, "cobblemon.ui.stats.hp") + " " + m.getCurrentHealth() + "/" + m.getMaxHealth() + (m.isFainted() ? "  " + Lang.t(p, "cobblemonlink.fainted") : ""));
         List<String> types = new ArrayList<>();
-        m.getTypes().forEach(t -> types.add(Lang.resolve(m.getOwnerPlayer(), t.getDisplayName()).getString()));
-        lore.add(String.join(" / ", types) + "   " + Lang.get(m.getOwnerPlayer(), m.getNature().getDisplayName()) + "   " + Lang.get(m.getOwnerPlayer(), m.getAbility().getDisplayName()));
-        lore.add("Moves: " + String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(m.getOwnerPlayer(), mv.getDisplayName()).getString()).toList()));
+        m.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
+        lore.add(String.join(" / ", types) + "   " + Lang.get(p, m.getNature().getDisplayName()) + "   " + Lang.get(p, m.getAbility().getDisplayName()));
+        lore.add(Lang.t(p, "cobblemon.ui.moves") + ": " + String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(p, mv.getDisplayName()).getString()).toList()));
         var curve = m.getSpecies().getExperienceGroup();
-        lore.add("EXP to next level: " + (m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience()));
-        if (m.getShiny()) lore.add("★ Shiny");
+        lore.add(Lang.t(p, "cobblemon.ui.info.to_next_level") + " " + (m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience()));
+        if (m.getShiny()) lore.add("★ " + Lang.t(p, "cobblemonlink.shiny"));
         lore.addAll(List.of(extra));
         String g = m.getGender() == Gender.MALE ? " ♂" : m.getGender() == Gender.FEMALE ? " ♀" : "";
         Item item = m.isFainted() ? Items.BARRIER : typeIcon(type(m.getPrimaryType()));
-        return Chest.icon(item, BattleUi.name(m) + g + "  Lv." + m.getLevel(), lore);
+        return Chest.icon(item, BattleUi.name(m) + g + "  " + Lang.t(p, "cobblemon.ui.lv.number", m.getLevel()), lore);
     }
 
     // ---- battle ----
 
     /** BattleUi's menus as a 3-row chest: the choices on the middle row, the battle log on a book. */
     static void battle(ServerPlayer p, int kind, List<Forms.Opt> opts, List<String> log, Runnable closed) {
-        Chest c = new Chest(3, kind == 1 ? "What will you do?" : kind == 2 ? "Fight" : "Switch");
-        c.set(4, Chest.icon(Items.BOOK, "Battle", log.isEmpty() ? List.of("What will you do?") : log), null);
+        Chest c = new Chest(3, Lang.t(p, kind == 1 ? "cobblemon.battle.choose_actions" : kind == 2 ? "cobblemon.battle.ui.fight" : "cobblemon.battle.ui.switch"));
+        c.set(4, Chest.icon(Items.BOOK, Lang.t(p, "cobblemon.ui.interact.battle"), log.isEmpty() ? List.of(Lang.t(p, "cobblemon.battle.choose_actions")) : log), null);
         int[] slots = kind == 1 ? new int[]{10, 12, 14, 16} : new int[]{10, 11, 12, 13, 14, 15, 17};
         int n = 0;
         for (Forms.Opt o : opts) {
@@ -69,7 +69,7 @@ public final class JavaScreens {
             if (slot < 0) continue;
             String[] lines = o.text().split("\n");
             List<String> lore = lines.length > 1 ? List.of(lines[1].strip()) : List.of();
-            c.set(slot, Chest.icon(battleItem(o.image()), o.image().equals("back") ? "Back" : lines[0], lore), () -> {
+            c.set(slot, Chest.icon(battleItem(o.image()), o.image().equals("back") ? Lang.t(p, "cobblemonlink.back") : lines[0], lore), () -> {
                 p.closeContainer();
                 o.action().run();
             });
@@ -94,7 +94,7 @@ public final class JavaScreens {
     /** Cobblemon's starters, a row a region (its name, then its starters); a click chooses. */
     static void starter(ServerPlayer p, List<Starters.Region> regions, int page) {
         int per = 6, pages = (regions.size() + per - 1) / per, pg = Math.floorMod(page, Math.max(1, pages));
-        Chest c = new Chest(6, "Choose your first Pokémon");
+        Chest c = new Chest(6, Lang.t(p, "cobblemon.ui.starter.title"));
         for (int r = 0; r < per && pg * per + r < regions.size(); r++) {
             Starters.Region region = regions.get(pg * per + r);
             c.set(r * 9, Chest.icon(Items.MAP, region.name(), List.of()), null);
@@ -105,7 +105,7 @@ public final class JavaScreens {
                 List<String> types = new ArrayList<>();
                 sp.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
                 List<String> lore = new ArrayList<>(List.of(String.join(" / ", types)));
-                lore.addAll(wrap(Starters.desc(region.species().get(j)), 40));
+                lore.addAll(wrap(Starters.desc(p, region.species().get(j)), 40));
                 c.set(r * 9 + 2 + j, Chest.icon(typeIcon(type(sp.getPrimaryType())), Lang.resolve(p, sp.getTranslatedName()).getString(), lore), () -> {
                     p.closeContainer();
                     Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, region.category(), idx);
@@ -113,8 +113,8 @@ public final class JavaScreens {
             }
         }
         if (pages > 1) {
-            c.set(8, Chest.icon(Items.ARROW, "Previous regions", List.of()), () -> starter(p, regions, pg - 1));
-            c.set(53, Chest.icon(Items.ARROW, "More regions", List.of()), () -> starter(p, regions, pg + 1));
+            c.set(8, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.starter.previous"), List.of()), () -> starter(p, regions, pg - 1));
+            c.set(53, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.starter.more"), List.of()), () -> starter(p, regions, pg + 1));
         }
         c.open(p);
     }
@@ -124,11 +124,11 @@ public final class JavaScreens {
     /** The party (the Paper version's party menu): a click opens the Pokémon's options. */
     static void party(ServerPlayer p) {
         List<Pokemon> party = PartyHud.party(p);
-        Chest c = new Chest(1, "Party");
+        Chest c = new Chest(1, Lang.t(p, "cobblemon.ui.party"));
         for (int i = 0; i < party.size(); i++) {
             int idx = i;
             Pokemon m = party.get(i);
-            c.set(i, mon(m, m.getEntity() != null ? "Out with you" : "Click for options"), () -> mon(p, idx));
+            c.set(i, mon(p, m, Lang.t(p, m.getEntity() != null ? "cobblemonlink.party.out" : "cobblemonlink.party.options")), () -> mon(p, idx));
         }
         c.open(p);
     }
@@ -140,36 +140,36 @@ public final class JavaScreens {
         Pokemon m = party.get(idx);
         boolean battling = BattleRegistry.getBattleByParticipatingPlayer(p) != null;
         Chest c = new Chest(1, BattleUi.name(m));
-        c.set(0, mon(m), null);
+        c.set(0, mon(p, m), null);
         if (!battling) {
             boolean out = m.getEntity() != null;
-            if (out || !m.isFainted()) c.set(2, Chest.icon(out ? Items.ENDER_PEARL : CobblemonItems.POKE_BALL, out ? "Recall" : "Send out", List.of()), () -> {
+            if (out || !m.isFainted()) c.set(2, Chest.icon(out ? Items.ENDER_PEARL : CobblemonItems.POKE_BALL, Lang.t(p, out ? "cobblemonlink.party.recall" : "cobblemonlink.party.send_out"), List.of()), () -> {
                 if (m.getEntity() != null) m.recall();
                 else m.sendOutWithAnimation(p, p.serverLevel(), p.position().add(p.getLookAngle().multiply(2, 0, 2)), null, true, null, e -> kotlin.Unit.INSTANCE);
                 party(p);
             });
-            if (idx > 0) c.set(3, Chest.icon(Items.NETHER_STAR, "Make lead", List.of()), () -> {
+            if (idx > 0) c.set(3, Chest.icon(Items.NETHER_STAR, Lang.t(p, "cobblemonlink.party.lead"), List.of()), () -> {
                 var store = Cobblemon.INSTANCE.getStorage().getParty(p);
                 var list = store.toGappyList();
                 store.swap(new PartyPosition(list.indexOf(party.getFirst())), new PartyPosition(list.indexOf(m)));
                 party(p);
             });
-            if (party.size() > 1) c.set(4, Chest.icon(Items.ENDER_CHEST, "Move to PC", List.of()), () -> {
+            if (party.size() > 1) c.set(4, Chest.icon(Items.ENDER_CHEST, Lang.t(p, "cobblemonlink.party.to_pc"), List.of()), () -> {
                 if (m.getEntity() != null) m.recall();
                 if (Cobblemon.INSTANCE.getStorage().getParty(p).remove(m) && !Cobblemon.INSTANCE.getStorage().getPC(p).add(m))
                     Cobblemon.INSTANCE.getStorage().getParty(p).add(m);
                 party(p);
             });
             var evo = m.getEvolutionProxy().server();
-            if (!evo.isEmpty()) c.set(5, Chest.icon(Items.EXPERIENCE_BOTTLE, "Evolve", List.of()), () -> {
+            if (!evo.isEmpty()) c.set(5, Chest.icon(Items.EXPERIENCE_BOTTLE, Lang.t(p, "cobblemon.ui.evolve"), List.of()), () -> {
                 if (!evo.isEmpty()) evo.start(evo.iterator().next());
                 p.closeContainer();
             });
             List<String> stats = new ArrayList<>();
             for (String[] row : Summary.rows(p, m, Summary.STATS)) stats.add(row[0] + ": " + row[1]);
-            c.set(6, Chest.icon(Items.WRITABLE_BOOK, "Stats", stats), null);
+            c.set(6, Chest.icon(Items.WRITABLE_BOOK, Lang.t(p, "cobblemon.ui.stats"), stats), null);
         }
-        c.set(8, Chest.icon(Items.ARROW, "Back", List.of()), () -> party(p));
+        c.set(8, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.back"), List.of()), () -> party(p));
         c.open(p);
     }
 
@@ -181,7 +181,7 @@ public final class JavaScreens {
 
     static void pc(ServerPlayer p, Pc.View v) {
         PCBox box = Pc.pc(p).getBoxes().get(v.box);
-        Chest c = new Chest(6, Pc.boxName(box, v.box) + "  " + (v.box + 1) + "/" + Pc.pc(p).getBoxes().size());
+        Chest c = new Chest(6, Pc.boxName(p, box, v.box) + "  " + (v.box + 1) + "/" + Pc.pc(p).getBoxes().size());
         Pokemon sel = null;
         if (v.selected != null) {
             Pc.Loc at = Pc.where(p, v.selected);
@@ -190,27 +190,26 @@ public final class JavaScreens {
         for (int s = 0; s < 30; s++) {
             Pc.Loc at = new Pc.Loc(v.box, s);
             Pokemon m = box.get(s);
-            c.set(boxSlot(s), m == null ? ItemStack.EMPTY : mon(m, m.getUuid().equals(v.selected) ? "Selected: click a slot to move it" : "Click: select"),
+            c.set(boxSlot(s), m == null ? ItemStack.EMPTY : mon(p, m, Lang.t(p, m.getUuid().equals(v.selected) ? "cobblemonlink.pc.selected" : "cobblemonlink.pc.click_select")),
                     () -> Pc.click(p, at));
         }
         for (int i = 0; i < 6; i++) {
             Pc.Loc at = new Pc.Loc(-1, i);
             Pokemon m = Pc.party(p).get(new PartyPosition(i));
-            c.set(partySlot(i), m == null ? ItemStack.EMPTY : mon(m, m.getUuid().equals(v.selected) ? "Selected: click a slot to move it" : "Click: select"),
+            c.set(partySlot(i), m == null ? ItemStack.EMPTY : mon(p, m, Lang.t(p, m.getUuid().equals(v.selected) ? "cobblemonlink.pc.selected" : "cobblemonlink.pc.click_select")),
                     () -> Pc.click(p, at));
         }
-        String[] sorts = {"Name", "Level", "Type", "Pokédex number", "Gender"};
-        c.set(43, Chest.icon(Items.HOPPER, "Sort: " + sorts[Math.max(0, v.sort)], List.of("Click: sort this box by the next")), () -> Pc.sort(p));
-        c.set(44, Chest.icon(v.type == null ? Items.WHITE_WOOL : typeIcon(v.type), "Show: " + (v.type == null ? "all types" : v.type),
-                List.of("Click: next type, right-click: back")), null);
+        c.set(43, Chest.icon(Items.HOPPER, Lang.t(p, "cobblemon.ui.sort." + Pc.SORT_ART[Math.max(0, v.sort)]), List.of(Lang.t(p, "cobblemonlink.pc.click_sort"))), () -> Pc.sort(p));
+        c.set(44, Chest.icon(v.type == null ? Items.WHITE_WOOL : typeIcon(v.type), Lang.t(p, "cobblemonlink.pc.show") + ": " + Lang.t(p, v.type == null ? "cobblemonlink.pc.all_types" : "cobblemon.type." + v.type),
+                List.of(Lang.t(p, "cobblemonlink.pc.click_type"))), null);
         c.on(44, b -> Pc.cycleType(p, b == 1));
-        c.set(45, Chest.icon(Items.ARROW, "Previous box", List.of()), () -> Pc.page(p, -1));
-        c.set(50, Chest.icon(Items.ARROW, "Next box", List.of()), () -> Pc.page(p, 1));
-        c.set(47, Chest.icon(Items.NAME_TAG, Pc.boxName(box, v.box), List.of("Click: next wallpaper")), () -> Pc.nextWallpaper(p));
+        c.set(45, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.pc.previous_box"), List.of()), () -> Pc.page(p, -1));
+        c.set(50, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.pc.next_box"), List.of()), () -> Pc.page(p, 1));
+        c.set(47, Chest.icon(Items.NAME_TAG, Pc.boxName(p, box, v.box), List.of(Lang.t(p, "cobblemonlink.pc.click_wallpaper"))), () -> Pc.nextWallpaper(p));
         if (sel != null && v.confirm) {
-            c.set(52, Chest.icon(Items.LIME_WOOL, "Yes, release " + BattleUi.name(sel), List.of()), () -> Pc.release(p, true));
-            c.set(53, Chest.icon(Items.RED_WOOL, "No", List.of()), () -> Pc.release(p, false));
-        } else if (sel != null) c.set(52, Chest.icon(Items.LAVA_BUCKET, "Release " + BattleUi.name(sel), List.of()), () -> Pc.release(p, true));
+            c.set(52, Chest.icon(Items.LIME_WOOL, Lang.t(p, "cobblemonlink.pc.release_yes", BattleUi.name(sel)), List.of()), () -> Pc.release(p, true));
+            c.set(53, Chest.icon(Items.RED_WOOL, Lang.t(p, "cobblemon.ui.generic.no"), List.of()), () -> Pc.release(p, false));
+        } else if (sel != null) c.set(52, Chest.icon(Items.LAVA_BUCKET, Lang.t(p, "cobblemonlink.pc.release_mon", BattleUi.name(sel)), List.of()), () -> Pc.release(p, true));
         c.open(p);
     }
 
@@ -226,10 +225,10 @@ public final class JavaScreens {
             if (k != PokedexEntryProgress.UNREGISTERED) seen++;
             if (k == PokedexEntryProgress.OWNED) caught++;
         }
-        Chest c = new Chest(6, "Pokédex  " + seen + " seen, " + caught + " caught  " + (pg + 1) + "/" + pages);
+        Chest c = new Chest(6, Lang.t(p, "cobblemonlink.dex.title", seen, caught, pg + 1, pages));
         for (int i = 0; i < per && pg * per + i < all.size(); i++) {
             Species s = all.get(pg * per + i);
-            String no = String.format("No. %04d  ", s.getNationalPokedexNumber());
+            String no = Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d  ", s.getNationalPokedexNumber());
             var k = Dex.knowledge(p, s);
             if (k == PokedexEntryProgress.UNREGISTERED) {
                 c.set(i, Chest.icon(Items.GRAY_STAINED_GLASS_PANE, no + "???", List.of()), null);
@@ -238,12 +237,12 @@ public final class JavaScreens {
             List<String> types = new ArrayList<>();
             s.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
             List<String> lore = new ArrayList<>(List.of(String.join(" / ", types)));
-            if (k == PokedexEntryProgress.OWNED) lore.addAll(wrap(Starters.desc(s.getResourceIdentifier().getPath()), 40));
-            else lore.add("Seen");
+            if (k == PokedexEntryProgress.OWNED) lore.addAll(wrap(Starters.desc(p, s.getResourceIdentifier().getPath()), 40));
+            else lore.add(Lang.t(p, "cobblemon.ui.pokedex.filter.seen"));
             c.set(i, Chest.icon(typeIcon(type(s.getPrimaryType())), no + Lang.resolve(p, s.getTranslatedName()).getString(), lore), null);
         }
-        if (pg > 0) c.set(45, Chest.icon(Items.ARROW, "Previous page", List.of()), () -> dex(p, pg - 1));
-        if (pg < pages - 1) c.set(53, Chest.icon(Items.ARROW, "Next page", List.of()), () -> dex(p, pg + 1));
+        if (pg > 0) c.set(45, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.previous_page"), List.of()), () -> dex(p, pg - 1));
+        if (pg < pages - 1) c.set(53, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.next_page"), List.of()), () -> dex(p, pg + 1));
         c.open(p);
     }
 

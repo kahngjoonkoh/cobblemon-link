@@ -157,8 +157,8 @@ final class Social {
             return;
         }
         Chest c = new Chest(3, Lang.t(p, "cobblemonlink.trade.title", name));
-        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.you_offer", "-"), List.of()) : JavaScreens.mon(mine.getPokemon(), iAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
-        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.they_offer", name, "-"), List.of()) : JavaScreens.mon(theirs.getPokemon(), theyAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
+        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.you_offer", "-"), List.of()) : JavaScreens.mon(p, mine.getPokemon(), iAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
+        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.they_offer", name, "-"), List.of()) : JavaScreens.mon(p, theirs.getPokemon(), theyAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
         net.minecraft.world.item.Item[] icons = {Items.CHEST, Items.LIME_WOOL, Items.BARRIER};
         for (int i = 0; i < opts.size(); i++) {
             Forms.Opt o = opts.get(i);
@@ -188,7 +188,7 @@ final class Social {
             return;
         }
         Chest c = new Chest(1, Lang.t(p, "cobblemonlink.trade.offer"));
-        for (int i = 0; i < opts.size(); i++) c.set(i, JavaScreens.mon(mons.get(i), Lang.t(p, "cobblemonlink.trade.click_offer")), opts.get(i).action());
+        for (int i = 0; i < opts.size(); i++) c.set(i, JavaScreens.mon(p, mons.get(i), Lang.t(p, "cobblemonlink.trade.click_offer")), opts.get(i).action());
         c.open(p);
     }
 }

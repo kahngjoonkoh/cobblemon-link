@@ -24,8 +24,7 @@ final class SummaryArt {
     private static final char BASE = '', TAB_ON = '', TAB_ICON = '', PAGE_INFO = '', PAGE_FRAME = '',
             PAGE_STATS = '', MOVE = '', MOVE_SEL = '', EVOLVE_PLATE = '', PLATE = '', SHINY = '',
             BALL = '', MALE = '', FEMALE = '', RING = '', TYPE_INFO = '', BAR = '';
-    private static final String[] SHORT = {"HP", "Atk", "Def", "SpA", "SpD", "Spe"};
-    private static final String[] STAT_NAMES = {"HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"};
+    private static final String[] SHORT = {"hp", "atk", "def", "sp_atk", "sp_def", "speed"}; // cobblemon.ui.stats.*
     private static final Stats[] STATS = {Stats.HP, Stats.ATTACK, Stats.DEFENCE, Stats.SPECIAL_ATTACK, Stats.SPECIAL_DEFENCE, Stats.SPEED};
     private static final Map<UUID, Integer> PICKED = new HashMap<>();
 
@@ -36,8 +35,8 @@ final class SummaryArt {
         boolean battling = BattleRegistry.getBattleByParticipatingPlayer(p) != null, out = m.getEntity() != null;
         if (tab != Summary.MOVES) PICKED.remove(p.getUUID());
         Integer pick = PICKED.get(p.getUUID());
-        String[] actions = {battling || m.isFainted() && !out ? "" : out ? "Recall" : "Send out", battling || i == 0 ? "" : "Lead",
-                battling || party.size() <= 1 ? "" : "To PC"};
+        String[] actions = {battling || m.isFainted() && !out ? "" : Lang.t(p, out ? "cobblemonlink.party.recall" : "cobblemonlink.party.send_out"),
+                battling || i == 0 ? "" : Lang.t(p, "cobblemonlink.summary.lead"), battling || party.size() <= 1 ? "" : Lang.t(p, "cobblemonlink.summary.to_pc")};
         var evo = m.getEvolutionProxy().server();
         boolean evolve = !evo.isEmpty() && !battling;
         Chest menu = new Chest(5, title(p, party, m, i, tab, pick, actions, evolve)).hideInventory();
@@ -93,7 +92,7 @@ final class SummaryArt {
         int tx = Art.x(3 + 2 * tab) - 1;
         Art.glyph(t, tx, Art.y(0) + 4, TAB_ON, 7);
         Art.glyph(t, tx + 12, Art.y(0) + 6, (char) (TAB_ICON + tab), 7);
-        Art.text(t, "pc_bold", cardX + 5, cardY + 1, "Lv." + m.getLevel(), false);
+        Art.text(t, "pc_bold", cardX + 5, cardY + 1, Art.fit("pc_bold", Art.plain(Lang.t(p, "cobblemon.ui.lv.number", m.getLevel())), 36), false);
         Art.glyph(t, cardX + 4, cardY + 11, BALL, 6);
         Art.text(t, "pc_bold", cardX + 11, cardY + 11, Art.fit("pc_bold", BattleUi.name(m), m.getShiny() ? 30 : 36), false);
         if (m.getShiny()) Art.glyph(t, cardX + 43, cardY + 10, SHINY, 7);
@@ -104,9 +103,9 @@ final class SummaryArt {
         for (var type : m.getTypes()) Art.glyph(t, 12 + 8 * k0++, 47, (char) (TYPE_INFO + Ui.TYPES.indexOf(JavaScreens.type(type))), 7);
         if (evolve) {
             Art.glyph(t, Art.x(1) - 1, Art.y(4) - 1, EVOLVE_PLATE, 7);
-            Art.text(t, "pc_bold", Art.x(1) + 18, Art.y(4) + 5, "Evolve", true);
+            Art.text(t, "pc_bold", Art.x(1) + 18, Art.y(4) + 5, Art.fit("pc_bold", Art.plain(Lang.t(p, "cobblemon.ui.evolve")), 34), true);
         }
-        Art.text(t, "pc_label", 36, Art.y(5) + 3, "Party", true);
+        Art.text(t, "pc_label", 36, Art.y(5) + 3, Art.fit("pc_label", Art.plain(Lang.t(p, "cobblemon.ui.party")), 50), true);
         for (int k = 0; k < party.size(); k++) {
             Pokemon pm = party.get(k);
             int cx = Art.x(k % 3), cy = Art.y(6 + k / 3);
@@ -119,7 +118,7 @@ final class SummaryArt {
             if (actions[a].isEmpty()) continue;
             int ax = Art.x(3 * a) - 1;
             Art.glyph(t, ax, Art.y(8) - 1, PLATE, 7);
-            Art.text(t, "pc_label", ax + 27.5, Art.y(8) + 4, actions[a], true);
+            Art.text(t, "pc_label", ax + 27.5, Art.y(8) + 4, Art.fit("pc_label", Art.plain(actions[a]), 52), true);
         }
         int px = Art.x(3) - 1, py = Art.y(1) - 2;
         switch (tab) {
@@ -132,8 +131,9 @@ final class SummaryArt {
                     Art.text(t, "pc_bold", px + 6, my + 6, Lang.resolve(p, moves.get(k).getDisplayName()).getString(), false);
                     if (pick != null && pick == k) Art.glyph(t, px, my, MOVE_SEL, 7);
                 }
-                Art.text(t, "pc_text", px + 6, Art.y(5) + 2, pick == null ? "Click a move, then another," : "Now click where it goes.", false);
-                if (pick == null) Art.text(t, "pc_text", px + 6, Art.y(5) + 9, "to swap their places.", false);
+                List<String> hint = Ui.wrap(Art.plain(Lang.t(p, pick == null ? "cobblemonlink.summary.swap_click" : "cobblemonlink.summary.swap_now")), 104,
+                        s -> (int) Math.ceil(Art.width("pc_text", s)));
+                for (int k = 0; k < Math.min(2, hint.size()); k++) Art.text(t, "pc_text", px + 6, Art.y(5) + 2 + 7 * k, hint.get(k), false);
             }
             case Summary.STATS -> {
                 Art.glyph(t, px, py, PAGE_STATS, 7);
@@ -148,16 +148,17 @@ final class SummaryArt {
                     boolean minus = STATS[k] == nat.getDecreasedStat() && nat.getIncreasedStat() != nat.getDecreasedStat();
                     if (plus) up = k;
                     if (minus) down = k;
-                    Art.text(t, "pc_bold", px + 7, ry + 4, SHORT[k] + (plus ? "+" : minus ? "-" : ""), false);
+                    Art.text(t, "pc_bold", px + 7, ry + 4, Art.fit("pc_bold", Art.plain(Lang.t(p, "cobblemon.ui.stats." + SHORT[k])), 32) + (plus ? "+" : minus ? "-" : ""), false);
                     Art.text(t, "pc_text", px + 44, ry + 4, (k == 0 ? m.getCurrentHealth() + "/" : "") + st[k], false);
                     int w = Math.max(1, Math.min(22, st[k] * 22 / Math.max(1, most)));
                     if (k > 0) Art.glyph(t, px + 62, ry + 5, (char) (BAR + w - 1), 3);
-                    String iv = "IV " + m.getIvs().getOrDefault(STATS[k]);
+                    String iv = Lang.t(p, "cobblemon.ui.stats.ivs") + " " + m.getIvs().getOrDefault(STATS[k]);
                     Art.text(t, "pc_text", px + 104 - Art.width("pc_text", iv), ry + 4, iv, false);
                 }
                 String natName = Lang.get(p, nat.getDisplayName());
-                Art.text(t, "pc_bold", px + 7, py + 110, "Nature: " + natName, false);
-                Art.text(t, "pc_text", px + 7, py + 118, up == 0 ? "No stat changes" : "Raises " + STAT_NAMES[up] + ", lowers " + STAT_NAMES[down], false);
+                Art.text(t, "pc_bold", px + 7, py + 110, Art.fit("pc_bold", Art.plain(Lang.t(p, "cobblemon.ui.info.nature") + ": " + natName), 100), false);
+                Art.text(t, "pc_text", px + 7, py + 118, Art.fit("pc_text", Art.plain(up == 0 ? Lang.t(p, "cobblemonlink.summary.nature_neutral")
+                        : Lang.t(p, "cobblemonlink.summary.nature_effect", Lang.resolve(p, STATS[up].getDisplayName()).getString(), Lang.resolve(p, STATS[down].getDisplayName()).getString())), 100), false);
             }
             default -> {
                 Art.glyph(t, px, py, PAGE_INFO, 7);
@@ -165,19 +166,19 @@ final class SummaryArt {
                 long next = m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience();
                 List<String> types = new ArrayList<>();
                 m.getTypes().forEach(ty -> types.add(Lang.resolve(p, ty.getDisplayName()).getString()));
-                String[][] rows = {{"Dex No.", String.format("%04d", m.getSpecies().getNationalPokedexNumber())},
-                        {"Species", Lang.resolve(p, m.getSpecies().getTranslatedName()).getString()}, {"Type", String.join(" / ", types)},
-                        {"OT", m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName()},
-                        {"Nature", Lang.get(p, m.getNature().getDisplayName())}, {"Ability", Lang.get(p, m.getAbility().getDisplayName())}};
+                String[][] rows = {{Lang.t(p, "cobblemon.ui.info.pokedex_number"), String.format("%04d", m.getSpecies().getNationalPokedexNumber())},
+                        {Lang.t(p, "cobblemon.ui.info.species"), Lang.resolve(p, m.getSpecies().getTranslatedName()).getString()}, {Lang.t(p, "cobblemon.ui.info.type"), String.join(" / ", types)},
+                        {Lang.t(p, "cobblemon.ui.info.original_trainer"), m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName()},
+                        {Lang.t(p, "cobblemon.ui.info.nature"), Lang.get(p, m.getNature().getDisplayName())}, {Lang.t(p, "cobblemon.ui.info.ability"), Lang.get(p, m.getAbility().getDisplayName())}};
                 for (int k = 0; k < rows.length; k++) {
                     int ry = py + 5 + 15 * k;
-                    Art.text(t, "pc_bold", px + 7, ry + 3, rows[k][0], false);
+                    Art.text(t, "pc_bold", px + 7, ry + 3, Art.fit("pc_bold", Art.plain(rows[k][0]), 36), false);
                     Art.text(t, "pc_bold", px + 44, ry + 3, Art.fit("pc_bold", rows[k][1], k == 0 ? 28 : 56), false);
                 }
-                Art.text(t, "pc_text", px + 48, py + 118, "Exp. Points", false);
+                Art.text(t, "pc_text", px + 48, py + 118, Art.fit("pc_text", Art.plain(Lang.t(p, "cobblemon.ui.info.experience_points")), 34), false);
                 String exp = String.valueOf(m.getExperience());
                 Art.text(t, "pc_text", px + 101 - Art.width("pc_text", exp), py + 118, exp, false);
-                Art.text(t, "pc_text", px + 48, py + 128, "To Next Lv.", false);
+                Art.text(t, "pc_text", px + 48, py + 128, Art.fit("pc_text", Art.plain(Lang.t(p, "cobblemon.ui.info.to_next_level")), 34), false);
                 Art.text(t, "pc_text", px + 101 - Art.width("pc_text", String.valueOf(next)), py + 128, String.valueOf(next), false);
             }
         }

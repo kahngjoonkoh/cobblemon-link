@@ -26,7 +26,6 @@ public final class Summary {
     static final int INFO = 0, MOVES = 1, STATS = 2, EVOLVE = 17 + 3 * 8;
     private static final String[] TABS = {"Info", "Moves", "Stats"};
     private static final Stats[] STATS_ORDER = {Stats.HP, Stats.ATTACK, Stats.DEFENCE, Stats.SPECIAL_ATTACK, Stats.SPECIAL_DEFENCE, Stats.SPEED};
-    private static final String[] STAT_NAMES = {"HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"};
     private static final java.util.Map<java.util.UUID, Integer> PICKED = new java.util.HashMap<>();
 
     private Summary() {}
@@ -57,36 +56,36 @@ public final class Summary {
         List<Forms.Opt> o = new ArrayList<>();
         for (int t = 0; t < TABS.length; t++) {
             int tt = t;
-            o.add(new Forms.Opt(TABS[t] + (t == tab ? "*" : ""), "summary/tab_" + TABS[t].toLowerCase(Locale.ROOT), () -> {
+            o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui." + TABS[t].toLowerCase(Locale.ROOT)) + (t == tab ? "*" : ""), "summary/tab_" + TABS[t].toLowerCase(Locale.ROOT), () -> {
                 PICKED.remove(p.getUUID());
                 open(p, i, tt);
             }));
         }
         boolean out = m.getEntity() != null;
-        o.add(new Forms.Opt(battling || m.isFainted() && !out ? "" : out ? "Recall" : "Send out", "none", () -> {
+        o.add(new Forms.Opt(battling || m.isFainted() && !out ? "" : Lang.t(p, out ? "cobblemonlink.party.recall" : "cobblemonlink.party.send_out"), "none", () -> {
             if (m.getEntity() != null) m.recall();
             else if (!m.isFainted() && !battling) m.sendOutWithAnimation(p, p.serverLevel(), p.position().add(p.getLookAngle().multiply(2, 0, 2)), null, true, null, e -> kotlin.Unit.INSTANCE);
             open(p, i, tab);
         }));
-        o.add(new Forms.Opt(battling || i == 0 ? "" : "Lead", "none", () -> {
+        o.add(new Forms.Opt(battling || i == 0 ? "" : Lang.t(p, "cobblemonlink.summary.lead"), "none", () -> {
             var store = Cobblemon.INSTANCE.getStorage().getParty(p);
             store.swap(slot(store, party.getFirst()), slot(store, m));
             open(p, 0, tab);
         }));
-        o.add(new Forms.Opt(battling || party.size() <= 1 ? "" : "To PC", "none", () -> {
+        o.add(new Forms.Opt(battling || party.size() <= 1 ? "" : Lang.t(p, "cobblemonlink.summary.to_pc"), "none", () -> {
             if (m.getEntity() != null) m.recall();
             if (Cobblemon.INSTANCE.getStorage().getParty(p).remove(m) && !Cobblemon.INSTANCE.getStorage().getPC(p).add(m))
                 Cobblemon.INSTANCE.getStorage().getParty(p).add(m); // the PC is full: back to the party
             open(p, Math.max(0, i - 1), tab);
         }));
         String look = look(m);
-        o.add(new Forms.Opt("Lv. " + m.getLevel(), Models.has(look) ? "body/" + look : "none", stay));
+        o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.lv.number", m.getLevel()), Models.has(look) ? "body/" + look : "none", stay));
         o.add(new Forms.Opt(m.getGender() == Gender.MALE ? "♂" : m.getGender() == Gender.FEMALE ? "♀" : "", "none", stay));
         List<ElementalType> types = new ArrayList<>();
         m.getTypes().forEach(types::add);
         for (int k = 0; k < 2; k++)
             o.add(new Forms.Opt("", k < types.size() ? "pc/type/" + types.get(k).getName().toLowerCase(Locale.ROOT) : "none", stay));
-        o.add(new Forms.Opt("Rename", "none", () -> Forms.input(p, "Nickname", BattleUi.name(m), m.getNickname() == null ? "" : m.getNickname().getString(), name -> {
+        o.add(new Forms.Opt(Lang.t(p, "cobblemonlink.summary.rename"), "none", () -> Forms.input(p, Lang.t(p, "cobblemonlink.summary.nickname"), BattleUi.name(m), m.getNickname() == null ? "" : m.getNickname().getString(), name -> {
             if (name != null) {
                 String n = name.strip();
                 m.setNickname(n.isEmpty() ? null : Component.literal(n.substring(0, Math.min(12, n.length()))));
@@ -113,7 +112,7 @@ public final class Summary {
         }
         while (o.size() < EVOLVE) o.add(new Forms.Opt("", "none", stay));
         var evo = m.getEvolutionProxy().server();
-        o.add(new Forms.Opt(evo.isEmpty() || battling ? "" : "Evolve", "none", () -> {
+        o.add(new Forms.Opt(evo.isEmpty() || battling ? "" : Lang.t(p, "cobblemon.ui.evolve"), "none", () -> {
             if (!evo.isEmpty()) evo.start(evo.iterator().next());
             open(p, i, tab);
         }));
@@ -126,7 +125,7 @@ public final class Summary {
         Integer first = PICKED.remove(p.getUUID());
         if (first == null) {
             PICKED.put(p.getUUID(), row);
-            p.sendSystemMessage(Component.literal("Tap another move to swap them."));
+            p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.summary.swap_hint")));
         } else if (first != row) {
             List<Move> moves = m.getMoveSet().getMoves();
             List<com.cobblemon.mod.common.api.moves.BenchedMove> bench = new ArrayList<>();
@@ -168,7 +167,7 @@ public final class Summary {
                 for (var b : m.getBenchedMoves()) {
                     if (k >= 8) break;
                     rows.add(new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(p, b.getMoveTemplate().getDisplayName()).getString(),
-                            "(benched)", "pc/type/" + b.getMoveTemplate().getElementalType().getName().toLowerCase(Locale.ROOT)});
+                            Lang.t(p, "cobblemonlink.summary.benched"), "pc/type/" + b.getMoveTemplate().getElementalType().getName().toLowerCase(Locale.ROOT)});
                     k++;
                 }
             }
@@ -177,8 +176,8 @@ public final class Summary {
                     Stat s = STATS_ORDER[k];
                     String mark = k == 0 ? "" : s == m.getNature().getIncreasedStat() && s != m.getNature().getDecreasedStat() ? " +"
                             : s == m.getNature().getDecreasedStat() && s != m.getNature().getIncreasedStat() ? " -" : "";
-                    rows.add(new String[]{STAT_NAMES[k] + mark, (k == 0 ? m.getCurrentHealth() + "/" : "") + m.getStat(s)
-                            + "   IV " + m.getIvs().getOrDefault(s) + "  EV " + m.getEvs().getOrDefault(s), "none"});
+                    rows.add(new String[]{Lang.resolve(p, s.getDisplayName()).getString() + mark, (k == 0 ? m.getCurrentHealth() + "/" : "") + m.getStat(s)
+                            + "   " + Lang.t(p, "cobblemon.ui.stats.ivs") + " " + m.getIvs().getOrDefault(s) + "  " + Lang.t(p, "cobblemon.ui.stats.evs") + " " + m.getEvs().getOrDefault(s), "none"});
                 }
             }
             default -> {
@@ -186,14 +185,14 @@ public final class Summary {
                 long next = m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience();
                 List<String> types = new ArrayList<>();
                 m.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
-                rows.add(new String[]{"Pokédex No.", String.format("%04d", m.getSpecies().getNationalPokedexNumber()), "none"});
-                rows.add(new String[]{"Species", Lang.resolve(p, m.getSpecies().getTranslatedName()).getString(), "none"});
-                rows.add(new String[]{"Type", String.join(" / ", types), "none"});
-                rows.add(new String[]{"OT", m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName(), "none"});
-                rows.add(new String[]{"Nature", Lang.get(p, m.getNature().getDisplayName()), "none"});
-                rows.add(new String[]{"Ability", Lang.get(p, m.getAbility().getDisplayName()), "none"});
-                rows.add(new String[]{"EXP. Points", String.valueOf(m.getExperience()), "none"});
-                rows.add(new String[]{"To Next Lv.", String.valueOf(next), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.pokedex_number"), String.format("%04d", m.getSpecies().getNationalPokedexNumber()), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.species"), Lang.resolve(p, m.getSpecies().getTranslatedName()).getString(), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.type"), String.join(" / ", types), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.original_trainer"), m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName(), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.nature"), Lang.get(p, m.getNature().getDisplayName()), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.ability"), Lang.get(p, m.getAbility().getDisplayName()), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.experience_points"), String.valueOf(m.getExperience()), "none"});
+                rows.add(new String[]{Lang.t(p, "cobblemon.ui.info.to_next_level"), String.valueOf(next), "none"});
             }
         }
         return rows;

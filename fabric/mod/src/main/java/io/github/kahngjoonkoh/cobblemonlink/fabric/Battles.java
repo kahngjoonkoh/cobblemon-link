@@ -25,8 +25,9 @@ public final class Battles {
         });
         net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
                 net.minecraft.commands.Commands.literal("battle").executes(c -> {
-                    var ui = BattleUi.get(c.getSource().getPlayerOrException());
-                    if (ui == null) c.getSource().sendFailure(net.minecraft.network.chat.Component.literal("You are not in a battle."));
+                    var p = c.getSource().getPlayerOrException();
+                    var ui = BattleUi.get(p);
+                    if (ui == null) c.getSource().sendFailure(net.minecraft.network.chat.Component.literal(Lang.t(p, "cobblemonlink.battle.not_in")));
                     else ui.reveal();
                     return 1;
                 })));

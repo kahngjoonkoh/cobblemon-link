@@ -22,7 +22,7 @@ import net.minecraft.server.level.ServerPlayer;
  */
 final class DexArt {
     static final int PER = 45, LINES = 6, BAR_MAX = 48, INK = 60;
-    static final String[] FILTERS = {"All", "Seen", "Caught"};
+    static final String[] FILTERS = {"all", "seen", "owned"}; // cobblemon.ui.pokedex.filter.*
     private static final char BASE = '', SELECT = '', UNKNOWN = '', CAUGHT = '', UNKNOWN_BIG = '',
             TAB_ON = '', TAB_ICON = '', PLATFORM = '', BAR = '', TYPE_ICON = '';
     private static final String[][] REGIONS = {{"1", "Kanto"}, {"152", "Johto"}, {"252", "Hoenn"}, {"387", "Sinnoh"},
@@ -40,10 +40,10 @@ final class DexArt {
 
     static int tileRow(int i) { return 3 + i / 9; }
 
-    static String region(int dex) {
+    static String region(ServerPlayer p, int dex) {
         String r = REGIONS[0][1];
         for (String[] e : REGIONS) if (dex >= Integer.parseInt(e[0])) r = e[1];
-        return r;
+        return Lang.t(p, "cobblemon.ui.pokedex.region." + r.toLowerCase(Locale.ROOT));
     }
 
     static boolean seen(ServerPlayer p, Species s) { return Dex.knowledge(p, s) != PokedexEntryProgress.UNREGISTERED; }
@@ -96,7 +96,7 @@ final class DexArt {
             if (caught(p, s)) caughtCount++;
         }
         Art.glyph(t, 0, 0, BASE, 7);
-        Art.text(t, "pc_label", 19, 12, "National", false);
+        Art.text(t, "pc_label", 19, 12, Art.fit("pc_label", Art.plain(Lang.t(p, "cobblemon.ui.pokedex.region.national")), 60), false);
         Art.text(t, "pc_bold", 125, 13, String.format("%04d", seenCount), false);
         Art.text(t, "pc_bold", 155, 13, String.format("%04d", caughtCount), false);
         for (int i = 0; i < PER && v.page * PER + i < all.size(); i++) {
@@ -111,13 +111,13 @@ final class DexArt {
             if (sp == v.sel) Art.glyph(t, cx - 1, cy - 1, SELECT, 7);
         }
         String strip;
-        if (all.isEmpty()) strip = "Nothing " + FILTERS[v.filter].toLowerCase(Locale.ROOT) + " yet";
+        if (all.isEmpty()) strip = Lang.t(p, "cobblemonlink.dex.empty");
         else {
             int lo = all.get(v.page * PER).getNationalPokedexNumber(), hi = all.get(Math.min(all.size(), v.page * PER + PER) - 1).getNationalPokedexNumber();
-            String where = region(lo).equals(region(hi)) ? region(lo) : region(lo) + "-" + region(hi);
-            strip = where + "  " + String.format("%04d-%04d", lo, hi) + "  " + FILTERS[v.filter] + "  " + (v.page + 1) + "/" + pages;
+            String where = region(p, lo).equals(region(p, hi)) ? region(p, lo) : region(p, lo) + "-" + region(p, hi);
+            strip = where + "  " + String.format("%04d-%04d", lo, hi) + "  " + Lang.t(p, "cobblemon.ui.pokedex.filter." + FILTERS[v.filter]) + "  " + (v.page + 1) + "/" + pages;
         }
-        Art.text(t, "pc_bold", 91, 121, Art.fit("pc_bold", strip, 160), true);
+        Art.text(t, "pc_bold", 91, 121, Art.fit("pc_bold", Art.plain(strip), 160), true);
         Art.glyph(t, Art.x(3 + v.tab) - 1, Art.y(8) - 1, TAB_ON, 7);
         Art.glyph(t, Art.x(3 + v.tab), Art.y(8), (char) (TAB_ICON + v.tab), 7);
         Species s = v.sel;
@@ -154,9 +154,9 @@ final class DexArt {
 
     static List<String> page(ServerPlayer p, View v, Species s, boolean seen, boolean caught) {
         java.util.function.ToIntFunction<String> width = x -> (int) Math.ceil(Art.width("pc_text", x));
-        if (!seen) return v.tab == 0 ? List.of("Not seen yet.") : List.of();
+        if (!seen) return v.tab == 0 ? Ui.wrap(Art.plain(Lang.t(p, "cobblemonlink.dex.not_seen")), 84, width) : List.of();
         return switch (v.tab) {
-            case 0 -> caught ? Ui.wrap(Art.plain(Starters.desc(s.getResourceIdentifier().getPath())), 84, width) : List.of("Catch it to read its", "Pokédex entry.");
+            case 0 -> caught ? Ui.wrap(Art.plain(Starters.desc(p, s.getResourceIdentifier().getPath())), 84, width) : Ui.wrap(Art.plain(Lang.t(p, "cobblemonlink.dex.catch_to_read")), 84, width);
             case 1 -> {
                 List<String> out = new ArrayList<>();
                 for (var a : s.getAbilities()) {
@@ -174,7 +174,7 @@ final class DexArt {
             case 3 -> {
                 List<String> out = new ArrayList<>();
                 new java.util.TreeMap<>(s.getMoves().getLevelUpMoves()).forEach((lv, ms) -> ms.forEach(mv ->
-                        out.add("Lv" + lv + "  " + Lang.resolve(p, mv.getDisplayName()).getString())));
+                        out.add(Lang.t(p, "cobblemon.ui.lv.number", lv) + "  " + Lang.resolve(p, mv.getDisplayName()).getString())));
                 yield out;
             }
             default -> evolutions(p, s);
@@ -187,7 +187,7 @@ final class DexArt {
         for (int guard = 0; root.getPreEvolution() != null && guard < 5; guard++) root = root.getPreEvolution().getSpecies();
         List<String> out = new ArrayList<>();
         family(p, root, "", out);
-        return out.size() == 1 ? List.of(out.getFirst(), "Doesn't evolve.") : out;
+        return out.size() == 1 ? List.of(out.getFirst(), Lang.t(p, "cobblemonlink.dex.no_evolution")) : out;
     }
 
     private static void family(ServerPlayer p, Species s, String how, List<String> out) {
@@ -198,8 +198,8 @@ final class DexArt {
             String result = e.getResult().getSpecies();
             var next = result == null ? null : com.cobblemon.mod.common.api.pokemon.PokemonSpecies.getByName(result.replace("cobblemon:", ""));
             if (next == null) continue;
-            String req = "Evolves";
-            for (var r : e.getRequirements()) if (r instanceof LevelRequirement l) req = "Lv" + l.getMinLevel();
+            String req = Lang.t(p, "cobblemonlink.dex.evolves");
+            for (var r : e.getRequirements()) if (r instanceof LevelRequirement l) req = Lang.t(p, "cobblemon.ui.lv.number", l.getMinLevel());
             family(p, next, req, out);
         }
     }

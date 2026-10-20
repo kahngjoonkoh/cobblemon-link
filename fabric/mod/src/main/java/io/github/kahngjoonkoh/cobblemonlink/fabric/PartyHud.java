@@ -78,7 +78,7 @@ public final class PartyHud {
                     boolean hide = !p.getTags().contains(HIDE_TAG); // a player tag: saved with the player
                     if (hide) p.addTag(HIDE_TAG);
                     else p.removeTag(HIDE_TAG);
-                    p.sendSystemMessage(Component.literal(hide ? "Party hidden. /partyhud shows it again." : "Party shown."));
+                    p.sendSystemMessage(Component.literal(Lang.t(p, hide ? "cobblemonlink.hud.hidden" : "cobblemonlink.hud.shown")));
                     return 1;
                 })));
     }
@@ -113,7 +113,7 @@ public final class PartyHud {
             g.values().removeIf(x -> x.start >= 0 && now - x.start > LAST);
             if (!g.isEmpty() || SHOWN.add(id) || now % 10 == 0) {
                 if (bedrock) title(p, bedrock(party, g));
-                else p.connection.send(new ClientboundSetActionBarTextPacket(draw(party, g)));
+                else p.connection.send(new ClientboundSetActionBarTextPacket(draw(p, party, g)));
             }
         }
     }
@@ -125,7 +125,7 @@ public final class PartyHud {
     private static final net.minecraft.resources.ResourceLocation PORTRAIT_HUD = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("cobblemonlink", "portrait_hud"); // not Ui.id: Ui loads Cobblemon (tests)
 
     /** Cobblemon's party overlay for vanilla Java: down the left edge, a 62 x 30 slot each, the lead poking out. */
-    static Component draw(List<Pokemon> party, Map<UUID, Gain> gains) {
+    static Component draw(ServerPlayer p, List<Pokemon> party, Map<UUID, Gain> gains) {
         Ui.Overlay o = new Ui.Overlay();
         int n = party.size(), top = -n * 15 - 10; // PartyOverlay: (mid - totalHeight / 2) - (SLOT_SPACING * 5) / 2
         for (int i = 0; i < n; i++) {
@@ -143,7 +143,7 @@ public final class PartyHud {
                 double tr = (t - BEFORE - FLASH) / (double) LEVEL_UP;
                 if (tr >= 0 && tr < 1) o.mid(24 + sel, y + 4, Ui.glyphs(String.valueOf((char) (SCROLL + Math.max(1, (int) Math.ceil(tr * 14)) - 1))), 18);
             }
-            small(o, sel + 7, y + 13, "Lv.", true);
+            small(o, sel + 7, y + 13, fit(Lang.t(p, "cobblemon.ui.lv"), 14), true);
             small(o, sel + 7, y + 18, String.valueOf(g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.getLevel()), true);
             small(o, sel + 2, y + 25, fit(BattleUi.name(m), 37), false);
             if (m.getGender() == Gender.MALE || m.getGender() == Gender.FEMALE)
@@ -157,7 +157,7 @@ public final class PartyHud {
             double[] ex = fade(t, POP_IN, EXP_HOLD, POP_OUT);
             if (ex[1] > 0) {
                 o.fade = Math.min(7, (int) Math.round((1 - ex[1]) * 8));
-                small(o, sel + 57, y + 17 + (int) ex[0], "+" + g.exp + " EXP", false);
+                small(o, sel + 57, y + 17 + (int) ex[0], Lang.t(p, "cobblemonlink.hud.exp", g.exp), false);
                 o.fade = 0;
             }
             double[] mv = g.moves > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
@@ -228,7 +228,7 @@ public final class PartyHud {
                 double[] evf = g.evolutions > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
                 if (ex[1] > 0.25) {
                     ea = "y";
-                    et = "+" + g.exp + " EXP";
+                    et = "+" + g.exp + " EXP"; // ponytail: ASCII field in the HUD title string, stays English
                 }
                 if (evf[1] > 0) ev = step(evf[1]) + (ex[1] > 0 && mvf[1] > 0 ? "b" : "a");
                 if (mvf[1] > 0) mv = step(mvf[1]) + (ex[1] > 0 ? "a" : "b");

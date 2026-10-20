@@ -73,9 +73,9 @@ final class StarterArt {
             t.add(x(170), down(183), Ui.glyphs(String.valueOf(DOWN)), 8, top < last ? WHITE : DIM);
         }
         art(t, 4, 7, BALL, 9);
-        label(t, 144.5, 16, "Starter Selection", true, false);
-        label(t, 56, 181, "I choose you!", true, true);
-        List<String> lines = Ui.wrap(plain(Starters.desc(selected)), 96, Ui::tightWidth);
+        label(t, 144.5, 16, fit(Lang.t(p, "cobblemon.ui.starter.title"), false, 84), true, false);
+        label(t, 56, 181, fit(Lang.t(p, "cobblemon.ui.starter.choosebutton"), true, 96), true, true);
+        List<String> lines = Ui.wrap(plain(Starters.desc(p, selected)), 96, Ui::tightWidth);
         int n = Math.min(6, lines.size());
         double gap = n <= 5 ? 5.5 : 5, first = n <= 5 ? 143 : 142;
         for (int i = 0; i < n; i++)
@@ -98,6 +98,11 @@ final class StarterArt {
         Component c = bold ? Ui.uni(s) : Ui.text(s, Ui.UNIFORM);
         t.add(x(left + 1), down(panelY + 1), c, w, SHADOW);
         t.add(x(left), down(panelY), c, w, WHITE);
+    }
+
+    private static String fit(String s, boolean bold, int max) {
+        while (s.length() > 1 && Ui.uniWidth(s, bold) > max) s = s.substring(0, s.length() - 1);
+        return s;
     }
 
     private static void small(Ui.Title t, double panelX, int panelY, String s) {

@@ -47,4 +47,13 @@ public final class Mixins {
         }
         return true;
     }
+
+    private static final java.util.Set<Integer> DEFERRED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** True the first time an entity's spawn is put off a tick (then it goes as it is). */
+    public static boolean deferSpawn(int id) {
+        if (DEFERRED.remove(id)) return false;
+        DEFERRED.add(id);
+        return true;
+    }
 }

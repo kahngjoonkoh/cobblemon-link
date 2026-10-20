@@ -60,7 +60,7 @@ final class Pasture {
         Chest c = new Chest(6, title);
         for (int i = 0; i < Math.min(opts.size(), 54); i++) {
             Pokemon m = shown.get(i);
-            c.set(i, m == null ? Chest.icon(Items.HAY_BLOCK, opts.get(i).text(), List.of()) : JavaScreens.mon(m, Lang.t(p, "cobblemonlink.pasture.click_recall")), opts.get(i).action());
+            c.set(i, m == null ? Chest.icon(Items.HAY_BLOCK, opts.get(i).text(), List.of()) : JavaScreens.mon(p, m, Lang.t(p, "cobblemonlink.pasture.click_recall")), opts.get(i).action());
         }
         c.open(p);
     }
@@ -88,7 +88,7 @@ final class Pasture {
         }
         // ponytail: the first 53 PC Pokémon; pages if someone's PC is bigger and they want the rest
         Chest c = new Chest(6, Lang.t(p, "cobblemonlink.pasture.add"));
-        for (int i = 0; i < Math.min(act.length, 53); i++) c.set(i, JavaScreens.mon(mons.get(i), Lang.t(p, "cobblemonlink.pasture.click_add")), act[i]);
+        for (int i = 0; i < Math.min(act.length, 53); i++) c.set(i, JavaScreens.mon(p, mons.get(i), Lang.t(p, "cobblemonlink.pasture.click_add")), act[i]);
         c.set(53, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.back"), List.of()), () -> open(p));
         c.open(p);
     }

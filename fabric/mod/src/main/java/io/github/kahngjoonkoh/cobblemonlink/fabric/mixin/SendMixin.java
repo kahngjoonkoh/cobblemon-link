@@ -38,7 +38,9 @@ public class SendMixin {
             List<Packet<? super ClientGamePacketListener>> out = new ArrayList<>();
             for (var p : b.subPackets()) {
                 var c = clean(p, h);
-                if (c != null) out.add((Packet<? super ClientGamePacketListener>) c);
+                // a bundle can't hold a bundle: an empty one stands for nothing, a full one is opened up
+                if (c instanceof ClientboundBundlePacket inner) for (var q : inner.subPackets()) out.add(q);
+                else if (c != null) out.add((Packet<? super ClientGamePacketListener>) c);
             }
             return new ClientboundBundlePacket(out);
         }
@@ -52,6 +54,12 @@ public class SendMixin {
             var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet, h.player);
             if (t == null) return new ClientboundBundlePacket(List.of());
             if (t != packet) return t;
+        }
+        // a thrown Poké Ball is announced before it is in the world: Bedrock gets it a tick later, once we can model it
+        if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) == null
+                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.deferSpawn(a.getId())) {
+            io.github.kahngjoonkoh.cobblemonlink.fabric.Tasks.next(() -> h.send(a));
+            return new ClientboundBundlePacket(List.of());
         }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its look (as on Paper)
         if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.Entity ent

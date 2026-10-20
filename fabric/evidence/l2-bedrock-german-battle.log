@@ -1,0 +1,5 @@
+# Bedrock bot with LanguageCode de_DE in a wild battle: Cobblemon's own words (Kämpfen, Auswechseln, Fangen, Flucht, Bisasam, Rankenhieb, KP)
+bossbar §rBisasam  Lv.10   31/31 KP 0
+bossbar §rWild Rattata  Lv.2 0
+form Battle§r§l§1 | Los! Bisasam! / Es ist jetzt Runde 1 | Kämpfen<textures/cobblemonlink/menu_fight> ; Auswechseln<textures/cobblemonlink/menu_switch> ; Fangen<textures/cobblemonlink/menu_bag> ; Flucht<textures/cobblemonlink/menu_run>
+form Battle§r§l§2 | Los! Bisasam! / Es ist jetzt Runde 1 | Rankenhieb           23/25<textures/cobblemonlink/move_grass> ; Egelsamen           10/10<textures/cobblemonlink/move_grass> ; Wachstum           20/20<textures/cobblemonlink/mov

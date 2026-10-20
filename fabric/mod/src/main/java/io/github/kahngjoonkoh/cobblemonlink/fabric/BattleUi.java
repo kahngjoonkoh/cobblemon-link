@@ -68,8 +68,8 @@ public final class BattleUi {
             }
             ui.bars();
             if (ui.choosing && !ui.formOpen && !ui.javaScreen())
-                ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(Clients.bedrock(ui.player)
-                        ? "You need to choose an action. Tap the Pokémon." : "You need to choose an action. Right-click the Pokémon or /battle.")));
+                ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(Lang.t(ui.player, Clients.bedrock(ui.player)
+                        ? "cobblemonlink.battle.choose_tap" : "cobblemonlink.battle.choose_click"))));
         }
     }
 
@@ -207,9 +207,10 @@ public final class BattleUi {
                 }, act(o.action())));
             } else { // BattleSwitchPokemonSelection: 94x29, 4/2 px apart
                 int x = 12 + n % 2 * 98, top = 192 - n / 2 * 31;
-                String[] nl = name.split("  Lv\\.");
-                tiles.add(tile(x, top, 94, 29, Ui.PARTY, ov -> ov.label(Ui.Overlay.BL, x + 5, top - 4, "Lv.")
-                        .label(Ui.Overlay.BL, x + 18, top - 4, nl.length > 1 ? nl[1] : "").label(Ui.Overlay.BL, x + 5, top - 11, nl[0])
+                int cut = name.lastIndexOf("  "); // "name  Lv.5" (the level in the player's language): name, then the level's digits
+                String nm = cut < 0 ? name : name.substring(0, cut), lv = cut < 0 ? "" : name.substring(cut).replaceAll("\\D", "");
+                tiles.add(tile(x, top, 94, 29, Ui.PARTY, ov -> ov.label(Ui.Overlay.BL, x + 5, top - 4, Lang.t(player, "cobblemon.ui.lv"))
+                        .label(Ui.Overlay.BL, x + 18, top - 4, lv).label(Ui.Overlay.BL, x + 5, top - 11, nm)
                         .small(Ui.Overlay.BL, x + 47, top - 22, second), o.action()));
             }
             n++;
@@ -238,8 +239,8 @@ public final class BattleUi {
         o.fade = 0;
         if (screen != null) {
             screen.draw(o);
-            if (general || screen.idle()) hint(o, "Press Shift to move around.", 0.75);
-        } else if (hidden && choosing) hint(o, "You need to choose an action. Double-tap Shift.", 0.5 + 0.5 * Math.sin(Math.PI / 2 * ticks / 20.0));
+            if (general || screen.idle()) hint(o, Lang.t(player, "cobblemon.battle.ui.hide_label", "Shift"), 0.75);
+        } else if (hidden && choosing) hint(o, Lang.t(player, "cobblemonlink.battle.choose_shift"), 0.5 + 0.5 * Math.sin(Math.PI / 2 * ticks / 20.0));
         return o.build();
     }
 
@@ -260,7 +261,7 @@ public final class BattleUi {
         int ib = x + (own ? 40 : 7);
         float ratio = Math.clamp((float) bp.getHealth() / Math.max(1, bp.getMaxHealth()), 0f, 1f);
         int bar = Math.round(ratio * 97);
-        o.label(corner, ib, 17, name(mon)).label(corner, ib + 69, 17, "Lv.").label(corner, ib + 82, 17, String.valueOf(mon.getLevel()));
+        o.label(corner, ib, 17, name(mon)).label(corner, ib + 69, 17, Lang.t(player, "cobblemon.ui.lv")).label(corner, ib + 82, 17, String.valueOf(mon.getLevel()));
         if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29, (char) (0xE110 + bar), bar + 1);
         o.small(corner, ib + (own ? 39 : 44), 28, own ? bp.getHealth() + "/" + bp.getMaxHealth() : (int) Math.ceil(ratio * 100) + "%");
     }
@@ -283,9 +284,9 @@ public final class BattleUi {
             return;
         }
         boolean trapped = !r.getActive().isEmpty() && r.getActive().getFirst().getTrapped();
-        List<Forms.Opt> opts = new ArrayList<>(List.of(new Forms.Opt("Fight", "menu_fight", this::openFight),
-                new Forms.Opt("Switch", "menu_switch", () -> openSwitch(true)),
-                new Forms.Opt("Catch", "menu_bag", this::capture), new Forms.Opt("Run", "menu_run", () -> respond(new FleeAttemptActionResponse()))));
+        List<Forms.Opt> opts = new ArrayList<>(List.of(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
+                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
+                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.capture"), "menu_bag", this::capture), new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.run"), "menu_run", () -> respond(new FleeAttemptActionResponse()))));
         if (trapped) opts.remove(1);
         var b = battle(player);
         if (b != null && !b.isPvW()) opts.removeIf(o -> o.image().equals("menu_bag")); // only wild Pokémon can be caught
@@ -332,7 +333,7 @@ public final class BattleUi {
             BattlePokemon bp = a.getPokemonList().stream().filter(p -> p.getUuid().equals(sp.getUuid())).findFirst().orElse(null);
             if (bp == null) continue;
             var mon = bp.getEffectedPokemon();
-            opts.add(new Forms.Opt(name(mon) + "  Lv." + mon.getLevel() + "\n" + bp.getHealth() + "/" + bp.getMaxHealth(), "party",
+            opts.add(new Forms.Opt(name(mon) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + "\n" + bp.getHealth() + "/" + bp.getMaxHealth(), "party",
                     () -> respond(new SwitchActionResponse(sp.getUuid()))));
         }
         while (opts.size() < 5) opts.add(new Forms.Opt(" ", "none", () -> openSwitch(cancellable))); // Back is the 6th
@@ -343,7 +344,7 @@ public final class BattleUi {
     /** Cobblemon's Catch: the menu steps aside and the player throws a Poké Ball (Cobblemon's own capture). */
     private void capture() {
         hide(); // Java's screen steps aside so a ball can be thrown
-        player.sendSystemMessage(Component.literal("Throw a Poké Ball at your opponent to capture it."));
+        player.sendSystemMessage(Component.literal(Lang.t(player, "cobblemonlink.battle.throw_ball")));
     }
 
     private void respond(ShowdownActionResponse response) {
@@ -371,7 +372,7 @@ public final class BattleUi {
             formOpen = false; // ponytail: Esc on the chest isn't seen; /battle or a click on the Pokémon reopens it
             return;
         }
-        Forms.send(player, "Battle" + Forms.MARK + kind, String.join("\n", last.isEmpty() ? List.of("What will you do?") : last), opts, i -> {
+        Forms.send(player, "Battle" + Forms.MARK + kind, String.join("\n", last.isEmpty() ? List.of(Lang.t(player, "cobblemon.battle.choose_actions")) : last), opts, i -> {
             formOpen = false; // any answer closes it; the action may send the next one
             if (i >= 0 && i < opts.size()) opts.get(i).action().run();
         });
@@ -388,16 +389,20 @@ public final class BattleUi {
             var mon = bp.getEffectedPokemon();
             boolean own = ap.getActor() == actor();
             float ratio = Math.clamp((float) bp.getHealth() / Math.max(1, bp.getMaxHealth()), 0f, 1f);
-            var status = mon.getStatus() == null ? "" : "  " + mon.getStatus().getStatus().getShowdownName().toUpperCase(java.util.Locale.ROOT);
+            String sd = mon.getStatus() == null ? null : mon.getStatus().getStatus().getShowdownName();
+            var status = sd == null ? "" : "  " + (Lang.has("cobblemon.ui.status." + sd) ? Lang.t(player, "cobblemon.ui.status." + sd) : sd.toUpperCase(java.util.Locale.ROOT));
             if (own) {
-                ownBar.setName(Component.literal(name(mon) + "  Lv." + mon.getLevel() + "   " + bp.getHealth() + "/" + bp.getMaxHealth() + " HP" + status));
+                ownBar.setName(Component.literal(name(mon) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + "   " + bp.getHealth() + "/" + bp.getMaxHealth() + " " + Lang.t(player, "cobblemon.ui.stats.hp") + status));
                 ownBar.setProgress(ratio);
             } else {
-                wildBar.setName(Component.literal((mon.isWild() ? "Wild " : "") + name(mon) + "  Lv." + mon.getLevel() + status));
+                wildBar.setName(Component.literal((mon.isWild() ? Lang.t(player, "cobblemonlink.battle.wild", seen(mon)) : seen(mon)) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + status));
                 wildBar.setProgress(ratio);
             }
         }
     }
+
+    /** A Pokémon's name in this player's language (a wild one has no owner to take it from). */
+    private String seen(com.cobblemon.mod.common.pokemon.Pokemon mon) { return Lang.resolve(player, mon.getDisplayName(false)).getString(); }
 
     static String name(com.cobblemon.mod.common.pokemon.Pokemon mon) { return Lang.resolve(mon.getOwnerPlayer(), mon.getDisplayName(false)).getString(); }
 }

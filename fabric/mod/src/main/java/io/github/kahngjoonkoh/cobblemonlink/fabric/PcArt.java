@@ -77,18 +77,18 @@ final class PcArt {
         }
         Art.glyph(t, Art.x(7) + 3, Art.y(4) + 4, (char) (SORT + Math.max(0, v.sort)), 7);
         Art.glyph(t, Art.x(8) + 3, Art.y(4) + 4, v.type == null ? FILTER_ALL : (char) (TYPE_FILTER + Ui.TYPES.indexOf(v.type)), 7);
-        Art.text(t, "pc_label", 64, 130, Pc.boxName(box, v.box), true);
+        Art.text(t, "pc_label", 64, 130, Pc.boxName(p, box, v.box), true);
         if (sel != null) {
             if (v.confirm) {
                 Art.glyph(t, Art.x(7), 131, HALF, 7);
                 Art.glyph(t, Art.x(8), 131, HALF, 7);
-                Art.text(t, "pc_label", Art.x(7) + 8.5, 134, "Yes", true);
-                Art.text(t, "pc_label", Art.x(8) + 8.5, 134, "No", true);
+                Art.text(t, "pc_label", Art.x(7) + 8.5, 134, Art.fit("pc_label", Lang.t(p, "cobblemon.ui.generic.yes"), 16), true);
+                Art.text(t, "pc_label", Art.x(8) + 8.5, 134, Art.fit("pc_label", Lang.t(p, "cobblemon.ui.generic.no"), 16), true);
             } else {
                 Art.glyph(t, Art.x(7), 131, RELEASE, 7);
-                Art.text(t, "pc_label", Art.x(7) + 17, 134, "Release", true);
+                Art.text(t, "pc_label", Art.x(7) + 17, 134, Art.fit("pc_label", Lang.t(p, "cobblemon.ui.pc.release"), 33), true);
             }
-            info(t, sel, v.confirm);
+            info(p, t, sel, v.confirm);
         }
         return t.build();
     }
@@ -102,21 +102,21 @@ final class PcArt {
         if (selected) Art.glyph(t, x - 1, y - 1, RING, 7);
     }
 
-    private static void info(Ui.Title t, Pokemon m, boolean confirm) {
-        Art.text(t, "pc_bold", 7, 147, "Lv." + m.getLevel(), false);
+    private static void info(ServerPlayer p, Ui.Title t, Pokemon m, boolean confirm) {
+        Art.text(t, "pc_bold", 7, 147, Art.fit("pc_bold", Lang.t(p, "cobblemon.ui.lv.number", m.getLevel()), 44), false);
         Art.glyph(t, 5, 155, BALL, 6);
-        Art.text(t, "pc_bold", 12, 155, confirm ? "Release?" : BattleUi.name(m), false);
+        Art.text(t, "pc_bold", 12, 155, confirm ? Art.fit("pc_bold", Lang.t(p, "cobblemonlink.pc.release_confirm"), 36) : BattleUi.name(m), false);
         if (m.getGender() != Gender.GENDERLESS) Art.glyph(t, 48, 157, m.getGender() == Gender.MALE ? MALE : FEMALE, 4);
         var b = Art.body(Summary.look(m), true);
         if (b != null) Art.put(t, 6, 166, b, 45, 7);
         List<String> types = new ArrayList<>();
         m.getTypes().forEach(ty -> types.add(Lang.resolve(m.getOwnerPlayer(), ty.getDisplayName()).getString()));
-        String[][] rows = {{"Type", String.join(" / ", types)}, {"Nature", Lang.get(m.getOwnerPlayer(), m.getNature().getDisplayName())},
-                {"Ability", Lang.get(m.getOwnerPlayer(), m.getAbility().getDisplayName())},
-                {"Moves", String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(m.getOwnerPlayer(), mv.getDisplayName()).getString()).toList())}};
+        String[][] rows = {{Lang.t(p, "cobblemon.ui.info.type"), String.join(" / ", types)}, {Lang.t(p, "cobblemon.ui.info.nature"), Lang.get(m.getOwnerPlayer(), m.getNature().getDisplayName())},
+                {Lang.t(p, "cobblemon.ui.info.ability"), Lang.get(m.getOwnerPlayer(), m.getAbility().getDisplayName())},
+                {Lang.t(p, "cobblemon.ui.moves"), String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(m.getOwnerPlayer(), mv.getDisplayName()).getString()).toList())}};
         for (int i = 0; i < rows.length; i++) {
             int y = 152 + 3 + 15 * i;
-            Art.text(t, "pc_bold", 57, y, rows[i][0], false);
+            Art.text(t, "pc_bold", 57, y, Art.fit("pc_bold", Art.plain(rows[i][0]), 121), false);
             String value = Art.fit("pc_text", Art.plain(rows[i][1]), 121 - (i == 0 ? 16 : 0));
             Art.text(t, "pc_text", 57, y + 7, value, false);
             if (i == 0) {

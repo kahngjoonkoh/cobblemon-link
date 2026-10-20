@@ -65,7 +65,7 @@ public final class Dex {
         o.add(new Forms.Opt("<", "none", () -> bedrock(p, pg - 1, null)));
         o.add(new Forms.Opt(">", "none", () -> bedrock(p, pg + 1, null)));
         o.add(new Forms.Opt((pg + 1) + "/" + pages, "none", stay));
-        o.add(new Forms.Opt(String.format("No. %04d", sel.getNationalPokedexNumber()), seen ? picture(sel) : "pokedex/unknown", stay));
+        o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d", sel.getNationalPokedexNumber()), seen ? picture(sel) : "pokedex/unknown", stay));
         List<String> types = new ArrayList<>();
         sel.getTypes().forEach(t -> types.add(t.getName().toLowerCase(Locale.ROOT)));
         for (int t = 0; t < 2; t++) o.add(new Forms.Opt("", seen && t < types.size() ? "pc/type/" + types.get(t) : "none", stay));
@@ -81,7 +81,7 @@ public final class Dex {
             o.add(new Forms.Opt(String.format("%04d", sp.getNationalPokedexNumber()) + (kk == PokedexEntryProgress.OWNED ? "c" : "") + (sp == sel ? "*" : ""),
                     kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> bedrock(p, pg, sp)));
         }
-        String entry = caught ? Starters.desc(sel.getResourceIdentifier().getPath()) : seen ? "Catch it to read its Pokédex entry." : "";
+        String entry = caught ? Starters.desc(p, sel.getResourceIdentifier().getPath()) : seen ? Lang.t(p, "cobblemonlink.dex.catch_to_read") : "";
         String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() : "???";
         Forms.send(p, name + Forms.MARK + 8, entry, o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
     }

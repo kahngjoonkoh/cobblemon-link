@@ -14,5 +14,9 @@ public class PolyEntry implements PolyMcEntrypoint {
         for (String id : Furniture.BLOCKS)
             registry.registerBlockPoly(BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("cobblemon", id)),
                     new SimpleReplacementPoly(id.equals("campfire") ? Blocks.CAMPFIRE : id.equals("soul_campfire") ? Blocks.SOUL_CAMPFIRE : Blocks.BARRIER));
+        // a thrown Poké Ball keeps its own id (not PolyMc's flying item stand-in), so we can draw it: Java's display
+        // model, Bedrock's GeyserModelEngine ball (Mons.ball)
+        registry.registerEntityPoly(BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.fromNamespaceAndPath("cobblemon", "empty_pokeball")),
+                new io.github.theepicblock.polymc.impl.poly.entity.DefaultedEntityPoly<>(net.minecraft.world.entity.EntityType.ARMOR_STAND));
     }
 }
