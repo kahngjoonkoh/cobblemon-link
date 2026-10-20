@@ -39,6 +39,7 @@ public class Bridge implements ModInitializer {
         PartyHud.register();
         Starters.register();
         Summary.register();
+        Pc.register();
         // the pack once in game, vanilla Java only (Packs); Polymer may still be building it
         ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
             System.out.println("[cobblemonlink] " + h.player.getScoreboardName() + " is " + Clients.kind(h));

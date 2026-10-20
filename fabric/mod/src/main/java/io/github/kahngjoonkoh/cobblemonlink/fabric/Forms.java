@@ -48,6 +48,14 @@ public final class Forms {
         FloodgateApi.getInstance().sendForm(p.getUUID(), b.build());
     }
 
+    /** One dropdown; chosen gets its index, or -1 when closed. */
+    public static void choice(ServerPlayer p, String title, String label, List<String> options, int initial, IntConsumer chosen) {
+        var b = CustomForm.builder().title(title).dropdown(label, options, initial);
+        b.validResultHandler(r -> onMain(p, () -> chosen.accept(r.asDropdown(0))));
+        b.closedOrInvalidResultHandler(() -> onMain(p, () -> chosen.accept(-1)));
+        FloodgateApi.getInstance().sendForm(p.getUUID(), b.build());
+    }
+
     private static void onMain(ServerPlayer p, Runnable r) {
         p.server.execute(() -> { if (!p.hasDisconnected()) r.run(); });
     }
