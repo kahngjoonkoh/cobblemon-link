@@ -77,8 +77,8 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Starter (`/starter`, toast) | basic: chest · standard: art | Cobblemon's StarterHandler; chest a row a region | 🟡 chest ✅ `j2-java-basic-starter-party-dex.png`; art ⬜ |
 | Party / Summary / PC / Pokédex | basic: chest · standard: art | The Paper version's chest menus on Cobblemon's data (party + options, PC with sort/filter/release/wallpaper, Pokédex) | 🟡 chests ✅ `j2-java-basic-starter-party-dex.png`; art ⬜ |
 | Battle | basic/standard: chest menu · full: battle screen | BattleUi's menus as a chest, HP boss bars | 🟡 chest ✅ `j1-java-basic-battle.png` (all levels for now); battle screen ⬜ |
-| Party HUD, chat-free EXP | full | | ⬜ |
-| UI pack shaders for the 1.21.1 client | standard | | ⬜ |
+| Party HUD, chat-free EXP | full | The Paper version's overlay through the 1.21.1 text shader, from Cobblemon's party | ✅ `j4-java-full-party-hud.png` |
+| UI pack for the 1.21.1 client (fonts, pictures, text shader) | standard | `tools/ui_pack.py`, merged into Polymer's pack | ✅ `j3-java-ui-pack-toast.png` (Cobblemon's starter toast) |
 
 ## Not needed on Fabric
 

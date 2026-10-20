@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.MinecraftServer;
@@ -88,22 +89,102 @@ public final class PartyHud {
         return out;
     }
 
+    /** Vanilla Java draws it at the full level with the UI pack (the action bar through the text shader). */
+    public static boolean javaPanel(ServerPlayer p) { return Clients.java(p) && Ui.loaded && Config.vanillaJava().battleScreen(); }
+
     private static void tick(MinecraftServer server) {
         now++;
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
-            if (!Clients.bedrock(p)) continue; // ponytail: vanilla Java's overlay comes with the full level
+            boolean bedrock = Clients.bedrock(p);
+            if (!bedrock && !javaPanel(p)) continue;
             UUID id = p.getUUID();
             List<Pokemon> party = party(p);
             Map<UUID, Gain> g = GAINS.computeIfAbsent(id, k -> new HashMap<>());
             notice(id, party, g);
-            boolean visible = !party.isEmpty() && !p.getTags().contains(HIDE_TAG) && BattleRegistry.getBattleByParticipatingPlayer(p) == null;
+            boolean visible = !party.isEmpty() && !p.getTags().contains(HIDE_TAG) && BattleRegistry.getBattleByParticipatingPlayer(p) == null
+                    && (bedrock || p.containerMenu == p.inventoryMenu); // Java: not over a menu
             if (!visible) {
-                if (SHOWN.remove(id)) title(p, HIDDEN);
+                if (SHOWN.remove(id)) {
+                    if (bedrock) title(p, HIDDEN);
+                    else if (BattleRegistry.getBattleByParticipatingPlayer(p) == null) p.connection.send(new ClientboundSetActionBarTextPacket(Component.empty()));
+                }
                 continue;
             }
             g.values().removeIf(x -> x.start >= 0 && now - x.start > LAST);
-            if (!g.isEmpty() || SHOWN.add(id) || now % 10 == 0) title(p, bedrock(party, g));
+            if (!g.isEmpty() || SHOWN.add(id) || now % 10 == 0) {
+                if (bedrock) title(p, bedrock(party, g));
+                else p.connection.send(new ClientboundSetActionBarTextPacket(draw(party, g)));
+            }
         }
+    }
+
+    // build_hud.py's glyphs (the Paper version's PartyPanel)
+    private static final char SLOT = '\ue4a0', SLOT_ACTIVE = '\ue4a1', SLOT_FAINTED = '\ue4a2', SLOT_FAINTED_ACTIVE = '\ue4a3',
+            PORTRAIT_BG = '\ue4a4', MALE = '\ue4a5', FEMALE = '\ue4a6', BALL = '\ue4a7', POPUP_EVOLUTION = '\ue4a8',
+            POPUP_MOVE = '\ue4a9', SCROLL = '\ue4c0', HP = '\ue4d0', EXP = '\ue4f0';
+    private static final net.minecraft.resources.ResourceLocation PORTRAIT_HUD = Ui.id("portrait_hud");
+
+    /** Cobblemon's party overlay for vanilla Java: down the left edge, a 62 x 30 slot each, the lead poking out. */
+    static Component draw(List<Pokemon> party, Map<UUID, Gain> gains) {
+        Ui.Overlay o = new Ui.Overlay();
+        int n = party.size(), top = -n * 15 - 10; // PartyOverlay: (mid - totalHeight / 2) - (SLOT_SPACING * 5) / 2
+        for (int i = 0; i < n; i++) {
+            Pokemon m = party.get(i);
+            int sel = i == 0 ? 6 : 0, y = top + 34 * i;
+            Gain g = gains.get(m.getUuid());
+            if (g != null && g.start < 0) g.start = now;
+            long t = g == null ? -1 : now - g.start;
+            o.mid(22 + sel, y + 2, Ui.glyphs(String.valueOf(PORTRAIT_BG)), 22);
+            Integer pi = Ui.portraits.get(Summary.look(m));
+            if (pi != null) o.mid(22 + sel, y + 2, Ui.text(Character.toString(0xF0000 + 2 * pi), PORTRAIT_HUD), 22);
+            boolean fainted = m.isFainted();
+            o.mid(0, y, Ui.glyphs(String.valueOf(fainted ? (i == 0 ? SLOT_FAINTED_ACTIVE : SLOT_FAINTED) : (i == 0 ? SLOT_ACTIVE : SLOT))), 63);
+            if (g != null && g.oldLevel >= 0) { // the level-up scroll over the portrait, after the bar fills
+                double tr = (t - BEFORE - FLASH) / (double) LEVEL_UP;
+                if (tr >= 0 && tr < 1) o.mid(24 + sel, y + 4, Ui.glyphs(String.valueOf((char) (SCROLL + Math.max(1, (int) Math.ceil(tr * 14)) - 1))), 18);
+            }
+            small(o, sel + 7, y + 13, "Lv.", true);
+            small(o, sel + 7, y + 18, String.valueOf(g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.getLevel()), true);
+            small(o, sel + 2, y + 25, fit(BattleUi.name(m), 37), false);
+            if (m.getGender() == Gender.MALE || m.getGender() == Gender.FEMALE)
+                o.mid(sel + 40, y + 25 - 3, Ui.glyphs(String.valueOf(m.getGender() == Gender.MALE ? MALE : FEMALE)), 4);
+            o.mid(sel + 43, y + 22, Ui.glyphs(String.valueOf(BALL)), 10);
+            int hp = m.getCurrentHealth(), max = Math.max(1, m.getMaxHealth()), h = hp <= 0 ? 0 : Math.max(1, Math.round(BAR * hp / (float) max));
+            if (h > 0) o.mid(sel + 46, y + 5 + BAR - h - low(h), Ui.glyphs(String.valueOf((char) (HP + h - 1))), 3);
+            int e = Math.round(BAR * expRatio(m, g, t));
+            if (e > 0) o.mid(sel + 49, y + 5 + BAR - e - low(e), Ui.glyphs(String.valueOf((char) (EXP + e - 1))), 2);
+            if (g == null) continue;
+            double[] ex = fade(t, POP_IN, EXP_HOLD, POP_OUT);
+            if (ex[1] > 0) {
+                o.fade = Math.min(7, (int) Math.round((1 - ex[1]) * 8));
+                small(o, sel + 57, y + 17 + (int) ex[0], "+" + g.exp + " EXP", false);
+                o.fade = 0;
+            }
+            double[] mv = g.moves > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
+            double[] ev = g.evolutions > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
+            if (ev[1] > 0) {
+                o.fade = Math.min(7, (int) Math.round((1 - ev[1]) * 8));
+                o.mid(sel + (ex[1] > 0 && mv[1] > 0 ? 78 : 56), y + 4 + (int) ev[0], Ui.glyphs(String.valueOf(POPUP_EVOLUTION)), 20);
+            }
+            if (mv[1] > 0) {
+                o.fade = Math.min(7, (int) Math.round((1 - mv[1]) * 8));
+                o.mid(sel + 56, y + (ex[1] > 0 ? 4 : 17) + (int) mv[0], Ui.glyphs(String.valueOf(POPUP_MOVE)), 20);
+            }
+            o.fade = 0;
+        }
+        return o.build();
+    }
+
+    private static int low(int h) { return Math.max(0, 7 - h); }
+
+    private static void small(Ui.Overlay o, int x, int y, String s, boolean centre) {
+        int w = Ui.smallWidth(s);
+        o.mid(centre ? x - w / 2 : x, y - 4, Ui.text(Ui.tight(s), Ui.Overlay.SMALL), Ui.tightWidth(s));
+    }
+
+    private static String fit(String s, int max) {
+        while (s.length() > 1 && Ui.tightWidth(s) > max) s = s.substring(0, s.length() - 1);
+        return s;
     }
 
     /** Compares each Pokémon with last tick's: more EXP is a gain (with its level, moves and evolutions). */

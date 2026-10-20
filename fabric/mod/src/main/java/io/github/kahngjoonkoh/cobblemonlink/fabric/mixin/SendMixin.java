@@ -42,6 +42,9 @@ public class SendMixin {
             }
             return new ClientboundBundlePacket(out);
         }
+        if (packet instanceof ClientboundSystemChatPacket sc && !sc.overlay() && io.github.kahngjoonkoh.cobblemonlink.fabric.PartyHud.javaPanel(h.player)
+                && sc.content().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents t && t.getKey().startsWith("cobblemon.experience."))
+            return new ClientboundBundlePacket(List.of()); // as Cobblemon: on the party panel, not in chat
         if (Clients.bedrock(h.player)) { // Cobblemon's text in English: Geyser only knows Minecraft's keys
             var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
             if (t == null) return new ClientboundBundlePacket(List.of());
