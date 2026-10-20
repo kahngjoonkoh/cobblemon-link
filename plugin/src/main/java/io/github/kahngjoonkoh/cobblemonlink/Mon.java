@@ -175,7 +175,23 @@ final class Mon {
     }
 
     /** The converted model (looks.py) this Pokémon is drawn with. */
+    /** The look (portraits, pictures, the body art): without the cosmetic item, which only the 3D model wears. */
     String model(Dex dex) { return dex.model(species, allAspects()); }
+
+    /** The 3D model out in the world: the look with its cosmetic item on (tools/looks.py cosmetic_looks). */
+    String worn(Dex dex) {
+        String base = model(dex);
+        if (cosmetic == null) return base;
+        Dex.Species s = dex.get(species);
+        return s == null || s.looks == null ? base : s.looks.cosmetics.getOrDefault(cosmetic.aspect, Map.of()).getOrDefault(base, base);
+    }
+
+    /** Cobblemon's cosmetic item: the item worn (given back when swapped) and the aspect it shows. */
+    static final class Cosmetic {
+        String item, aspect; // item: ItemStack bytes, Base64
+    }
+
+    Cosmetic cosmetic;
 
     int maxHp(Dex dex) { return Rules.maxHp(dex.of(this).base(0), ivs[0], ev(0), level); }
 

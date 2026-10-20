@@ -26,7 +26,7 @@ final class AdminCommands {
             Dex.Spawn h = pl.dex.spawns.stream().filter(x -> x.herd != null && x.species.equals(a[0])).findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("No herd led by " + a[0] + "."));
             pl.spawner.herd(p, p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(4)), h, new java.util.Random());
-            return "A herd led by " + a[0] + ".";
+            return pl.t(p, "cobblemonlink.herd.spawned", pl.dex.name(a[0], CobblemonLink.loc(p)));
         });
         add("spawnnpc", "/spawnnpc <npc>", (s, a) -> {
             if (!(s instanceof Player p)) throw new IllegalArgumentException("Players only.");

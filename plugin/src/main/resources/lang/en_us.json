@@ -108,5 +108,6 @@
  "cobblemonlink.shoulder.cant": "%1$s can't ride on your shoulder.",
  "cobblemonlink.pot.unlit": "The campfire under the pot isn't lit.",
  "cobblemonlink.pot.cook": "Cook",
- "cobblemonlink.pot.seasoning": "Seasonings go in the right column"
+ "cobblemonlink.pot.seasoning": "Seasonings go in the right column",
+ "cobblemonlink.herd.spawned": "A herd led by %1$s."
 }

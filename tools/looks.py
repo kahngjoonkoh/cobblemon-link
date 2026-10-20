@@ -141,18 +141,53 @@ def first_frame(texture):
 _cache = {}
 
 
+def cosmetics_for(res, species):
+    if ('c', res) not in _cache:
+        _cache[('c', res)] = cosmetics(res)
+    return _cache[('c', res)].get(species, [])
+
+
 def all_looks_for(res, species):
     if res not in _cache:
         _cache[res] = all_looks(res)
     return _cache[res].get(species, [])
 
 
-def all_looks(res):
-    """{species: [(name, aspects, model, texture)]} for every species with a model."""
+def cosmetics(res):
+    """{species: [aspect, ...]}: Cobblemon's cosmetic items (data/cobblemon/cosmetic_items) a species can wear."""
+    out = {}
+    for p in sorted(glob.glob(f'{res}/data/cobblemon/cosmetic_items/*.json')):
+        d = json.load(open(p))
+        for sp in d.get('pokemon', []):
+            for c in d.get('cosmeticItems', []):
+                for a in c.get('aspects', [])[:1]:  # color-white / colour-white: the same look
+                    if a not in out.setdefault(sp.split()[0], []):
+                        out[sp.split()[0]].append(a)
+    return out
+
+
+def cosmetic_looks(rs, wearable):
+    """[(name, aspects, model, texture)] for a cosmetic worn on the base and shiny looks, where it changes the model,
+    the texture or the layers."""
+    species, out = rs[0]['species'].split(':')[1], []
+    for a in wearable:
+        for base in (set(), {'shiny'}):
+            asp = base | {a}
+            if resolve(rs, asp) == resolve(rs, base) and layers(rs, asp) == layers(rs, base):
+                continue
+            model, texture = resolve(rs, asp)
+            if model and texture:
+                out.append(('__'.join([species] + [slug(x) for x in sorted(asp)]), sorted(asp), model, texture))
+    return out
+
+
+def all_looks(res, with_cosmetics=True):
+    """{species: [(name, aspects, model, texture)]} for every species with a model (cosmetic looks last)."""
     defs, assigned = features(res)
+    wear = cosmetics(res) if with_cosmetics else {}
     out = {}
     for species, rs in resolvers(res).items():
-        found = looks(rs, aspect_groups(rs, assigned.get(species, []), defs))
+        found = looks(rs, aspect_groups(rs, assigned.get(species, []), defs)) + cosmetic_looks(rs, wear.get(species, []))
         if found:
             out[species] = found
     return out
@@ -174,6 +209,10 @@ def demo():
     assert layers(rl, set()) == ['f1'] and layers(rl, {'shiny'}) == ['sf']  # replaced, first frame, no alpha eyes
     assert aspect_of({'type': 'choice', 'isAspect': True, 'aspectFormat': '{{choice}}-sea'}, 'west') == 'west-sea'
     assert aspect_of({'type': 'flag', 'keys': ['alolan'], 'isAspect': True}, True) == 'alolan'
+    rc = [{'species': 'cobblemon:sq', 'variations': [{'aspects': [], 'model': 'm', 'texture': 't'},
+          {'aspects': ['cosmetic_item-black_glasses'], 'layers': [{'texture': 'g'}]}]}]
+    assert [n for n, *_ in cosmetic_looks(rc, ['cosmetic_item-black_glasses', 'cosmetic_item-x'])] == \
+        ['sq__cosmetic_item_black_glasses', 'sq__cosmetic_item_black_glasses__shiny']
 
 
 if __name__ == '__main__':

@@ -370,7 +370,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                 if (e.getHand() == EquipmentSlot.HAND) machines.use(e.getPlayer(), machine, e.getPlayer().getInventory().getItemInMainHand());
                 return;
             }
-            if (e.getHand() == EquipmentSlot.HAND && e.getPlayer().isSneaking()) companions.shoulder(e.getPlayer(), e.getRightClicked());
+            ItemStack hand = e.getPlayer().getInventory().getItemInMainHand();
+            if (e.getHand() != EquipmentSlot.HAND) return;
+            if (e.getPlayer().isSneaking() && !hand.isEmpty()) companions.cosmetic(e.getPlayer(), e.getRightClicked(), hand);
+            else if (e.getPlayer().isSneaking()) companions.shoulder(e.getPlayer(), e.getRightClicked());
+            else if (hand.isEmpty()) companions.cosmetic(e.getPlayer(), e.getRightClicked(), null);
             return;
         }
         if (npcs.isNpc(e.getRightClicked())) {

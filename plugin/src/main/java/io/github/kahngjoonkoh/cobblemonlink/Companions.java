@@ -10,6 +10,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.RayTraceResult;
 
 /**
@@ -43,7 +44,7 @@ final class Companions {
             pl.panel.say(p, m.name(pl.dex) + " has fainted.", true); // with the party panel, when it is shown
             return;
         }
-        Entity mon = pl.spawner.companion(spot(p), m.model(pl.dex), m.drawScale(pl.dex), p);
+        Entity mon = pl.spawner.companion(spot(p), m.worn(pl.dex), m.drawScale(pl.dex), p);
         pl.balls.sendOut(p, mon);
         mine.put(m.id, mon);
     }
@@ -78,6 +79,47 @@ final class Companions {
         s[side] = e;
         e.setGravity(false);
         return true;
+    }
+
+    /** The party Pokémon this carrier is (one of the player's sent-out ones), or null. */
+    private Mon monOf(Player p, Entity e) {
+        String id = out.getOrDefault(p.getUniqueId(), Map.of()).entrySet().stream().filter(x -> x.getValue().equals(e)).map(Map.Entry::getKey).findFirst().orElse(null);
+        return id == null ? null : pl.store.get(p.getUniqueId()).party.stream().filter(x -> x.id.equals(id)).findFirst().orElse(null);
+    }
+
+    /**
+     * Cobblemon's cosmetic items: Shift + right-click your sent-out Pokémon with one it can wear (data/cobblemon/
+     * cosmetic_items) to put it on, the old one coming back; right-click with an empty hand takes it off. The model
+     * is the converted look with the cosmetic (tools/looks.py cosmetic_looks).
+     */
+    void cosmetic(Player p, Entity e, ItemStack hand) {
+        Mon m = monOf(p, e);
+        if (m == null) return;
+        if (hand == null) {
+            if (m.cosmetic == null) return;
+            giveBack(p, m.cosmetic);
+            m.cosmetic = null;
+        } else {
+            String id = pl.items.id(hand);
+            String aspect = pl.dex.cosmeticFor(m.species, id != null ? id : hand.getType().getKey().toString(), id == null ? hand.getType() : null);
+            if (aspect == null) {
+                p.sendActionBar(Component.text(pl.t(p, "cobblemonlink.item.no_effect"), NamedTextColor.RED));
+                return;
+            }
+            if (m.cosmetic != null) giveBack(p, m.cosmetic);
+            m.cosmetic = new Mon.Cosmetic();
+            m.cosmetic.aspect = aspect;
+            m.cosmetic.item = java.util.Base64.getEncoder().encodeToString(hand.asOne().serializeAsBytes());
+            if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) hand.subtract();
+        }
+        pl.store.save(p.getUniqueId());
+        recall(p, m.id); // out again in its new look
+        toggle(p, m);
+    }
+
+    private static void giveBack(Player p, Mon.Cosmetic c) {
+        p.getInventory().addItem(ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(c.item)))
+                .values().forEach(x -> p.getWorld().dropItem(p.getLocation(), x));
     }
 
     /** Shift + right-click with an empty hand: the shoulder Pokémon hop down (the last one up first). */

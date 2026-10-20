@@ -293,7 +293,7 @@ final class Spawner {
             e.getPersistentDataContainer().set(pl.wildKey, PersistentDataType.STRING, Store.GSON.toJson(mon));
         });
         float scale = mon.drawScale(pl.dex);
-        model(pig, mon.model(pl.dex), scale);
+        model(pig, mon.worn(pl.dex), scale);
         if (scale != 1) pig.getAttribute(org.bukkit.attribute.Attribute.SCALE).setBaseValue(scale); // and its hitbox
         // Cobblemon's wild Pokémon don't follow food or breed like pigs (Paper keeps float, wander and look goals)
         var goals = Bukkit.getMobGoals();

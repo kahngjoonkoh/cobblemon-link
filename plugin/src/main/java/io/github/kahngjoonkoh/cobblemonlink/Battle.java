@@ -741,7 +741,7 @@ final class Battle {
         at.setDirection(wildEntity.getLocation().toVector().subtract(at.toVector()));
         at.setPitch(0);
         Mon mon = pl.store.get(player.getUniqueId()).party.get(partyIndex);
-        ally = pl.spawner.sendOut(at, mon.model(pl.dex), mon.drawScale(pl.dex));
+        ally = pl.spawner.sendOut(at, mon.worn(pl.dex), mon.drawScale(pl.dex));
         Spawner.animate(ally, "battle_idle", AnimationIterator.Type.LOOP);
         pl.balls.sendOut(player, ally, pl.store.get(player.getUniqueId()).party.get(partyIndex).ball);
         Mon sent = pl.store.get(player.getUniqueId()).party.get(partyIndex);
@@ -775,7 +775,7 @@ final class Battle {
         if (i < 0) return;
         Location at = foeSpot();
         Mon m = npcTeam.get(i);
-        foeOut = pl.spawner.sendOut(at, m.model(pl.dex), m.drawScale(pl.dex));
+        foeOut = pl.spawner.sendOut(at, m.worn(pl.dex), m.drawScale(pl.dex));
         Spawner.animate(foeOut, "battle_idle", AnimationIterator.Type.LOOP);
         pl.balls.sendOut((org.bukkit.entity.LivingEntity) wildEntity, foeOut, m.ball);
         Sounds.play(foeOut, m.shiny ? "poke_ball.shiny_send_out" : "poke_ball.send_out");

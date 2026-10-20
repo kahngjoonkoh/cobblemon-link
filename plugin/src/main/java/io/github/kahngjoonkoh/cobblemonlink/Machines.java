@@ -98,7 +98,7 @@ final class Machines {
     /** Draws every machine whose chunk is loaded (and forgets models that went with their chunk). */
     void tick() {
         long now = System.currentTimeMillis();
-        for (Machine m : machines.values()) {
+        for (Machine m : new ArrayList<>(machines.values())) { // a Poké Snack can be eaten up meanwhile
             World w = Bukkit.getWorld(m.world);
             if (w == null || !w.isChunkLoaded(m.x >> 4, m.z >> 4)) continue;
             if (m.carrier == null || !m.carrier.isValid()) m.carrier = carrier(m.at(w), "clb_" + m.type);
@@ -495,7 +495,7 @@ final class Machines {
         m.roaming.forEach(Entity::remove);
         m.roaming.clear();
         for (Mon mon : m.pastured) {
-            Entity e = pl.spawner.roamer(m.at(w).add(Math.random() * 4 - 2, 0, Math.random() * 4 - 2), mon.model(pl.dex), mon.drawScale(pl.dex));
+            Entity e = pl.spawner.roamer(m.at(w).add(Math.random() * 4 - 2, 0, Math.random() * 4 - 2), mon.worn(pl.dex), mon.drawScale(pl.dex));
             m.roaming.add(e);
         }
     }

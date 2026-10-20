@@ -72,6 +72,13 @@ final class Dex {
     static final class Looks {
         List<List<Object>> variations;
         Map<String, String> models; // "model|texture index" -> converted model name
+        Map<String, Map<String, String>> cosmetics = Map.of(); // cosmetic aspect -> {look without it: look with it}
+    }
+
+    /** One of Cobblemon's cosmetic_items files: the species that can wear them, item (or #tag) -> aspect. */
+    static final class Cosmetic {
+        List<String> species = List.of();
+        Map<String, String> items = Map.of();
     }
 
     static final class Spawn {
@@ -112,6 +119,23 @@ final class Dex {
     Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle
     Map<String, Mark> marks = Map.of();             // Cobblemon's marks with a chance on wild Pokémon
     Map<String, List<Bait>> baits = Map.of();       // Cobblemon's bait (spawn_bait_effects): item -> effects
+    List<Cosmetic> cosmetics = List.of();
+
+    /** The cosmetic aspect this item gives this species, or null (an item id, vanilla "minecraft:x", or one of its tags). */
+    String cosmeticFor(String species, String item, org.bukkit.Material vanilla) {
+        for (Cosmetic c : cosmetics) {
+            if (!c.species.contains(species)) continue;
+            for (var e : c.items.entrySet()) {
+                String k = e.getKey();
+                if (k.equals(item)) return e.getValue();
+                if (vanilla != null && k.startsWith("#")) {
+                    var tag = org.bukkit.Bukkit.getTag(org.bukkit.Tag.REGISTRY_ITEMS, org.bukkit.NamespacedKey.fromString(k.substring(1)), org.bukkit.Material.class);
+                    if (tag != null && tag.isTagged(vanilla)) return e.getValue();
+                }
+            }
+        }
+        return null;
+    }
 
     static final class Bait {
         String type, sub;

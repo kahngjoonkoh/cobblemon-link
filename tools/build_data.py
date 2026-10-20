@@ -117,11 +117,18 @@ def species_looks(res, dex, modeled):
                         textures.append(tj)
                     t = textures.index(tj)
                 var.append([v.get('aspects', []), v.get('model'), t])
-        names = {}
+        names, worn = {}, {}
         for name, aspects, model, texture in looks.all_looks_for(res, sid):
-            if name in modeled:
+            if name not in modeled:
+                continue
+            c = [a for a in aspects if a != 'shiny' and a in looks.cosmetics_for(res, sid)]
+            if c:  # a cosmetic look: worn -> {aspect: {look without it: look with it}}
+                plain = '__'.join([sid] + [looks.slug(a) for a in aspects if a not in c])
+                worn.setdefault(c[0], {})[plain] = name
+                continue
+            if json.dumps(texture, sort_keys=True) in textures:
                 names[f'{model}|{textures.index(json.dumps(texture, sort_keys=True))}'] = name
-        dex[sid]['looks'] = {'variations': var, 'models': names}
+        dex[sid]['looks'] = {'variations': var, 'models': names, **({'cosmetics': worn} if worn else {})}
 
 
 def spawns(res, dex):
@@ -212,6 +219,19 @@ def npcs(res, dex):
     return out
 
 
+def cosmetic_items(res):
+    """Cobblemon's cosmetic items: [{species: [...], items: {item or #tag: aspect}}] (Companions.cosmetic)."""
+    out = []
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/cosmetic_items/*.json')):
+        d = json.load(open(f))
+        items = {}
+        for c in d.get('cosmeticItems', []):
+            i = c['consumedItem']
+            items[i[10:] if i.startswith('cobblemon:') else i] = c['aspects'][0]
+        out.append({'species': [s.split()[0] for s in d.get('pokemon', [])], 'items': items})
+    return out
+
+
 def baits(res):
     """Cobblemon's bait: item ("aguav_berry", "minecraft:golden_apple") -> its effects [{type, chance, value, sub}]."""
     out = {}
@@ -246,7 +266,7 @@ def main(a):
     fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
                for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
-               'npcs': npcs(res, dex), 'marks': marks(res), 'baits': baits(res)},
+               'npcs': npcs(res, dex), 'marks': marks(res), 'baits': baits(res), 'cosmetics': cosmetic_items(res)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
