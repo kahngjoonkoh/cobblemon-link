@@ -45,9 +45,10 @@ final class Callbacks {
         });
         else if (payload instanceof SummaryUIPacket) p.server.execute(() -> Summary.open(p, 0, Summary.INFO));
         else if (payload instanceof PokedexUIPacket) p.server.execute(() -> Dex.open(p, 0, null));
-        else if (payload instanceof ToastPacket t && !Clients.java(p) || payload instanceof ToastPacket && Config.vanillaJava().screenArt())
-            p.server.execute(() -> p.connection.send(new ClientboundSetActionBarTextPacket(
-                    Component.empty().append(((ToastPacket) payload).getTitle()).append(" ").append(((ToastPacket) payload).getDescription()))));
+        else if (payload instanceof ToastPacket t && Clients.java(p)) p.server.execute(() -> Toasts.show(p, t.getIcons().isEmpty() ? null : t.getIcons().getFirst(),
+                Component.empty().append(t.getTitle()).append(" ").append(t.getDescription())));
+        else if (payload instanceof ToastPacket t)
+            p.server.execute(() -> p.connection.send(new ClientboundSetActionBarTextPacket(Component.empty().append(t.getTitle()).append(" ").append(t.getDescription()))));
     }
 
     static void party(ServerPlayer p, UUID id, Component title, List<PartySelectPokemonDTO> mons, IntConsumer chosen, Runnable cancelled) {

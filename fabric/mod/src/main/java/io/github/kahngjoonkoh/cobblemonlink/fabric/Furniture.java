@@ -295,7 +295,9 @@ public final class Furniture {
                 @Override public boolean startWatching(ServerGamePacketListenerImpl h) {
                     if (!Clients.bedrock(h.player)) return false;
                     gme.forEach((id, m) -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(id, "modelengine:" + m))));
-                    return super.startWatching(h);
+                    boolean r = super.startWatching(h);
+                    scales.forEach((id, sc) -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(id, sc))));
+                    return r;
                 }
             };
             // a plant's stand-in can't be clicked (you walk through it): a Java click box over it uses the block
@@ -319,14 +321,28 @@ public final class Furniture {
                 return;
             }
             List<Fruit> fruit = fruit(level, pos);
-            String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat) + fruit;
-            if (key.equals(shown)) return;
+            Fossils.Look fossil = Fossils.tank(level, pos);
+            List<ItemStack> fossils = Fossils.analyzer(level, pos);
+            String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat) + fruit + (fossil == null ? "" : fossil.model())
+                    + fossils.stream().map(i -> i.getItem().toString()).toList();
+            if (key.equals(shown)) {
+                if (fossil != null && inTank != null) { // growing: the same model, a little bigger
+                    inTank.setScale(fossil.scale());
+                    scales.replaceAll((id, sc) -> fossil.scale());
+                    for (var h : bedrock.getWatchingPlayers())
+                        scales.keySet().forEach(id -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(id, fossil.scale()))));
+                }
+                return;
+            }
             shown = key;
             items.forEach(java::removeElement);
             pigs.forEach(bedrock::removeElement);
             items.clear();
             pigs.clear();
             gme.clear();
+            scales.clear();
+            if (inTank != null) inTank.destroy();
+            inTank = null;
             for (Variant v : ms) {
                 ItemDisplayElement item = new ItemDisplayElement(ITEMS.get(v.model).asStack());
                 item.setModelTransformation(ItemDisplayContext.NONE);
@@ -367,7 +383,36 @@ public final class Furniture {
                     h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + m)));
                 pigs.add(bedrock.addElement(pig));
             }
+            // Cobblemon's fossil machine: what grows in the tank (its middle, a block up), the fossils on the analyzer
+            if (fossil != null && Models.get(fossil.model()) != null) {
+                var at = new net.minecraft.world.entity.Display.BlockDisplay(EntityType.BLOCK_DISPLAY, level); // never added: a place to draw from
+                at.setPos(net.minecraft.world.phys.Vec3.atBottomCenterOf(pos).add(0, 0.8, 0));
+                at.setYRot(level.getBlockState(pos).getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING).toYRot() + 180);
+                inTank = new ModelHolder(at, Models.get(fossil.model()), fossil.scale(), false);
+                ChunkAttachment.ofTicking(inTank, level, at.position());
+                SimpleEntityElement pig = new SimpleEntityElement(EntityType.PIG);
+                pig.setNoGravity(true);
+                pig.setSilent(true);
+                pig.setYaw(at.getYRot());
+                pig.setOffset(new net.minecraft.world.phys.Vec3(0, 0.8, 0));
+                gme.put(pig.getEntityId(), fossil.model());
+                scales.put(pig.getEntityId(), fossil.scale());
+                for (var h : bedrock.getWatchingPlayers())
+                    h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + fossil.model())));
+                pigs.add(bedrock.addElement(pig));
+                for (var h : bedrock.getWatchingPlayers()) h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(pig.getEntityId(), fossil.scale())));
+            }
+            for (int i = 0; i < fossils.size(); i++) { // Java: in a row on the analyzer's tray
+                ItemDisplayElement item = new ItemDisplayElement(fossils.get(i).copy());
+                item.setModelTransformation(ItemDisplayContext.GROUND);
+                item.setOffset(new net.minecraft.world.phys.Vec3((i - (fossils.size() - 1) / 2.0) * 0.25, 0.05, 0));
+                items.add(java.addElement(item));
+            }
         }
+
+        /** The model growing in a restoration tank (vanilla Java), redrawn as it grows. */
+        ModelHolder inTank;
+        final Map<Integer, Float> scales = new HashMap<>(); // pig id -> GeyserModelEngine scale
 
         /** A Bedrock player clicking the model clicks the block under it. */
         final eu.pb4.polymer.virtualentity.api.elements.VirtualElement.InteractionHandler click = new eu.pb4.polymer.virtualentity.api.elements.VirtualElement.InteractionHandler() {
@@ -382,6 +427,6 @@ public final class Furniture {
             }
         };
 
-        void destroy() { java.destroy(); bedrock.destroy(); }
+        void destroy() { java.destroy(); bedrock.destroy(); if (inTank != null) inTank.destroy(); }
     }
 }

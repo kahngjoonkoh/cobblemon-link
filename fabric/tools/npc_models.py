@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Cobblemon's NPCs drawn like Pokémon: each NPC variation's geometry and skin through the same pipeline as the
 Pokémon (the shared tools/geo2bb.py, bil_models.py, build_models.py), added to MODELS (item models, data, index.json)
-and to GeyserModelEngine's input as "npc_<geometry>". Skins are padded square first: Minecraft takes a
+and to GeyserModelEngine's input as "npc_<geometry>". Cobblemon's fossil embryos and fetuses (drawn in the
+restoration tank) go the same way as "fossil_<geometry>". Skins are padded square first: Minecraft takes a
 taller-than-wide texture for animation frames.
 usage: npc_models.py COBBLEMON_DIR MODELS_DIR GME_INPUT_DIR [WORK_DIR]"""
 import json, os, subprocess, sys
@@ -21,6 +22,17 @@ def variations(c):
             for v in json.load(open(os.path.join(root, f))).get('variations', []):
                 if v.get('model') and ':' in v.get('texture', ''):  # "variable": a player-chosen skin
                     out[v['model'].split(':')[1].replace('.geo', '')] = v['texture'].split(':')[1]
+    return out
+
+
+def fossils(c):
+    """(geometry, texture, idle animation) of the restoration tank's models: embryo stages and each fossil's fetus."""
+    base = os.path.join(c, 'assets/cobblemon/bedrock/fossils/models')
+    out = []
+    for f in sorted(os.listdir(base)):
+        geo = f[:-len('.geo.json')]
+        if geo.startswith('embryo'): out.append((geo, 'embryo', 'gooping'))
+        elif geo.endswith('_fetus'): out.append((geo, geo[:-len('_fetus')], 'sleep'))
     return out
 
 
@@ -44,6 +56,9 @@ def main(c, models, gme, work):
         square(a + tex, sp, g, sg)
         subprocess.run([sys.executable, GEO2BB, sg, a + 'bedrock/npcs/animations/trainer_generic.animation.json', sp, 'npc_' + geo,
                         os.path.join(work, 'java'), gme, ANIMS], check=True, stdout=subprocess.DEVNULL)
+    for geo, tex, idle in fossils(c):
+        subprocess.run([sys.executable, GEO2BB, a + 'bedrock/fossils/models/' + geo + '.geo.json', a + 'bedrock/fossils/animations/' + geo + '.animation.json',
+                        a + 'textures/fossils/' + tex + '.png', 'fossil_' + geo, os.path.join(work, 'java'), gme, idle + '=idle'], check=True, stdout=subprocess.DEVNULL)
     subprocess.run([sys.executable, os.path.join(HERE, 'bil_models.py'), os.path.join(work, 'java'), os.path.join(work, 'bil')], check=True, stdout=subprocess.DEVNULL)
     subprocess.run([sys.executable, os.path.join(HERE, 'build_models.py'), os.path.join(work, 'bil'), os.path.join(work, 'out')], check=True, stdout=subprocess.DEVNULL)
     subprocess.run(['cp', '-r', os.path.join(work, 'out', 'pack'), os.path.join(work, 'out', 'data'), models], check=True)
@@ -51,7 +66,7 @@ def main(c, models, gme, work):
     idx = json.load(open(idx_p)) if os.path.exists(idx_p) else {}
     idx.update(json.load(open(os.path.join(work, 'out', 'index.json'))))
     json.dump(idx, open(idx_p, 'w'))
-    print(len(variations(c)), 'NPC models')
+    print(len(variations(c)), 'NPC models,', len(fossils(c)), 'fossil models')
 
 
 if __name__ == '__main__':
