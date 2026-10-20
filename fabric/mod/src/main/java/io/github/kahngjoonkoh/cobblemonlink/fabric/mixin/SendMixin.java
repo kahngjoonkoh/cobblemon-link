@@ -48,8 +48,8 @@ public class SendMixin {
             if (t != packet) return t;
         }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its look (as on Paper)
-        if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a
-                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(a.getId()) != null) {
+        if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.Entity ent
+                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.ensure(ent) != null) {
             var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(a.getId());
             List<Packet<? super ClientGamePacketListener>> out = new ArrayList<>();
             out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + holder.model().name())));

@@ -36,7 +36,7 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Models: every look (forms, shinies, genders, features) | GeyserModelEngine custom entity `modelengine:<look>` on a pig, look from Cobblemon's aspects | ✅ `m2-bedrock-models-anims.log` (protocol) |
 | Species scale | GeyserUtils `CustomEntityDataPacket.scale` | ✅ (protocol) |
 | idle / walk / battle_idle / faint | GeyserModelEngine `anim` int properties, from the server's state | ✅ (protocol) |
-| Move animations: cry, physical, special, recoil | Cobblemon's `PlayPosableAnimationPacket` → the same properties | 🟡 wired, not yet seen in a battle |
+| Move animations: cry, physical, special, recoil; battle_idle in battle | Cobblemon's `PlayPosableAnimationPacket` → the same properties | ✅ `b8-bedrock-battle-animations-bot.log` (protocol: Charmander's physical bit on Slash) |
 | Tap or hit a wild Pokémon starts a battle | pig click/hit → Cobblemon `BattleBuilder.pve` (`InteractMixin`) | ✅ `b1-bedrock-battle-bot.log` |
 | 3D Poké Ball (thrown, shakes, capture/break) | GME `poke_ball` on Cobblemon's `EmptyPokeBallEntity`, animation from its capture state | 🟡 same code as Java (`m3-java-pokeball-capture.png`); not seen on a phone |
 | Bedrock UI pack (forms art, HUD) pushed by Geyser | `bedrock-ui.mcpack` from `tools/build_bedrock_ui.py` in Geyser's `packs/` | ✅ ("packs offered: 3") |

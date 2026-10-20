@@ -16,6 +16,12 @@ public final class BedrockText {
             var r = Lang.resolve(c.content());
             return r == c.content() ? p : new ClientboundSystemChatPacket(r, c.overlay());
         }
+        if (p instanceof ClientboundDisguisedChatPacket d) { // /say and the like: the sender's name may be a mod's key
+            var r = Lang.resolve(d.message());
+            var name = Lang.resolve(d.chatType().name());
+            return r == d.message() && name == d.chatType().name() ? p : new ClientboundDisguisedChatPacket(r,
+                    new net.minecraft.network.chat.ChatType.Bound(d.chatType().chatType(), name, d.chatType().targetName().map(Lang::resolve)));
+        }
         if (p instanceof ClientboundSetActionBarTextPacket a) {
             var r = Lang.resolve(a.text());
             return r == a.text() ? p : new ClientboundSetActionBarTextPacket(r);
