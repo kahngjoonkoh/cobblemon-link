@@ -58,7 +58,8 @@ final class Items {
         boolean ball = d.kind.equals("ball");
         ItemStack it = new ItemStack(ball ? Material.SNOWBALL : d.kind.equals("rod") ? Material.FISHING_ROD : Material.PAPER, amount); // build_items.py maps these
         it.editMeta(m -> {
-            m.customName(Component.text(d.name).decoration(TextDecoration.ITALIC, false));
+            // Cobblemon's own lang key: Paper renders it in each player's language (Java and, through Geyser, Bedrock)
+            m.customName(Component.translatable("item.cobblemon." + id, d.name).decoration(TextDecoration.ITALIC, false));
             m.setItemModel(new NamespacedKey("cobblemon", id));
             m.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);
             if (ball) m.getPersistentDataContainer().set(pl.ballKey, PersistentDataType.BYTE, (byte) 1);
@@ -150,30 +151,30 @@ final class Items {
         if (party.isEmpty()) return true;
         if (d.kind.equals("held")) { // Cobblemon's held item: give it, and get back what the Pokémon held before
             if (b != null) {
-                p.sendMessage(Component.text("You can't change held items in battle.", NamedTextColor.RED));
+                p.sendMessage(Component.text(pl.t(p, "cobblemonlink.item.no_held_in_battle"), NamedTextColor.RED));
                 return true;
             }
-            pickPokemon(p, "Give " + d.name + " to…", party, m -> true, m -> {
+            pickPokemon(p, pl.t(p, "cobblemonlink.item.give_to", name(p, id)), party, m -> true, m -> {
                 if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return;
                 String old = m.held;
                 m.held = id;
                 if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) p.getInventory().getItemInMainHand().subtract();
                 if (old != null && create(old, 1) != null) p.getInventory().addItem(create(old, 1)).values().forEach(x -> p.getWorld().dropItem(p.getLocation(), x));
-                p.sendMessage(Component.text(m.name(pl.dex) + " is now holding " + d.name + ".", NamedTextColor.GREEN));
+                p.sendMessage(Component.text(pl.t(p, "cobblemonlink.item.holding", m.name(pl.dex, CobblemonLink.loc(p)), name(p, id)), NamedTextColor.GREEN));
                 pl.store.save(p.getUniqueId());
             });
             return true;
         }
         boolean battleOnly = d.kind.equals("x_stat") || d.kind.equals("dire_hit") || d.kind.equals("guard_spec");
         if (b == null && battleOnly) {
-            p.sendMessage(Component.text("You can only use this in battle.", NamedTextColor.RED));
+            p.sendMessage(Component.text(pl.t(p, "cobblemonlink.item.battle_only"), NamedTextColor.RED));
             return true;
         }
         if (b != null && !b.canUseItem()) {
-            p.sendMessage(Component.text("You cannot use items right now.", NamedTextColor.RED)); // bagitem.cannot
+            p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.cannot"), NamedTextColor.RED));
             return true;
         }
-        pickPokemon(p, "Use " + d.name + " on…", party, m -> b != null ? b.canUse(m, d) : canUse(d, m), m -> {
+        pickPokemon(p, pl.t(p, "cobblemonlink.item.use_on", name(p, id)), party, m -> b != null ? b.canUse(m, d) : canUse(d, m), m -> {
             if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return; // the item left the hand meanwhile
             if (d.kind.equals("ether")) {
                 pickMove(p, d.name, m, move -> apply(p, b, id, d, m, move));
@@ -186,15 +187,15 @@ final class Items {
         if (b != null) {
             String input = battleInput(d, id, b, m, move);
             if (input == null || !b.useItem(m, id, input)) {
-                p.sendMessage(Component.text("This item would not work.", NamedTextColor.RED)); // bagitem.invalid
+                p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.invalid"), NamedTextColor.RED));
                 return;
             }
             if (d.kind.equals("x_stat") || d.kind.equals("dire_hit") || d.kind.equals("guard_spec")) m.addFriendship(pl.dex, 1);
         } else {
-            String msg = applyOutside(pl.dex, d, m, move);
+            String msg = applyOutside(pl.dex, d, m, move, p);
             if (msg != null && d.kind.equals("candy")) pl.evolutions.update(m, p, x -> {});
             if (msg == null) {
-                p.sendMessage(Component.text("This item would not work.", NamedTextColor.RED));
+                p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.invalid"), NamedTextColor.RED));
                 return;
             }
             p.sendMessage(Component.text(msg, NamedTextColor.GREEN));
@@ -241,26 +242,26 @@ final class Items {
     }
 
     /** The out-of-battle effect; a message, or null if it did nothing. */
-    String applyOutside(Dex dex, Def d, Mon m, String move) {
+    String applyOutside(Dex dex, Def d, Mon m, String move, Player p) {
         if (!canUse(d, m)) return null;
-        String name = m.name(dex);
+        String loc = CobblemonLink.loc(p), name = m.name(dex, loc);
         switch (d.kind) {
             case "potion" -> {
                 int before = m.hp(dex);
                 m.hp = d.heal < 0 ? -1 : Math.min(m.maxHp(dex), before + d.heal);
                 if (m.hp >= m.maxHp(dex)) m.hp = -1;
                 if (!d.cure.isEmpty()) m.status = "";
-                return name + " restored " + (m.hp(dex) - before) + " HP.";
+                return pl.t(p, "cobblemonlink.item.hp", name, m.hp(dex) - before);
             }
             case "revive" -> {
                 m.hp = Math.max(1, (int) Math.floor(m.maxHp(dex) * d.ratio));
                 if (m.hp >= m.maxHp(dex)) m.hp = -1;
                 m.faintSecs = -1;
-                return name + " was revived!";
+                return pl.t(p, "cobblemonlink.item.revived", name);
             }
             case "cure" -> {
                 m.status = "";
-                return name + " was cured of its status.";
+                return pl.t(p, "cobblemonlink.battle.cured", name);
             }
             case "ether", "elixir" -> {
                 if (m.pp == null || m.ppMax == null) return null;
@@ -268,32 +269,38 @@ final class Items {
                     if (d.kind.equals("ether") && !m.moves.get(i).equals(move)) continue;
                     m.pp.set(i, d.pp < 0 ? m.ppMax.get(i) : Math.min(m.ppMax.get(i), m.pp.get(i) + d.pp));
                 }
-                return name + "'s PP was restored.";
+                return pl.t(p, "cobblemonlink.item.pp", name);
             }
             case "candy" -> {
                 long exp = d.exp < 0 ? Rules.expFor(dex.of(m).expGroup, m.level + 1) - m.exp : d.exp;
                 List<String> said = new ArrayList<>();
-                m.gainExp(dex, exp, said::add);
+                m.gainExp(dex, exp, said::add, loc);
                 return String.join(" ", said);
             }
             case "ev" -> {
                 if (m.evs == null) m.evs = new int[6];
                 int k = java.util.Arrays.asList(Dex.STATS).indexOf(d.stat);
                 int added = Rules.addEv(m.evs, k, d.amount);
-                return added == 0 ? null : name + "'s " + SummaryScreen.STAT_NAMES[k] + " EVs rose by " + added + ".";
+                return added == 0 ? null : pl.t(p, "cobblemonlink.item.ev", name, SummaryScreen.STAT_NAMES[k], added);
             }
             case "mint" -> {
                 m.mint = Character.toUpperCase(d.nature.charAt(0)) + d.nature.substring(1);
-                return name + "'s stats may have changed due to the effects of the " + d.name + "!";
+                return pl.t(p, "cobblemonlink.item.mint", name, name(p, idOf(d)));
             }
             case "evolution" -> {
-                String msg = pl.evolutions.evolveWithItem(m, idOf(d));
+                String msg = pl.evolutions.evolveWithItem(m, idOf(d), p);
                 return msg;
             }
             default -> {
                 return null;
             }
         }
+    }
+
+    /** The item's name in the player's language (Cobblemon's item.cobblemon.<id>). */
+    String name(Player p, String id) {
+        Def d = defs.get(id);
+        return pl.lang.getOr(CobblemonLink.loc(p), "item.cobblemon." + id, d == null ? id : d.name);
     }
 
     // ---- party select ----
@@ -304,8 +311,9 @@ final class Items {
         for (int i = 0; i < party.size(); i++) {
             Mon m = party.get(i);
             boolean can = ok.test(m);
-            ItemStack icon = Menu.monIcon(pl.dex, m, can ? "Click to use" : "It won't have any effect.");
-            if (!can) icon = Menu.icon(Material.GRAY_STAINED_GLASS_PANE, m.name(pl.dex) + "  Lv." + m.level, List.of("It won't have any effect."));
+            String no = pl.t(p, "cobblemonlink.item.no_effect");
+            ItemStack icon = Menu.monIcon(pl.dex, m, can ? pl.t(p, "cobblemonlink.item.click") : no);
+            if (!can) icon = Menu.icon(Material.GRAY_STAINED_GLASS_PANE, m.name(pl.dex, CobblemonLink.loc(p)) + "  Lv." + m.level, List.of(no));
             menu.set(i + 1, icon, can ? e -> {
                 p.closeInventory();
                 chosen.accept(m);

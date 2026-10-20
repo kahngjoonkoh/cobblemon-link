@@ -116,6 +116,12 @@ Counts: see [the summary at the end](#summary).
 | Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 347 of them (every one whose ingredients are items: balls, medicine, held items, mints, rods); mint leaves and leeks drop from grass | 🟡 | 🟡 |
 | Structures (ruins, shipwrecks, habitats, villages) | ✓ | — | ⬜ | ⬜ |
 
+## Languages
+
+| Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
+|---|---|---|---|---|
+| Multi-language (each player's client language, en_us fallback) | 29 languages | Cobblemon's 29 lang files plus the plugin's own keys (en_us, ko_kr), rendered per player on the server: species, moves, abilities, types, stats, item names, the whole battle (menus, log, HP bars), items, trading, challenges, EXP / level / evolution messages. Still English: the starter, PC, Summary and Pokédex screens, the Bedrock party HUD (ASCII field), menu tooltips | 🟡 | 🟡 |
+
 ## Commands
 
 | Cobblemon | cobblemon-link | Java | Bedrock |
@@ -134,12 +140,12 @@ Counts: see [the summary at the end](#summary).
 
 ## Summary
 
-93 rows; Java and Bedrock are level.
+94 rows; Java and Bedrock are level.
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 41 | 24 | 27 | 1 |
-| Bedrock | 41 | 24 | 27 | 1 |
+| Java | 43 | 27 | 23 | 1 |
+| Bedrock | 43 | 27 | 23 | 1 |
 
 ## Suggested order
 

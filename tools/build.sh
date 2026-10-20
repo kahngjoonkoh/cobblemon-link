@@ -13,6 +13,7 @@ python3 tools/build_data.py "$src" assets
 # the battle engine: Cobblemon's own Showdown build and its bag item effects (sim/server.js loads them from here)
 rm -rf assets/showdown && mkdir -p assets/showdown && unzip -q "$src/data/cobblemon/showdown.zip" -d assets/showdown
 cp -r "$src/data/cobblemon/bag_items" assets/showdown/
+rm -rf assets/lang && cp -r "$src/assets/cobblemon/lang" assets/lang  # Cobblemon's languages, for Lang.java
 python3 tools/build_items.py "$src" assets   # Cobblemon's items: what they do, Java and Bedrock art
 python3 tools/build_cards.py "$src" assets
 python3 tools/build_bodies.py "$src" assets

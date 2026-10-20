@@ -139,14 +139,14 @@ final class Mon {
 
     /**
      * Cobblemon's PlayerPartyStore.onSecondPassed, out of battle: a fainted Pokémon wakes with 20% HP after 300 s;
-     * otherwise 5% of max HP (at least 1) every 60 s; a status wears off after its 180-300 s. Returns a message or null.
+     * otherwise 5% of max HP (at least 1) every 60 s; a status wears off after its 180-300 s. True when it woke up.
      */
-    String second(Dex dex) {
+    boolean second(Dex dex) {
         if (fainted(dex)) {
             if (faintSecs < 0) faintSecs = 300;
-            if (--faintSecs > -1) return null;
+            if (--faintSecs > -1) return false;
             hp = (int) Math.ceil(maxHp(dex) * 0.2);
-            return name(dex) + " has recovered from fainting.";
+            return true; // Cobblemon's cobblemon.party.faintRecover
         }
         faintSecs = -1;
         if (hp >= 0 && --healSecs <= -1) {
@@ -155,12 +155,15 @@ final class Mon {
             if (hp >= maxHp(dex)) hp = -1;
         }
         if (status != null && !status.isEmpty() && --statusSecs <= 0) status = "";
-        return null;
+        return false;
     }
 
     String nickname; // Cobblemon's nickname (SummaryScreen), null for the species' name
 
-    String name(Dex dex) { return nickname != null && !nickname.isBlank() ? nickname : dex.name(species); }
+    String name(Dex dex) { return name(dex, Lang.FALLBACK); }
+
+    /** The nickname, or the species' name in that language. */
+    String name(Dex dex, String locale) { return nickname != null && !nickname.isBlank() ? nickname : dex.name(species, locale); }
 
     /** Showdown PokemonSet plus the fields Cobblemon's Showdown reads (sim/server.js packs it). */
     Map<String, Object> set(Dex dex) {
@@ -196,23 +199,26 @@ final class Mon {
      * Adds experience; levels up, learns level-up moves and evolves. Messages go to {@code say}. A 5th move goes to
      * learnable, which MoveLearn offers after the battle.
      */
-    void gainExp(Dex dex, long amount, Consumer<String> say) {
+    void gainExp(Dex dex, long amount, Consumer<String> say) { gainExp(dex, amount, say, Lang.FALLBACK); }
+
+    void gainExp(Dex dex, long amount, Consumer<String> say, String loc) {
+        Lang t = dex.lang;
         exp += amount;
-        say.accept(name(dex) + " gained " + amount + " EXP.");
+        say.accept(t.get(loc, "cobblemonlink.exp.gained", name(dex, loc), amount));
         Dex.Species s = dex.of(this);
         while (level < 100 && exp >= Rules.expFor(s.expGroup, level + 1)) {
             int oldMax = maxHp(dex);
             level++;
             if (hp >= 0) hp += maxHp(dex) - oldMax;
             addFriendship(dex, Rules.levelUpFriendship(friendship(dex)));
-            say.accept(name(dex) + " grew to level " + level + "!");
+            say.accept(t.get(loc, "cobblemonlink.level.up", name(dex, loc), level));
             for (List<String> lm : s.moves) {
                 if (Integer.parseInt(lm.get(0)) != level || moves.contains(lm.get(1))) continue;
                 if (moves.size() < 4) {
                     moves.add(lm.get(1));
-                    say.accept(name(dex) + " learned " + dex.label("move", lm.get(1)) + "!");
+                    say.accept(t.get(loc, "cobblemonlink.move.learned", name(dex, loc), dex.label("move", lm.get(1), loc)));
                 } else {
-                    say.accept(name(dex) + " wants to learn " + dex.label("move", lm.get(1)) + ", but already knows 4 moves.");
+                    say.accept(t.get(loc, "cobblemonlink.move.wants", name(dex, loc), dex.label("move", lm.get(1), loc)));
                     if (learnable == null) learnable = new ArrayList<>();
                     if (!learnable.contains(lm.get(1))) learnable.add(lm.get(1));
                 }
@@ -221,7 +227,7 @@ final class Mon {
         if (!"everstone".equals(held)) for (List<String> evo : s.evolutions) { // as Cobblemon: ready to evolve, evolved from the Summary
             String into = evo.get(1);
             if (level >= Integer.parseInt(evo.get(0)) && dex.get(into) != null) {
-                if (!into.equals(evolution)) say.accept(name(dex) + " seems ready to evolve!");
+                if (!into.equals(evolution)) say.accept(t.get(loc, "cobblemonlink.evolve.ready", name(dex, loc)));
                 evolution = into;
                 break;
             }
@@ -231,9 +237,11 @@ final class Mon {
     String evolution; // the species it's ready to evolve into (Cobblemon's pending evolution), or null
 
     /** Evolves into the pending evolution; returns Cobblemon's message, or null if there's none. */
-    String evolve(Dex dex) {
+    String evolve(Dex dex) { return evolve(dex, Lang.FALLBACK); }
+
+    String evolve(Dex dex, String loc) {
         if (evolution == null || dex.get(evolution.split(" ")[0]) == null) return null;
-        String before = name(dex);
+        String before = name(dex, loc);
         int oldMax = maxHp(dex);
         boolean named = nickname != null && !nickname.isBlank();
         String[] result = evolution.split(" "); // "raichu alolan": a species and Cobblemon properties for the new form
@@ -241,6 +249,6 @@ final class Mon {
         if (result.length > 1) aspects = featureAspects(dex, species, List.of(result).subList(1, result.length));
         evolution = null;
         if (hp >= 0) hp += maxHp(dex) - oldMax;
-        return before + " evolved into " + (named ? dex.name(species) : name(dex)) + "!";
+        return dex.lang.get(loc, "cobblemonlink.evolve.done", before, dex.name(species, loc));
     }
 }

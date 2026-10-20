@@ -153,6 +153,17 @@ final class Dex {
         return s.looks.models.getOrDefault(model + "|" + texture, id);
     }
 
+    transient Lang lang = Lang.load(null); // the plugin swaps in the one with Cobblemon's languages
+
+    /** A species, move, ability or type name in a language (Cobblemon's lang keys), else the English one. */
+    String name(String id, String locale) {
+        return lang.getOr(locale, "cobblemon.species." + id + ".name", name(id));
+    }
+
+    String label(String kind, String id, String locale) {
+        return lang.getOr(locale, "cobblemon." + kind + "." + id, label(kind, id));
+    }
+
     String label(String kind, String id) {
         Map<String, String> m = names == null ? null : names.get(kind);
         return m == null ? id : m.getOrDefault(id, id);

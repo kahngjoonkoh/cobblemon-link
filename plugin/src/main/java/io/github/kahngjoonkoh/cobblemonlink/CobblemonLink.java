@@ -75,6 +75,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Companions companions;
     Items items;
     Evolutions evolutions;
+    Lang lang = Lang.load(null);
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
@@ -91,6 +92,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
+        lang = Lang.load(getDataFolder().toPath().resolve("lang")); // Cobblemon's 29 languages (setup.sh), and ours
+        dex.lang = lang;
+        lang.registerItemNames();
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
         try {
             items = Items.load(this, getDataFolder().toPath().resolve("items.json")); // setup.sh installs it
@@ -147,6 +151,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (spawner != null) spawner.removeAll();
         if (store != null) Bukkit.getOnlinePlayers().forEach(p -> store.save(p.getUniqueId()));
     }
+
+    /** The player's client language, as Minecraft names it (ko_kr). */
+    static String loc(Player p) { return Lang.locale(p.locale()); }
+
+    /** key in the player's language. */
+    String t(Player p, String key, Object... args) { return lang.get(loc(p), key, args); }
 
     // ---- Poké Balls ----
 
@@ -413,7 +423,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
         if (inBattle(hit)) {
             if (model != null) model.remove();
-            p.sendMessage(Component.text("That Pokémon is already in a battle.", NamedTextColor.RED));
+            p.sendMessage(Component.text(t(p, "cobblemonlink.battle.busy"), NamedTextColor.RED));
             return;
         }
         Mon wild = spawner.monOf(hit);
@@ -428,10 +438,10 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                 Items.caught(ballId, wild);
                 boolean toParty = store.give(p.getUniqueId(), wild);
                 hit.remove();
-                p.sendMessage(Component.text("Gotcha! " + wild.name(dex) + " (Lv." + wild.level + ") was caught!"
-                        + (toParty ? "" : " It was sent to the PC."), NamedTextColor.GREEN));
+                p.sendMessage(Component.text(t(p, "cobblemon.capture.succeeded", wild.name(dex, loc(p)))
+                        + (toParty ? "" : " " + t(p, "cobblemonlink.capture.to_pc", wild.name(dex, loc(p)))), NamedTextColor.GREEN));
             } else {
-                p.sendMessage(Component.text("The wild " + wild.name(dex) + " broke free! Weaken it in battle first.", NamedTextColor.YELLOW));
+                p.sendMessage(Component.text(t(p, "cobblemonlink.capture.fled_hint", wild.name(dex, loc(p))), NamedTextColor.YELLOW));
             }
         });
     }
@@ -507,11 +517,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (a.length == 2 && a[0].equalsIgnoreCase("accept")) {
             Player by = Bukkit.getPlayerExact(a[1]);
             if (by == null || !by.getUniqueId().equals(challenges.remove(p.getUniqueId()))) {
-                p.sendMessage(Component.text("There's no challenge from " + a[1] + ".", NamedTextColor.RED));
+                p.sendMessage(Component.text(t(p, "cobblemonlink.trade.none", a[1]), NamedTextColor.RED));
                 return;
             }
             if (battles.containsKey(p.getUniqueId()) || battles.containsKey(by.getUniqueId())) {
-                p.sendMessage(Component.text("Someone is already in a battle.", NamedTextColor.RED));
+                p.sendMessage(Component.text(t(p, "cobblemonlink.challenge.busy"), NamedTextColor.RED));
                 return;
             }
             Battle[] b = Battle.pvp(this, by, p);
@@ -529,13 +539,13 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             return;
         }
         if (!other.getWorld().equals(p.getWorld()) || other.getLocation().distance(p.getLocation()) > 32) {
-            p.sendMessage(Component.text(other.getName() + " is too far away to battle.", NamedTextColor.RED));
+            p.sendMessage(Component.text(t(p, "cobblemonlink.trade.too_far", other.getName()), NamedTextColor.RED));
             return;
         }
         challenges.put(other.getUniqueId(), p.getUniqueId());
-        p.sendMessage(Component.text("You challenged " + other.getName() + " to a battle.", NamedTextColor.GRAY));
-        other.sendMessage(Component.text(p.getName() + " challenges you to a Pokémon battle! ", NamedTextColor.YELLOW)
-                .append(Component.text("[Accept]", NamedTextColor.GREEN).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/challenge accept " + p.getName()))));
+        p.sendMessage(Component.text(t(p, "cobblemonlink.challenge.sent", other.getName()), NamedTextColor.GRAY));
+        other.sendMessage(Component.text(t(other, "cobblemonlink.challenge.received", p.getName()), NamedTextColor.YELLOW)
+                .append(Component.text(t(other, "cobblemonlink.trade.accept"), NamedTextColor.GREEN).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/challenge accept " + p.getName()))));
     }
 
     // ---- actions ----
@@ -570,7 +580,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                     || !b.player.getWorld().equals(b.wildEntity.getWorld())
                     || b.player.getLocation().distance(b.wildEntity.getLocation()) > max;
             if (gone) {
-                b.player.sendMessage(Component.text("You fled the battle.", NamedTextColor.YELLOW));
+                b.player.sendMessage(Component.text(t(b.player, "cobblemonlink.battle.walked_away"), NamedTextColor.YELLOW));
                 b.finish(null, false);
             }
         }
@@ -581,8 +591,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (battles.containsKey(p.getUniqueId())) continue;
             for (Mon m : store.get(p.getUniqueId()).party) {
-                String msg = m.second(dex);
-                if (msg != null) p.sendMessage(Component.text(msg));
+                if (m.second(dex)) p.sendMessage(Component.text(t(p, "cobblemon.party.faintRecover", m.name(dex, loc(p)))));
             }
         }
     }
@@ -592,7 +601,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (d.party.isEmpty() || battles.containsKey(p.getUniqueId())) return;
         d.party.forEach(Mon::heal);
         store.save(p.getUniqueId());
-        p.sendMessage(Component.text("Your Pokémon are fully healed.", NamedTextColor.GREEN));
+        p.sendMessage(Component.text(t(p, "cobblemonlink.healed"), NamedTextColor.GREEN));
     }
 
     void openStarter(Player p) { openStarter(p, STARTERS, null); }

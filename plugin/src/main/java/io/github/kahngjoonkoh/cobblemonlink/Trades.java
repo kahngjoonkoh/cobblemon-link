@@ -40,7 +40,7 @@ final class Trades {
         if (a.length == 2 && a[0].equalsIgnoreCase("accept")) {
             Player asker = Bukkit.getPlayerExact(a[1]);
             if (asker == null || !asker.getUniqueId().equals(requests.remove(p.getUniqueId()))) {
-                p.sendMessage(Component.text("There's no trade offer from " + a[1] + ".", NamedTextColor.RED));
+                p.sendMessage(Component.text(pl.t(p, "cobblemonlink.trade.none", a[1]), NamedTextColor.RED));
                 return;
             }
             start(asker, p);
@@ -52,20 +52,20 @@ final class Trades {
             return;
         }
         if (!other.getWorld().equals(p.getWorld()) || other.getLocation().distance(p.getLocation()) > 32) {
-            p.sendMessage(Component.text(other.getName() + " is too far away to trade.", NamedTextColor.RED));
+            p.sendMessage(Component.text(pl.t(p, "cobblemonlink.trade.too_far", other.getName()), NamedTextColor.RED));
             return;
         }
         requests.put(other.getUniqueId(), p.getUniqueId());
-        p.sendMessage(Component.text("Trade request sent to " + other.getName() + ".", NamedTextColor.GRAY));
-        other.sendMessage(Component.text(p.getName() + " wants to trade with you. ", NamedTextColor.YELLOW)
-                .append(Component.text("[Accept]", NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand("/trade accept " + p.getName()))));
+        p.sendMessage(Component.text(pl.t(p, "cobblemon.trade.sent", other.getName()), NamedTextColor.GRAY));
+        other.sendMessage(Component.text(pl.t(other, "cobblemon.trade.received", p.getName()) + " ", NamedTextColor.YELLOW)
+                .append(Component.text(pl.t(other, "cobblemonlink.trade.accept"), NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand("/trade accept " + p.getName()))));
     }
 
     private void start(Player a, Player b) {
         for (Player p : List.of(a, b))
             if (pl.battles.containsKey(p.getUniqueId()) || open.containsKey(p.getUniqueId())) {
-                a.sendMessage(Component.text("You can't trade right now.", NamedTextColor.RED));
-                b.sendMessage(Component.text("You can't trade right now.", NamedTextColor.RED));
+                a.sendMessage(Component.text(pl.t(a, "cobblemonlink.trade.cannot"), NamedTextColor.RED));
+                b.sendMessage(Component.text(pl.t(b, "cobblemonlink.trade.cannot"), NamedTextColor.RED));
                 return;
             }
         Trade t = new Trade(a, b);
@@ -73,7 +73,7 @@ final class Trades {
         open.put(b.getUniqueId(), t);
         for (int s = 0; s < 2; s++) {
             Player p = t.who[s];
-            t.menus[s] = new Menu(54, "Trade with " + t.who[1 - s].getName());
+            t.menus[s] = new Menu(54, pl.t(p, "cobblemonlink.trade.title", t.who[1 - s].getName()));
             t.menus[s].onClose = () -> cancel(t, p);
             p.openInventory(t.menus[s].getInventory());
         }
@@ -89,17 +89,17 @@ final class Trades {
             int side = s;
             for (int i = 0; i < mine.size(); i++) {
                 int idx = i;
-                m.set(i, Menu.monIcon(pl.dex, mine.get(i), t.offer[s] == i ? "Offered" : "Click to offer"), e -> offer(t, side, idx));
+                m.set(i, Menu.monIcon(pl.dex, mine.get(i), pl.t(t.who[side], t.offer[s] == i ? "cobblemonlink.trade.offered" : "cobblemonlink.trade.offer")), e -> offer(t, side, idx));
             }
             for (int i = 0; i < theirs.size(); i++) m.set(45 + i, Menu.monIcon(pl.dex, theirs.get(i)), null);
-            m.set(20, t.offer[s] < 0 ? Menu.icon(Material.GRAY_STAINED_GLASS_PANE, "Your offer", List.of("Pick one of your Pokémon above"))
-                    : Menu.monIcon(pl.dex, mine.get(t.offer[s]), "Your offer"), null);
-            m.set(24, t.offer[1 - s] < 0 ? Menu.icon(Material.GRAY_STAINED_GLASS_PANE, t.who[1 - s].getName() + "'s offer", List.of("Not chosen yet"))
-                    : Menu.monIcon(pl.dex, theirs.get(t.offer[1 - s]), t.who[1 - s].getName() + "'s offer"), null);
+            m.set(20, t.offer[s] < 0 ? Menu.icon(Material.GRAY_STAINED_GLASS_PANE, pl.t(t.who[side], "cobblemonlink.trade.your_offer"), List.of())
+                    : Menu.monIcon(pl.dex, mine.get(t.offer[s]), pl.t(t.who[side], "cobblemonlink.trade.your_offer")), null);
+            m.set(24, t.offer[1 - s] < 0 ? Menu.icon(Material.GRAY_STAINED_GLASS_PANE, pl.t(t.who[side], "cobblemonlink.trade.their_offer", t.who[1 - s].getName()), List.of())
+                    : Menu.monIcon(pl.dex, theirs.get(t.offer[1 - s]), pl.t(t.who[side], "cobblemonlink.trade.their_offer", t.who[1 - s].getName())), null);
             m.set(22, Menu.icon(Material.ARROW, "⇄", List.of()), null);
-            m.set(8, Menu.icon(t.ready[s] ? Material.LIME_CONCRETE : Material.RED_CONCRETE, t.ready[s] ? "Ready!" : "Ready?",
+            m.set(8, Menu.icon(t.ready[s] ? Material.LIME_CONCRETE : Material.RED_CONCRETE, pl.t(t.who[side], t.ready[s] ? "cobblemonlink.trade.ready" : "cobblemonlink.trade.ready_q"),
                     List.of(t.ready[1 - s] ? t.who[1 - s].getName() + " is ready" : "Waiting for both offers")), e -> ready(t, side));
-            m.set(17, Menu.icon(Material.BARRIER, "Cancel trade", List.of()), e -> t.who[side].closeInventory());
+            m.set(17, Menu.icon(Material.BARRIER, pl.t(t.who[side], "cobblemonlink.trade.cancel"), List.of()), e -> t.who[side].closeInventory());
         }
     }
 
@@ -130,7 +130,7 @@ final class Trades {
             d.see(got);
             d.caught.add(got.species);
             String gotName = got.name(pl.dex);
-            p.sendMessage(Component.text("You traded for " + gotName + "!", NamedTextColor.GREEN));
+            p.sendMessage(Component.text(pl.t(p, "cobblemonlink.trade.traded_for", got.name(pl.dex, CobblemonLink.loc(p))), NamedTextColor.GREEN));
             String evolved = pl.evolutions.traded(got, p); // Cobblemon: trade evolutions happen on arrival
             if (evolved != null) p.sendMessage(Component.text(evolved, NamedTextColor.AQUA));
             pl.store.save(p.getUniqueId());
@@ -147,7 +147,7 @@ final class Trades {
             open.remove(t.who[s].getUniqueId());
             t.menus[s].onClose = null;
             if (!t.who[s].equals(by)) t.who[s].closeInventory();
-            t.who[s].sendMessage(Component.text("The trade was cancelled.", NamedTextColor.GRAY));
+            t.who[s].sendMessage(Component.text(pl.t(t.who[s], "cobblemonlink.trade.cancelled"), NamedTextColor.GRAY));
         }
     }
 }

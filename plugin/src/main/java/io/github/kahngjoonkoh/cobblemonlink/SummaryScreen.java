@@ -97,7 +97,7 @@ final class SummaryScreen {
 
     /** Cobblemon's Evolve button: evolves into the pending evolution (the Pokédex now has it as caught). */
     static void evolve(CobblemonLink pl, Player p, Mon m) {
-        String said = m.evolve(pl.dex);
+        String said = m.evolve(pl.dex, CobblemonLink.loc(p));
         if (said == null) return;
         Store.Data d = pl.store.get(p.getUniqueId());
         d.see(m);

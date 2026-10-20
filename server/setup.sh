@@ -40,6 +40,7 @@ rm -f "$D"/plugins/cobblemon-link*.jar
 cp "$jar" "$D/plugins/cobblemon-link.jar"
 mkdir -p "$D/plugins/CobblemonLink"
 cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json "$D/plugins/CobblemonLink/"
+rm -rf "$D/plugins/CobblemonLink/lang" && cp -r ../assets/lang "$D/plugins/CobblemonLink/lang"  # Cobblemon's 29 languages
 # Java battle-menu art; the pack server serves it next to BetterModel's build.zip
 cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
 rm -f "$D"/plugins/BetterModel/cobblemon-link-pics-*.zip  # the Pokémon pictures, a pack a region

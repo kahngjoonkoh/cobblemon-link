@@ -22,11 +22,13 @@ final class Evolutions {
     }
 
     /** Uses an evolution item: Cobblemon evolves right away. Returns the message, or null if nothing happened. */
-    String evolveWithItem(Mon m, String item) {
+    String evolveWithItem(Mon m, String item) { return evolveWithItem(m, item, null); }
+
+    String evolveWithItem(Mon m, String item, Player owner) {
         Dex.Evo e = byItem(m, item);
         if (e == null) return null;
         m.evolution = e.result;
-        return m.evolve(pl.dex);
+        return m.evolve(pl.dex, owner == null ? Lang.FALLBACK : CobblemonLink.loc(owner));
     }
 
     /**
@@ -38,7 +40,8 @@ final class Evolutions {
         Dex.Evo e = best(m, owner, "level_up", null);
         if (e == null) return;
         m.evolution = e.result;
-        say.accept(m.name(pl.dex) + " seems ready to evolve!");
+        String loc = CobblemonLink.loc(owner);
+        say.accept(pl.lang.get(loc, "cobblemonlink.evolve.ready", m.name(pl.dex, loc)));
     }
 
     /** A trade: Cobblemon's trade evolutions happen as the Pokémon arrives. */
@@ -46,7 +49,7 @@ final class Evolutions {
         Dex.Evo e = best(m, newOwner, "trade", null);
         if (e == null) return null;
         m.evolution = e.result;
-        return m.evolve(pl.dex);
+        return m.evolve(pl.dex, CobblemonLink.loc(newOwner));
     }
 
     /** Of the evolutions that pass, the most specific (most requirements): Pikachu in an Alolan biome is Alolan Raichu. */

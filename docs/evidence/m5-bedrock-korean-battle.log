@@ -1,0 +1,20 @@
+start_game
+text system "§r§6Type /starter to choose your first Pokémon and begin your journey!" 
+text system "§r§e.BotKo이(가) 게임에 참여했습니다" 
+text system "§r§6Wallpaper Unlocked: Forest (your PC's box settings)" 
+title action_bar_message "§r§cCheck out the starters! Type /starter"
+text system "§r§aGave Pikachu Lv.20" 
+bossbar §r야생의 꼬렛  Lv.3 1
+bossbar §r피카츄  Lv.20   48/48 HP 1
+bossbar §r야생의 꼬렛  Lv.3 0
+bossbar §r피카츄  Lv.20   48/48 HP 0
+form "Battle§r§l§1" | 야생의 꼬렛(Lv.3)이(가) 나타났다! | 싸운다 ; 포켓몬 ; 잡는다 ; 도망간다
+bossbar §r야생의 꼬렛  Lv.3 0
+bossbar §r피카츄  Lv.20   48/48 HP 0
+form "Battle§r§l§2" | 야생의 꼬렛(Lv.3)이(가) 나타났다! / 가라! 피카츄! | 그림자분신           15/15 ; 일렉트릭볼           10/10 ; 페인트           10/10 ; 스파크           20/20 ;  
+form "Battle§r§l§1" | 야생의 꼬렛(Lv.3)이(가) 나타났다! / 가라! 피카츄! | 싸운다 ; 포켓몬 ; 잡는다 ; 도망간다
+bossbar §r야생의 꼬렛  Lv.3 0
+bossbar §r피카츄  Lv.20   48/48 HP 0
+form "Battle§r§l§2" | 피카츄의 그림자분신! / 피카츄의 회피이(가) 올랐다! / 야생의 꼬렛의 꼬리흔들기! / 하지만 빗나가고 말았다! | 그림자분신           14/15 ; 일렉트릭�
+form "Battle§r§l§1" | 피카츄의 그림자분신! / 피카츄의 회피이(가) 올랐다! / 야생의 꼬렛의 꼬리흔들기! / 하지만 빗나가고 말았다! | 싸운다 ; 포켓몬 ; 잡는다 ; 도망간�
+bossbar §r야생의 꼬렛  Lv.3 0

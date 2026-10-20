@@ -77,7 +77,15 @@ final class Battle {
         this.wild = wild;
         this.side = side;
         this.foe = side.equals("p1") ? "p2" : "p1";
+        this.loc = CobblemonLink.loc(player);
     }
+
+    private final String loc; // the player's language
+
+    /** key in this player's language. */
+    private String t(String key, Object... args) { return pl.lang.get(loc, key, args); }
+
+    private String name(Mon m) { return m.name(pl.dex, loc); }
 
     /** Cobblemon's player-vs-player battle: a's side is p1 and talks to the sim, b's is p2. */
     static Battle[] pvp(CobblemonLink pl, Player a, Player b) {
@@ -113,7 +121,9 @@ final class Battle {
 
     private Entity foeEntity() { return pvp() ? rival.ally : wildEntity; }
 
-    private String foeLabel(Mon m) { return (pvp() ? rival.player.getName() + "'s " : "Wild ") + m.name(pl.dex); }
+    private String foeLabel(Mon m) {
+        return pvp() ? t("cobblemon.battle.owned_pokemon", rival.player.getName(), name(m)) : t("cobblemonlink.battle.wild_title", name(m));
+    }
 
     /** Returns false (with a message) if the player has nothing able to battle. */
     boolean start() {
@@ -130,21 +140,21 @@ final class Battle {
             init.addProperty("pvp", true);
             for (Battle b : List.of(this, rival)) {
                 for (Mon m : b.team()) {
-                    b.names.put(m.id, "Your " + m.name(pl.dex));
-                    b.rival.names.put(m.id, b.player.getName() + "'s " + m.name(pl.dex));
+                    b.names.put(m.id, b.name(m));
+                    b.rival.names.put(m.id, b.rival.t("cobblemon.battle.owned_pokemon", b.player.getName(), b.rival.name(m)));
                     pl.store.get(b.rival.player.getUniqueId()).see(m); // the Pokédex: seen in battle
                 }
-                b.log.addAll(Ui.wrap("You are challenged by " + b.rival.player.getName() + "!", 146));
+                b.log.addAll(Ui.wrap(b.t("cobblemonlink.battle.challenged", b.rival.player.getName()), 146));
             }
         } else {
             wild.hp = -1;
             init.add("p2", Store.GSON.toJsonTree(List.of(wild.set(pl.dex))));
-            for (Mon m : party) names.put(m.id, "Your " + m.name(pl.dex));
-            names.put(wild.id, "The wild " + wild.name(pl.dex));
+            for (Mon m : party) names.put(m.id, name(m));
+            names.put(wild.id, t("cobblemonlink.battle.wild", name(wild)));
             Spawner.freeze(wildEntity, true);
             Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
             Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
-            String appeared = "A wild " + wild.name(pl.dex) + " (Lv." + wild.level + ") appeared!";
+            String appeared = t("cobblemonlink.battle.appeared", name(wild), wild.level);
             log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
         }
 
@@ -181,7 +191,7 @@ final class Battle {
         order.clear();
         for (int i = 0; i < party.size(); i++) if (!party.get(i).fainted(pl.dex)) order.add(i);
         if (order.isEmpty()) {
-            player.sendMessage(Component.text("You have no Pokémon able to battle. Sleep in a bed to heal them.", NamedTextColor.RED));
+            player.sendMessage(Component.text(t("cobblemonlink.battle.no_able"), NamedTextColor.RED));
             return false;
         }
         for (int i = 0; i < party.size(); i++) if (!order.contains(i)) order.add(i);
@@ -204,7 +214,7 @@ final class Battle {
                 animate(msg.getAsJsonArray("lines"));
                 for (JsonElement l : msg.getAsJsonArray("lines")) {
                     if (l.getAsString().startsWith("|turn|")) turn = Integer.parseInt(l.getAsString().substring(6));
-                    String text = narrate(l.getAsString(), names, side);
+                    String text = narrate(l.getAsString());
                     if (text == null) continue;
                     if (text.startsWith("—")) continue;
                     turnLog.add(text);
@@ -249,9 +259,10 @@ final class Battle {
         boolean trapped = active.has("trapped") && active.get("trapped").getAsBoolean();
         // BattleGeneralActionSelection: Switch only when not trapped; Catch hides the battle so a ball can be thrown
         List<Integer> art = new ArrayList<>(List.of(0, 1, 2, 3)); // battle_menu_fight/switch/bag/run
-        List<Opt> opts = new ArrayList<>(List.of(new Opt("Fight", "menu_fight", this::openFight),
-                new Opt("Switch", "menu_switch", () -> openSwitch(true)),
-                new Opt("Catch", "menu_bag", this::capture), new Opt(pvp() ? "Forfeit" : "Run", "menu_run", this::run)));
+        List<Opt> opts = new ArrayList<>(List.of(new Opt(t("cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
+                new Opt(t("cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
+                new Opt(t("cobblemon.battle.ui.capture"), "menu_bag", this::capture),
+                new Opt(t(pvp() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "menu_run", this::run)));
         if (pvp()) { // Cobblemon: no Catch against a trainer
             art.remove(2);
             opts.remove(2);
@@ -277,12 +288,12 @@ final class Battle {
             return;
         }
         List<ActionButton> buttons = new ArrayList<>(List.of(
-                menuButton(0, "Fight", "", this::openFight),
-                menuButton(1, "Switch", trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true))));
-        if (!pvp()) buttons.add(menuButton(2, "Catch", "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
-        buttons.add(menuButton(3, pvp() ? "Forfeit" : "Run", "", this::run));
+                menuButton(0, t("cobblemon.battle.ui.fight"), "", this::openFight),
+                menuButton(1, t("cobblemon.battle.ui.switch"), trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true))));
+        if (!pvp()) buttons.add(menuButton(2, t("cobblemon.battle.ui.capture"), "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
+        buttons.add(menuButton(3, t(pvp() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "", this::run));
         List<DialogBody> body = info();
-        List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of("What will you do?") : turnLog);
+        List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of(t("cobblemonlink.battle.what")) : turnLog);
         while (log.size() < 4) log.add(" "); // fixed height, so the buttons don't move between turns
         body.add(DialogBody.plainMessage(Component.text(String.join("\n", log)), 300));
         turnLog.clear();
@@ -294,7 +305,7 @@ final class Battle {
             rival.out().println("{\"forfeit\":\"" + side + "\"}");
             return;
         }
-        player.sendMessage(Component.text("Got away safely!", NamedTextColor.YELLOW));
+        player.sendMessage(Component.text(t("cobblemonlink.battle.fled"), NamedTextColor.YELLOW));
         finish(null, false);
     }
 
@@ -308,7 +319,7 @@ final class Battle {
             for (int i = 0; i < moves.size(); i++) { // BattleMoveSelection: 92x24 tiles from (20, H-84), 13/5 px apart
                 JsonObject mv = moves.get(i).getAsJsonObject();
                 boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
-                String name = mv.get("move").getAsString(), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
+                String name = pl.dex.label("move", mv.get("id").getAsString(), loc), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
                 String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
                 int x = 20 + i % 2 * 105, top = 84 - i / 2 * 29, t = Math.max(0, Ui.TYPES.indexOf(type));
                 String choice = "move " + (i + 1);
@@ -335,7 +346,7 @@ final class Battle {
                 String type = mv.has("type") ? mv.get("type").getAsString() : "normal";
                 String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
                 String choice = "move " + (i + 1);
-                opts.add(new Opt(mv.get("move").getAsString() + "\n          " + pp, "move_" + (Ui.TYPES.contains(type) ? type : "normal"),
+                opts.add(new Opt(pl.dex.label("move", mv.get("id").getAsString(), loc) + "\n          " + pp, "move_" + (Ui.TYPES.contains(type) ? type : "normal"),
                         disabled ? this::openFight : () -> choose(choice)));
             }
             opts.add(new Opt(" ", "back", this::openMenu));
@@ -346,14 +357,14 @@ final class Battle {
         for (int i = 0; i < moves.size(); i++) {
             JsonObject mv = moves.get(i).getAsJsonObject();
             boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
-            String name = mv.get("move").getAsString(), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
+            String name = pl.dex.label("move", mv.get("id").getAsString(), loc), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
             String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
             String choice = "move " + (i + 1);
             Component label = Ui.bedrock(player) ? Component.text(name + "  (" + pp + ")") : Ui.moveTile(name, type, pp, disabled);
             buttons.add(button(label, Ui.MOVE_W + 4, pl.dex.label("type", type) + "  PP " + pp, disabled ? this::openFight : () -> choose(choice)));
         }
         buttons.add(backButton());
-        show("Fight", info(), buttons);
+        show(t("cobblemon.battle.ui.fight"), info(), buttons);
     }
 
     /** cancellable = false when a fainted Pokémon must be replaced. */
@@ -373,7 +384,7 @@ final class Battle {
                 int x = 12 + n % 2 * 98, top = 192 - n / 2 * 31;
                 n++;
                 tiles.add(tile(x, top, 94, 29, Ui.PARTY, o -> o.label(Ui.Overlay.BL, x + 5, top - 4, "Lv.")
-                        .label(Ui.Overlay.BL, x + 18, top - 4, String.valueOf(m.level)).label(Ui.Overlay.BL, x + 5, top - 11, m.name(pl.dex))
+                        .label(Ui.Overlay.BL, x + 18, top - 4, String.valueOf(m.level)).label(Ui.Overlay.BL, x + 5, top - 11, name(m))
                         .small(Ui.Overlay.BL, x + 47, top - 22, cond.split(" ")[0]), () -> choose(choice)));
             }
             if (cancellable) tiles.add(backTile());
@@ -388,7 +399,7 @@ final class Battle {
                 if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
                 String choice = "switch " + (i + 1);
                 Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
-                opts.add(new Opt(m.name(pl.dex) + "  Lv." + m.level + "\n" + cond.split(" ")[0], "party", () -> choose(choice)));
+                opts.add(new Opt(name(m) + "  Lv." + m.level + "\n" + cond.split(" ")[0], "party", () -> choose(choice)));
             }
             while (opts.size() < 5) opts.add(new Opt(" ", "none", () -> openSwitch(cancellable))); // Back is the 6th button
             if (cancellable) opts.add(new Opt(" ", "back", this::openMenu));
@@ -402,7 +413,7 @@ final class Battle {
             if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
             String choice = "switch " + (i + 1);
             Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
-            String name = m.name(pl.dex) + " Lv." + m.level, hp = cond.split(" ")[0];
+            String name = name(m) + " Lv." + m.level, hp = cond.split(" ")[0];
             Component label = Ui.bedrock(player) ? Component.text(name + "  (" + hp + ")")
                     : Ui.partyTile(pl.dex.of(m).types, name, hp);
             buttons.add(button(label, Ui.PARTY_W + 4, "HP " + hp, () -> choose(choice)));
@@ -413,7 +424,7 @@ final class Battle {
             body.add(DialogBody.plainMessage(Component.text(String.join("\n", turnLog)), 300));
             turnLog.clear();
         }
-        show(cancellable ? "Switch" : "Choose your next Pokémon", body, buttons);
+        show(cancellable ? t("cobblemon.battle.ui.switch") : t("cobblemonlink.battle.next"), body, buttons);
     }
 
     record Opt(String text, String image, Runnable action) {}
@@ -422,7 +433,7 @@ final class Battle {
     private boolean form(int kind, List<Opt> opts) {
         if (!Mod.form(player)) return false;
         List<String> last = log.subList(Math.max(0, log.size() - 4), log.size());
-        Mod.send(player, "Battle" + Forms.MARK + kind, String.join("\n", last.isEmpty() ? List.of("What will you do?") : last),
+        Mod.send(player, "Battle" + Forms.MARK + kind, String.join("\n", last.isEmpty() ? List.of(t("cobblemonlink.battle.what")) : last),
                 opts, i -> onMain(() -> {
                     if (over) return;
                     formOpen = false; // any answer closes it; the action may send the next one
@@ -545,7 +556,7 @@ final class Battle {
 
     /** Bedrock's form text (Java gets the overlay). Numbers only for your own side, like the main games. */
     private Component infoLine(Mon m, JsonObject p, boolean own) {
-        String name = (own ? m.name(pl.dex) : foeLabel(m)) + " Lv." + m.level;
+        String name = (own ? name(m) : foeLabel(m)) + " Lv." + m.level;
         String hp = own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : "";
         String status = p.get("status").getAsString();
         int filled = Math.round(ratio(p) * 20);
@@ -596,7 +607,7 @@ final class Battle {
             JsonObject p = p1.get(i).getAsJsonObject();
             if (!p.get("active").getAsBoolean()) continue;
             Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(i));
-            ownBar.name(Component.text(m.name(pl.dex) + "  Lv." + m.level + "   " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() + " HP"));
+            ownBar.name(Component.text(name(m) + "  Lv." + m.level + "   " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() + " HP"));
             ownBar.progress(ratio(p));
         }
         player.showBossBar(wildBar);
@@ -641,7 +652,7 @@ final class Battle {
         if (face != null) o.add(corner, x + (own ? 5 : 107), 18, face, 29);
         o.glyph(corner, x, 10, own ? '\ue100' : '\ue101', 141);
         int ib = x + (own ? 40 : 7), bar = Math.round(ratio(p) * 97);
-        o.label(corner, ib, 17, m.name(pl.dex)).label(corner, ib + 69, 17, "Lv.").label(corner, ib + 82, 17, String.valueOf(m.level));
+        o.label(corner, ib, 17, name(m)).label(corner, ib + 69, 17, "Lv.").label(corner, ib + 82, 17, String.valueOf(m.level));
         if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29, (char) (0xE110 + bar), bar + 1);
         o.small(corner, ib + (own ? 39 : 44), 28,
                 own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : (int) Math.ceil(ratio(p) * 100) + "%");
@@ -719,7 +730,7 @@ final class Battle {
     /** Cobblemon's Catch: the battle steps aside and the player throws a real Poké Ball (ballHit). */
     private void capture() {
         if (screen != null) hide();
-        player.sendMessage(Component.text("Throw a Poké Ball at your opponent to capture it.")); // throw_pokeball_prompt
+        player.sendMessage(Component.text(t("cobblemon.battle.throw_pokeball_prompt")));
     }
 
     /**
@@ -754,8 +765,9 @@ final class Battle {
                 Items.caught(ballId, wild);
                 finish(null, true);
             } else {
-                turnLog.add("Oh no! The Pokémon broke free!");
-                log.addAll(Ui.wrap("Oh no! The Pokémon broke free!", 146));
+                String free = t("cobblemon.capture.broke_free", name(wild));
+                turnLog.add(free);
+                log.addAll(Ui.wrap(free, 146));
                 if (myTurn) choose("pass"); // Cobblemon's ForcePassActionResponse: the throw was the turn
                 else openMenu();
             }
@@ -829,15 +841,15 @@ final class Battle {
                     Rules.addEv(m.evs, k, ev.getValue() + (POWER_ITEMS[k].equals(m.held) ? 8 : 0));
                 }
                 boolean panel = pl.panel.on(player); // as Cobblemon: the party overlay shows it, not chat
-                m.gainExp(pl.dex, exp, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
+                m.gainExp(pl.dex, exp, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)), loc);
                 pl.evolutions.update(m, player, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
                 if (panel) pl.panel.gain(player, m, level, exp, m.moves.size() + (m.learnable == null ? 0 : m.learnable.size()) - moves,
                         m.evolution != null && !m.evolution.equals(evolution) ? 1 : 0);
             }
         }
         if (pvp()) {
-            player.sendMessage(Component.text(won ? "You defeated " + rival.player.getName() + "!" : lost
-                    ? rival.player.getName() + " won the battle." : "The battle is over.", won ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+            player.sendMessage(Component.text(won ? t("cobblemonlink.battle.won_pvp", rival.player.getName()) : lost
+                    ? t("cobblemonlink.battle.lost_pvp", rival.player.getName()) : t("cobblemonlink.battle.over"), won ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
         } else if (won) {
             wildEntity.getPersistentDataContainer().remove(pl.wildKey); // no longer wild while it faints
             faint(wildEntity);
@@ -848,7 +860,7 @@ final class Battle {
             wildEntity.remove();
         } else {
             if (lost)
-                player.sendMessage(Component.text("All your Pokémon fainted! Sleep in a bed to heal them.", NamedTextColor.RED));
+                player.sendMessage(Component.text(t("cobblemonlink.battle.all_fainted"), NamedTextColor.RED));
             Spawner.freeze(wildEntity, false);
             Spawner.stopAnimation(wildEntity, "battle_idle");
         }
@@ -914,46 +926,43 @@ final class Battle {
     }
 
     /**
-     * Showdown protocol line -> chat text, or null to skip (HP is shown in the menu instead). Cobblemon's Showdown names
-     * each Pokémon by its UUID ("p1a: <uuid>"); names maps the UUID to "Your Pikachu" / "The wild Rattata".
+     * Showdown protocol line -> battle log text in the player's language (Cobblemon's battle keys), or null to skip.
+     * Cobblemon's Showdown names each Pokémon by its UUID ("p1a: <uuid>"); names maps it to its display name.
      */
-    static String narrate(String line, Map<String, String> names, String side) {
+    String narrate(String line) {
         String[] p = line.split("\\|");
         if (p.length < 2) return null;
         return switch (p[1]) {
-            case "move" -> who(p[2], names) + " used " + p[3] + "!";
-            case "switch" -> p[2].startsWith(side) ? "Go! " + who(p[2], names).substring(5) + "!" : null;
-            case "bagitem" -> "You used your " + item(p[3]) + " on " + names.getOrDefault(p[2], "it").replaceFirst("^Your ", "") + "!";
-            case "-heal" -> who(p[2], names) + " restored its HP.";
-            case "-curestatus" -> who(p[2], names) + " was cured of its status.";
-            case "faint" -> who(p[2], names) + " fainted!";
-            case "-supereffective" -> "It's super effective!";
-            case "-resisted" -> "It's not very effective...";
-            case "-immune" -> "It doesn't affect " + who(p[2], names) + "...";
-            case "-crit" -> "A critical hit!";
-            case "-miss" -> who(p[2], names) + "'s attack missed!";
-            case "-fail" -> "But it failed!";
-            case "-status" -> who(p[2], names) + " is now " + switch (p[3]) {
-                case "par" -> "paralyzed"; case "brn" -> "burned"; case "slp" -> "asleep";
-                case "frz" -> "frozen"; case "psn", "tox" -> "poisoned"; default -> p[3]; } + "!";
-            case "cant" -> who(p[2], names) + " can't move!";
-            case "-boost" -> who(p[2], names) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " rose!";
-            case "-unboost" -> who(p[2], names) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " fell!";
-            case "turn" -> "— Turn " + p[2] + " —";
+            case "move" -> t("cobblemon.battle.used_move", who(p[2], names), pl.dex.label("move", toId(p[3]), loc));
+            case "switch" -> p[2].startsWith(side) ? t("cobblemon.battle.switch.self", who(p[2], names)) : null;
+            case "bagitem" -> t("cobblemon.battle.bagitem.use", player.getName(), item(p[3]), names.getOrDefault(p[2], "?"));
+            case "-heal" -> t("cobblemon.battle.heal.generic", who(p[2], names));
+            case "-curestatus" -> t("cobblemonlink.battle.cured", who(p[2], names));
+            case "faint" -> t("cobblemon.battle.fainted", who(p[2], names));
+            case "-supereffective" -> t("cobblemon.battle.superEffective");
+            case "-resisted" -> t("cobblemon.battle.resisted");
+            case "-immune" -> t("cobblemonlink.battle.immune", who(p[2], names));
+            case "-crit" -> t("cobblemon.battle.crit");
+            case "-miss" -> t("cobblemon.battle.missed");
+            case "-fail" -> t("cobblemon.battle.fail");
+            case "-status" -> t("cobblemonlink.battle.status." + p[3], who(p[2], names));
+            case "cant" -> t("cobblemonlink.battle.cant", who(p[2], names));
+            case "-boost" -> t("cobblemon.battle.boost.slight", who(p[2], names), stat(p[3]));
+            case "-unboost" -> t("cobblemon.battle.unboost.slight", who(p[2], names), stat(p[3]));
+            case "turn" -> "—";
             default -> null;
         };
     }
 
-    private static final Map<String, String> STAT_NAMES = Map.of("atk", "Attack", "def", "Defense", "spa", "Sp. Atk",
-            "spd", "Sp. Def", "spe", "Speed", "accuracy", "accuracy", "evasion", "evasiveness");
+    private static String toId(String s) { return s.toLowerCase().replaceAll("[^a-z0-9]", ""); }
 
-    /** "item.cobblemon.super_potion" -> "Super Potion". */
-    private static String item(String key) {
-        String id = key.substring(key.lastIndexOf('.') + 1);
-        StringBuilder b = new StringBuilder();
-        for (String w : id.split("_")) b.append(b.isEmpty() ? "" : " ").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
-        return b.toString();
-    }
+    private static final Map<String, String> STATS = Map.of("atk", "attack", "def", "defence", "spa", "special_attack",
+            "spd", "special_defence", "spe", "speed", "accuracy", "accuracy", "evasion", "evasion");
+
+    private String stat(String s) { return t("cobblemon.stat." + STATS.getOrDefault(s, s) + ".name"); }
+
+    /** "item.cobblemon.super_potion" -> its name in the player's language. */
+    private String item(String key) { return t(key); }
 
     private static String who(String ident, Map<String, String> names) {
         String id = ident.length() > 5 ? ident.substring(5) : ident;
