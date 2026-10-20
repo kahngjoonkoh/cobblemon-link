@@ -32,6 +32,7 @@ public class ModelHolder extends ElementHolder {
     private java.util.function.BooleanSupplier battling = () -> false;
     private java.util.function.Supplier<String> state; // the loop to play, for things that aren't Pokémon (Poké Balls)
     private double lastX, lastZ;
+    private final Vector3f offset = new Vector3f(); // from the entity, in its facing frame (a shoulder)
 
     public ModelHolder(Entity entity, Models.Model model, float scale) { this(entity, model, scale, true); }
 
@@ -56,6 +57,9 @@ public class ModelHolder extends ElementHolder {
         if (hitbox != null) hitbox.setSize(entity.getBbWidth(), entity.getBbHeight());
         pose(0);
     }
+
+    /** Draw the model this far from the entity (x left, y up, z forward, blocks), e.g. on a shoulder. */
+    public void offset(float x, float y, float z) { offset.set(x, y, z); }
 
     /** Only vanilla Java clients: Cobblemon players see Cobblemon's model, Bedrock players GeyserModelEngine's. */
     @Override
@@ -144,7 +148,7 @@ public class ModelHolder extends ElementHolder {
                 one = null;
             } else to = time(one, to);
         }
-        Matrix4f root = new Matrix4f().scale(scale).rotateY((float) Math.PI);
+        Matrix4f root = new Matrix4f().translate(offset).scale(scale).rotateY((float) Math.PI);
         Vector3f p = new Vector3f(), r = new Vector3f(), s = new Vector3f();
         float yaw = entity instanceof LivingEntity l ? l.yBodyRot : entity.getYRot();
         for (int i = 0; i < displays.length; i++) {
