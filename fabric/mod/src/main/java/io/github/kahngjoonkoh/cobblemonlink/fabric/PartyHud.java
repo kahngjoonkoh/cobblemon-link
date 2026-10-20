@@ -122,7 +122,7 @@ public final class PartyHud {
     private static final char SLOT = '\ue4a0', SLOT_ACTIVE = '\ue4a1', SLOT_FAINTED = '\ue4a2', SLOT_FAINTED_ACTIVE = '\ue4a3',
             PORTRAIT_BG = '\ue4a4', MALE = '\ue4a5', FEMALE = '\ue4a6', BALL = '\ue4a7', POPUP_EVOLUTION = '\ue4a8',
             POPUP_MOVE = '\ue4a9', SCROLL = '\ue4c0', HP = '\ue4d0', EXP = '\ue4f0';
-    private static final net.minecraft.resources.ResourceLocation PORTRAIT_HUD = Ui.id("portrait_hud");
+    private static final net.minecraft.resources.ResourceLocation PORTRAIT_HUD = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("cobblemonlink", "portrait_hud"); // not Ui.id: Ui loads Cobblemon (tests)
 
     /** Cobblemon's party overlay for vanilla Java: down the left edge, a 62 x 30 slot each, the lead poking out. */
     static Component draw(List<Pokemon> party, Map<UUID, Gain> gains) {

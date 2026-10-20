@@ -1,0 +1,11 @@
+start_game: in the world at {"x":0,"y":69,"z":0}
+add_entity modelengine:clb_pc_bottom {"x":0.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_display_case {"x":2.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_tm_machine_empty_open_dispensed {"x":4.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_pc_top {"x":0.5,"y":-59,"z":-3.5}
+add_entity modelengine:clb_pasture_bottom {"x":6.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_pasture_top_off {"x":6.5,"y":-59,"z":-3.5}
+add_entity modelengine:clb_campfire_pot_red {"x":-3.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_healing_machine_5 {"x":-1.5,"y":-60,"z":-3.5}
+add_entity modelengine:clb_fossil_analyzer {"x":-5.5,"y":-60,"z":-3.5}
+still connected after 25 s; packets: {"network_settings":1,"server_to_client_handshake":1,"play_status":2,"resource_packs_info":1,"jigsaw_structure_data":1,"voxel_shapes":1,"start_game":1,"sync_entity_property":2500,"item_registry":1,"level_chunk":454,"biome_definition_list":1,"available_entity_identifiers":1,"camera_presets":1,"creative_content":1,"set_commands_enabled":1,"update_attributes":7,"game_rules_changed":5,"set_time":27,"crafting_data":3,"set_entity_data":12,"chunk_radius_update":2,"set_difficulty":1,"update_adventure_settings":2,"update_abilities":2,"player_hotbar":1,"trim_data":1,"unlocked_recipes":1,"respawn":1,"mov

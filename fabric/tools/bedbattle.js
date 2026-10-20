@@ -13,11 +13,11 @@ c.on('start_game', p => {
 c.on('move_player', p => { if (p.runtime_id == me) pos = p.position })
 c.on('add_entity', p => {
   console.log('add_entity', p.entity_type, p.runtime_id)
-  if (!target && p.entity_type.startsWith('modelengine:')) {
+  if (!target && p.entity_type.startsWith(process.env.TARGET || 'modelengine:')) { // TARGET: only use it, no hit
     target = p.runtime_id
     setTimeout(() => {
-      console.log('hitting', target)
-      c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use_on_entity', actions: [],
+      if (!process.env.TARGET) console.log('hitting', target)
+      if (!process.env.TARGET) c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use_on_entity', actions: [],
         transaction_data: { entity_runtime_id: target, action_type: 'attack', hotbar_slot: 0, held_item: { network_id: 0 },
           player_pos: pos, click_pos: { x: 0, y: 0, z: 0 } } } })
       setTimeout(() => { console.log('using', target); c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use_on_entity', actions: [],

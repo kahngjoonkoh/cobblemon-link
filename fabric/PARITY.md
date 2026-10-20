@@ -124,7 +124,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Trading | ⬜ | ⬜ | Cobblemon's trade packets → a form / chest |
 | NPCs (Professor, trainers) and their dialogues | ⬜ | ⬜ | `NPCEntity` is hidden from these clients; dialogue packets |
 | Fishing with Poké Rods (bobber, bites, reeling) | 🟡 | 🟡 | casting and Cobblemon's fishing run (the rod shows, `New Angles for Angling`), but the bobber still doesn't reach these clients (sent as a vanilla hook, not drawn: open) |
-| Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, TM machine blocks | 🟡 | 🟡 | PolyMc stand-in blocks (they work, they don't look like Cobblemon's); PC opens our PC |
+| Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, monitor, TM machine, campfire pot blocks | ✅ | ✅ | `Furniture`: Cobblemon's block models over a barrier stand-in (`PolyEntry`), following the block state; Java an item display (`f1-java-machine-blocks.png`, `f1-java-pasture-two-halves.png`, vs `f1-cobblemon-client-reference.png`), Bedrock a GeyserModelEngine model from `tools/bedrock_blocks.py` (`f2-bedrock-machine-blocks.log`); clicking the Bedrock model uses the block (`f3-bedrock-click-pc-model.log`). ⬜ the block-entity extras (healing machine's balls, display case item, tank fluid) |
 | Pasture block screen | ⬜ | ⬜ | `OpenPasturePacket` |
 | Fossils and the resurrection machine | 🟡 | 🟡 | block interactions work through PolyMc; the revived Pokémon is a normal one |
 | Berries, apricorns, mints, saplings, gem clusters (blocks and growth) | 🟡 | 🟡 | PolyMc stand-ins; some berry block models fail to generate |

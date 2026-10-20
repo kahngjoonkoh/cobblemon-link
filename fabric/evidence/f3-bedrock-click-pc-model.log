@@ -1,0 +1,11 @@
+add_entity modelengine:clb_pc_bottom 4n
+add_entity modelengine:clb_display_case 5n
+add_entity modelengine:clb_tm_machine_empty_open_dispensed 6n
+add_entity modelengine:clb_pasture_bottom 7n
+add_entity modelengine:clb_pc_top 8n
+add_entity modelengine:clb_pasture_top_off 9n
+add_entity modelengine:clb_fossil_analyzer 10n
+add_entity modelengine:clb_campfire_pot_red 11n
+add_entity modelengine:clb_healing_machine_5 12n
+using 4n
+form §r§l§5 |  | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; Box 1<textures/cobblemonlink/none> ; Filter<textures/cobblemonlink/none> ;

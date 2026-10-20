@@ -26,7 +26,7 @@ import org.joml.Vector3f;
  */
 public final class Models {
     /** Carrier items for the bone models: ones PolyMc doesn't use, so ~1,600 overrides each, not 87,000 on one. */
-    private static final List<Item> CARRIERS = List.of(Items.LEATHER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR,
+    static final List<Item> CARRIERS = List.of(Items.LEATHER_HORSE_ARMOR, Items.IRON_HORSE_ARMOR,
             Items.GOLDEN_HORSE_ARMOR, Items.DIAMOND_HORSE_ARMOR, Items.ANGLER_POTTERY_SHERD, Items.ARCHER_POTTERY_SHERD,
             Items.ARMS_UP_POTTERY_SHERD, Items.BLADE_POTTERY_SHERD, Items.BREWER_POTTERY_SHERD, Items.BURN_POTTERY_SHERD,
             Items.DANGER_POTTERY_SHERD, Items.EXPLORER_POTTERY_SHERD, Items.FLOW_POTTERY_SHERD, Items.FRIEND_POTTERY_SHERD,

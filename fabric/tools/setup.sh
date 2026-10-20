@@ -51,6 +51,9 @@ if [ -d "$ASSETS/java" ]; then
   # Cobblemon's sounds (cries, the Poké Ball) for Bedrock, from the Cobblemon jar the server downloaded
   J=$(ls "$DATA"/fabric/mods/Cobblemon-fabric-*.jar 2>/dev/null | head -1)
   [ -n "$J" ] && python3 tools/bedrock_sounds.py "$J" "$DATA/geyser/packs/cobblemon-link-sounds.mcpack" >/dev/null
+  # Cobblemon's machine blocks (healing machine, PC...) as GeyserModelEngine models; keep in step with Furniture.BLOCKS
+  [ -n "$J" ] && python3 tools/bedrock_blocks.py "$J" "$DATA/geyser/extensions/geysermodelengineextension/input" healing_machine pc \
+      pasture display_case fossil_analyzer restoration_tank monitor tm_machine campfire_pot_{red,blue,green,white,yellow,pink,black} >/dev/null
   python3 tools/ui_pack.py "$ASSETS/ui-pack.zip" "$ASSETS/pics" "${UI:-$DATA/ui}" >/dev/null   # vanilla Java's UI art
 else
   echo "no $ASSETS/java: run tools/build.sh at the repo root first (it converts Cobblemon's models)"
