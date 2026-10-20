@@ -171,7 +171,8 @@ def plants(src):
     """Cobblemon's plants and crystals (Furniture.plant): berry bushes, apricorns, mints, saplings, clusters."""
     base = 'assets/cobblemon/blockstates/'
     names = src.z.namelist() if src.z else [base + f for f in os.listdir(os.path.join(src.dir, base))]
-    plant = lambda b: b.endswith(('_berry', '_apricorn', '_mint', '_cluster')) or 'sapling' in b or 'budding_' in b
+    plant = lambda b: (b.endswith(('_berry', '_apricorn', '_mint', '_cluster', '_leaf_litter')) or 'sapling' in b or 'budding_' in b
+                       or b in ('revival_herb', 'pomohana', 'galarica_wreath'))
     return sorted(n[len(base):-5] for n in names if n.startswith(base) and n.endswith('.json') and plant(n[len(base):-5]))
 
 

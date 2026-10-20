@@ -1,0 +1,3 @@
+text system "§r§bPocJava§r§e requested to trade Pokémon with you!"
+form PocJava wants to trade |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+form Trade with PocJava | You offer: - / PocJava offers: - | Offer a Pokémon<textures/cobblemonlink/none> ; Cancel the trade<textures/cobblemonlink/none>

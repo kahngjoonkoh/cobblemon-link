@@ -66,7 +66,8 @@ public class ModelHolder extends ElementHolder {
     /** Only vanilla Java clients: Cobblemon players see Cobblemon's model, Bedrock players GeyserModelEngine's. */
     @Override
     public boolean startWatching(ServerGamePacketListenerImpl h) {
-        return Clients.java(h) && super.startWatching(h);
+        // a rider's first-person camera would sit inside the model: hidden from them while they ride (Riding)
+        return Clients.java(h) && h.player.getVehicle() != entity && super.startWatching(h);
     }
 
     public void setScale(float scale) { this.scale = scale; }
