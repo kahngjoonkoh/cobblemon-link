@@ -1,0 +1,43 @@
+packs offered: 3
+start_game: in the world at {"x":0,"y":69,"z":0}
+slot 0 "§rPoké Ball"
+slot 1 "§rGreat Ball"
+add_entity modelengine:charizard {"x":0.511164128780365,"y":-58.9755744934082,"z":2.559521436691284}
+props@spawn 8n [{"index":0,"value":0},{"index":1,"value":0},{"index":2,"value":0},{"index":3,"value":0},{"index":4,"value":0},{"index":5,"value":0},{"index":6,"value":0},{"index":7,"value":0}]
+props 8n [{"index":0,"value":32}]
+add_entity modelengine:pikachu__female__shiny {"x":3.5,"y":-60,"z":2.5}
+props@spawn 11n [{"index":0,"value":0},{"index":1,"value":0},{"index":2,"value":0},{"index":3,"value":0},{"index":4,"value":0},{"index":5,"value":0}]
+props 11n [{"index":0,"value":8}]
+props 11n [{"index":0,"value":128}]
+props 8n [{"index":0,"value":2}]
+props 11n [{"index":0,"value":4}]
+add_entity modelengine:charizard {"x":0.5,"y":-60,"z":2.5}
+props@spawn 14n [{"index":0,"value":0},{"index":1,"value":0},{"index":2,"value":0},{"index":3,"value":0},{"index":4,"value":0},{"index":5,"value":0},{"index":6,"value":0},{"index":7,"value":0}]
+props 14n [{"index":0,"value":32}]
+props 14n [{"index":0,"value":2}]
+add_entity modelengine:pikachu__female__shiny {"x":3.5,"y":-60,"z":2.5}
+props@spawn 15n [{"index":0,"value":0},{"index":1,"value":0},{"index":2,"value":0},{"index":3,"value":0},{"index":4,"value":0},{"index":5,"value":0}]
+props 15n [{"index":0,"value":128}]
+props 15n [{"index":0,"value":8}]
+props 14n [{"index":0,"value":32}]
+props 14n [{"index":0,"value":2}]
+props 14n [{"index":0,"value":32}]
+props 14n [{"index":0,"value":2}]
+props 15n [{"index":0,"value":128}]
+props 14n [{"index":0,"value":32}]
+props 14n [{"index":0,"value":2}]
+props 15n [{"index":0,"value":8}]
+props 14n [{"index":0,"value":32}]
+props 15n [{"index":0,"value":128}]
+props 14n [{"index":0,"value":2}]
+props 14n [{"index":0,"value":32}]
+props 15n [{"index":0,"value":8}]
+props 14n [{"index":0,"value":2}]
+props 15n [{"index":0,"value":128}]
+props 14n [{"index":0,"value":32}]
+props 15n [{"index":0,"value":8}]
+props 15n [{"index":0,"value":128}]
+props 15n [{"index":0,"value":8}]
+props 14n [{"index":0,"value":2}]
+props 14n [{"index":0,"value":32}]
+still connected after 60 s; packets: {"network_settings":1,"server_to_client_handshake":1,"play_status":2,"resource_packs_info":1,"jigsaw_structure_data":1,"voxel_shapes":1,"start_game":1,"sync_entity

@@ -19,6 +19,7 @@ services:
     volumes:
       - ${HOME}/.cache/cl-fabric-poc/fabric:/data
       - ./mods-extra:/mods:ro
+      - ${HOME}/.cache/cl-fabric/modelpack:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
     ports:
       - "127.0.0.1:25570:25565"
   # Bedrock path: phone (latest Bedrock) -> Geyser standalone (latest, speaks Java 26.3) -> ViaProxy (26.3 -> 1.21.1) -> fabric

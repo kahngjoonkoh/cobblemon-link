@@ -17,6 +17,22 @@ public record GeyserUtilsPayload(byte[] json) implements CustomPacketPayload {
                 + ",\"identifier\":\"" + identifier + "\"}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
+    /** GeyserModelEngine's animation properties (modelengine:anim0..), one bundle. */
+    public static GeyserUtilsPayload anims(int id, int[] bits) {
+        StringBuilder b = new StringBuilder("{\"@class\":\"me.zimzaza4.geyserutils.common.packet.BundlePacket\",\"packets\":[\"java.util.ArrayList\",[");
+        for (int i = 0; i < bits.length; i++)
+            b.append(i > 0 ? "," : "").append("{\"@class\":\"me.zimzaza4.geyserutils.common.packet.EntityPropertyPacket\",\"entityId\":")
+                    .append(id).append(",\"identifier\":\"modelengine:anim").append(i).append("\",\"value\":").append(bits[i]).append('}');
+        return new GeyserUtilsPayload(b.append("]]}").toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    /** GeyserModelEngine's entity scale. */
+    public static GeyserUtilsPayload scale(int id, float scale) {
+        return new GeyserUtilsPayload(("{\"@class\":\"me.zimzaza4.geyserutils.common.packet.CustomEntityDataPacket\",\"entityId\":" + id
+                + ",\"height\":null,\"width\":null,\"scale\":[\"java.lang.Float\"," + scale + "],\"color\":null,\"variant\":null}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 }

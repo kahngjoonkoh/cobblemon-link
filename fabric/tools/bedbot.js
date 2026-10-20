@@ -13,6 +13,8 @@ const names = it => { const n = it && it.extra && it.extra.nbt && it.extra.nbt.n
 c.on('inventory_content', p => (p.input || []).forEach((it, i) => { const n = names(it); if (n) console.log('slot', i, n) }))
 c.on('inventory_slot', p => { const n = names(p.item); if (n) console.log('slot', p.slot, n) })
 c.on('modal_form_request', p => console.log('form', p.form_id, p.data.slice(0, 400)))
+c.on('set_entity_data', p => p.properties && (p.properties.ints || []).length && console.log('props', p.runtime_entity_id, JSON.stringify(p.properties.ints)))
+c.on('add_entity', p => p.properties && (p.properties.ints || []).length && console.log('props@spawn', p.runtime_id, JSON.stringify(p.properties.ints)))
 c.on('disconnect', p => { console.log('disconnect', p.message); process.exit(0) })
 c.on('error', e => { console.log('error', e.message); process.exit(1) })
 setTimeout(() => { console.log('still connected after', secs, 's; packets:', JSON.stringify(seen).slice(0, 600)); process.exit(0) }, secs * 1000)

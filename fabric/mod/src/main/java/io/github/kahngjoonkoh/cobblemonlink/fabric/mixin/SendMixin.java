@@ -2,6 +2,8 @@ package io.github.kahngjoonkoh.cobblemonlink.fabric.mixin;
 
 import io.github.kahngjoonkoh.cobblemonlink.fabric.Bridge;
 import io.github.kahngjoonkoh.cobblemonlink.fabric.Clients;
+import io.github.kahngjoonkoh.cobblemonlink.fabric.GeyserUtilsPayload;
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
@@ -44,14 +46,28 @@ public class SendMixin {
             var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
             if (t != packet) return t;
         }
-        // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its species (as on Paper)
+        // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its look (as on Paper)
         if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a
                 && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity p) {
-            String model = p.getPokemon().getSpecies().getName().toLowerCase(java.util.Locale.ROOT);
-            return new ClientboundBundlePacket(List.of(
-                    new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(io.github.kahngjoonkoh.cobblemonlink.fabric.GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + model)),
-                    new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
-                            net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot())));
+            var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(p.getId());
+            List<Packet<? super ClientGamePacketListener>> out = new ArrayList<>();
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.look(p))));
+            out.add(new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
+                    net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot()));
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(a.getId(), io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.scale(p))));
+            if (holder != null) out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
+            return new ClientboundBundlePacket(out);
+        }
+        if (packet instanceof ClientboundCustomPayloadPacket c) {
+            // GeyserModelEngine's messages are for Bedrock players only
+            if (c.payload() instanceof GeyserUtilsPayload && !Clients.bedrock(h.player)) return new ClientboundBundlePacket(List.of());
+            // Cobblemon's move and reaction animations, drawn by the server for players without the mod
+            if (c.payload() instanceof com.cobblemon.mod.common.net.messages.client.animation.PlayPosableAnimationPacket pa) {
+                var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(pa.getEntityId());
+                if (holder != null) for (String n : pa.getAnimation()) if (holder.play(n)) break;
+            }
+            // the rest of Cobblemon's messages mean nothing to a client without it
+            if (c.payload().type().id().getNamespace().equals("cobblemon")) return new ClientboundBundlePacket(List.of());
         }
         // ponytail: an empty bundle stands for "nothing"; moves etc. for an entity the client never saw are ignored by it
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
