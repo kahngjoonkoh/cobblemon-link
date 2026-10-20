@@ -92,5 +92,17 @@
  "cobblemonlink.spectate.start": "You are watching %1$s's battle. /spectate again to stop.",
  "cobblemonlink.spectate.stop": "You stopped watching.",
  "cobblemonlink.spectate.none": "There's no battle to watch within 64 blocks.",
- "cobblemonlink.ui.relearn": "Relearn"
+ "cobblemonlink.ui.relearn": "Relearn",
+ "cobblemonlink.item.ev_down": "%1$s's %2$s EVs fell by %3$s.",
+ "cobblemonlink.ui.yes": "Yes",
+ "cobblemonlink.ui.no": "No",
+ "cobblemonlink.ui.release_q": "Release?",
+ "cobblemonlink.ui.nature_neutral": "No stat changes",
+ "cobblemonlink.ui.nature_effect": "Raises %1$s, lowers %2$s",
+ "cobblemonlink.ui.stat_short.hp": "HP",
+ "cobblemonlink.ui.stat_short.atk": "Atk",
+ "cobblemonlink.ui.stat_short.def": "Def",
+ "cobblemonlink.ui.stat_short.sp_atk": "SpA",
+ "cobblemonlink.ui.stat_short.sp_def": "SpD",
+ "cobblemonlink.ui.stat_short.speed": "Spe"
 }

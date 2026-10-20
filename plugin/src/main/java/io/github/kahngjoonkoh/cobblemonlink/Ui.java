@@ -112,6 +112,11 @@ final class Ui {
         return lang.getOr(CobblemonLink.loc(p), key, english);
     }
 
+    /** A nature ("Bashful") in the player's language: Cobblemon's cobblemon.nature.<id>. */
+    static String nature(org.bukkit.entity.Player p, String nature) {
+        return nature == null ? "" : tr(p, "cobblemon.nature." + nature.toLowerCase(java.util.Locale.ROOT), nature);
+    }
+
     /** A look's name in Bedrock texture paths: long ones shortened like build_bedrock_ui.py's short() (paths under 80). */
     static String bedrockName(String name) {
         if (name.length() <= 40) return name;

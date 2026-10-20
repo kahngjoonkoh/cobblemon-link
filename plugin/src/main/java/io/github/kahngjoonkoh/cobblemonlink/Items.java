@@ -222,6 +222,10 @@ final class Items {
             }
             pickPokemon(p, pl.t(p, "cobblemonlink.item.give_to", name(p, id)), party, m -> true, m -> {
                 if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return;
+                if (d.kind.equals("berry") && d.stat != null && !canUse(d, m)) { // nothing to lower: says so, keeps the berry
+                    p.sendMessage(Component.text(pl.t(p, "cobblemonlink.item.no_effect"), NamedTextColor.RED));
+                    return;
+                }
                 if (d.kind.equals("berry") && canUse(d, m)) { // a berry it can eat now is eaten
                     if (d.pp > 0) pickMove(p, d.name, m, move -> apply(p, null, id, d, m, move));
                     else apply(p, null, id, d, m, null);
@@ -311,7 +315,7 @@ final class Items {
             case "berry" -> !fainted && (d.heal > 0 || d.ratio > 0 ? m.hp(dex) < m.maxHp(dex)
                     : !d.cure.isEmpty() ? d.cure.contains(m.status)
                     : d.pp > 0 ? m.pp != null && m.ppMax != null && !m.pp.equals(m.ppMax)
-                    : m.ev(java.util.Arrays.asList(Dex.STATS).indexOf(d.stat)) > 0 || m.friendship(dex) < 255);
+                    : m.ev(java.util.Arrays.asList(Dex.STATS).indexOf(d.stat)) > 0); // no EVs to lower: no effect, as Cobblemon
             case "ability_capsule" -> { // the other standard ability; not from a hidden one
                 List<String> a = dex.of(m).abilities;
                 yield a.size() > 1 && a.contains(m.ability);
@@ -398,7 +402,7 @@ final class Items {
                 int before = m.evs[k];
                 m.evs[k] = Math.max(0, before + d.amount);
                 m.addFriendship(dex, f < 100 ? 10 : f < 200 ? 5 : 2);
-                return pl.t(p, "cobblemon.interaction.ev.deduct", name, SummaryScreen.statName(p, k), before - m.evs[k]);
+                return pl.t(p, "cobblemonlink.item.ev_down", name, SummaryScreen.statName(p, k), before - m.evs[k]);
             }
             case "ability_capsule", "ability_patch" -> {
                 List<String> a = dex.of(m).abilities;

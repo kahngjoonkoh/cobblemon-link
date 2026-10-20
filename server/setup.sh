@@ -79,6 +79,7 @@ set_key "$B" lerp-frame-time 0          # converter keyframes are already linear
 set_key "$B" packet-bundling-size 0     # one bundle per model update instead of one per 4 bones
 set_key "$B" player-animation false     # no player models here
 set_key "$B" player-armor false
+set_key "$B" version-check false     # no "new BetterModel release" notice in players' chat
 # Pokémon (pig carriers) tracked to 80 blocks: Cobblemon's own range; untracked models stop animating
 [ -f "$D/spigot.yml" ] && sed -i '/entity-tracking-range:/,/display:/ s/^\(\s*\)animals: .*/\1animals: 80/' "$D/spigot.yml"
 [ -f "$D/server.properties" ] && sed -i 's/^pause-when-empty-seconds=.*/pause-when-empty-seconds=60/' "$D/server.properties"

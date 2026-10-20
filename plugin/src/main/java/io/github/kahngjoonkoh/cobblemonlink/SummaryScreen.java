@@ -230,6 +230,7 @@ final class SummaryScreen {
             PAGE_STATS = '', MOVE = '', MOVE_SEL = '', EVOLVE_PLATE = '', PLATE = '', SHINY = '', // build_summary.py
             BALL = '', MALE = '', FEMALE = '', RING = '', TYPE_INFO = '', BAR = ''; // build_pc.py, build_dex.py
     private static final String[] SHORT = {"HP", "Atk", "Def", "SpA", "SpD", "Spe"};
+    private static final String[] SHORT_KEYS = {"hp", "atk", "def", "sp_atk", "sp_def", "speed"}; // cobblemonlink.ui.stat_short.*: Cobblemon's own labels are too wide for the column
     private static final java.util.Map<java.util.UUID, Integer> picked = new java.util.HashMap<>(); // Moves: the move to swap
 
     private static boolean art(Player p) {
@@ -406,16 +407,16 @@ final class SummaryScreen {
                 for (int k = 0; k < 6; k++) {
                     int ry = py + 5 + 17 * k;
                     int n = nature(m.mint != null ? m.mint : m.nature, k);
-                    PcScreen.text(t, "pc_bold", px + 7, ry + 4, SHORT[k] + (n > 0 ? "+" : n < 0 ? "-" : ""), false);
+                    PcScreen.text(t, "pc_bold", px + 7, ry + 4, Ui.tr(p, "cobblemonlink.ui.stat_short." + SHORT_KEYS[k], SHORT[k]) + (n > 0 ? "+" : n < 0 ? "-" : ""), false);
                     PcScreen.text(t, "pc_text", px + 44, ry + 4, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k], false);
                     int w = Math.max(1, Math.min(22, st[k] * 22 / Math.max(1, most))); // the strongest stat fills it
                     if (k > 0) PcScreen.glyph(t, px + 62, ry + 5, (char) (BAR + w - 1), 3);
                     PcScreen.text(t, "pc_text", px + 104 - PcScreen.width("pc_text", "IV " + m.ivs[k]), ry + 4, "IV " + m.ivs[k], false);
                 }
-                PcScreen.text(t, "pc_bold", px + 7, py + 110, "Nature: " + m.nature, false);
+                PcScreen.text(t, "pc_bold", px + 7, py + 110, Ui.tr(p, "cobblemon.ui.info.nature", "Nature") + ": " + Ui.nature(p, m.mint != null ? m.mint : m.nature), false);
                 int up = 0, down = 0;
                 for (int k = 1; k < 6; k++) { if (nature(m.mint != null ? m.mint : m.nature, k) > 0) up = k; if (nature(m.mint != null ? m.mint : m.nature, k) < 0) down = k; }
-                PcScreen.text(t, "pc_text", px + 7, py + 118, up == 0 ? "No stat changes" : "Raises " + STAT_NAMES[up] + ", lowers " + STAT_NAMES[down], false);
+                PcScreen.text(t, "pc_text", px + 7, py + 118, up == 0 ? Ui.tr(p, "cobblemonlink.ui.nature_neutral", "No stat changes") : Ui.lang.get(CobblemonLink.loc(p), "cobblemonlink.ui.nature_effect", statName(p, up), statName(p, down)), false);
             }
             default -> {
                 PcScreen.glyph(t, px, py, PAGE_INFO, 7);

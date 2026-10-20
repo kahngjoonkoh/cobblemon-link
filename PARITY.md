@@ -75,7 +75,7 @@ Counts: see [the summary at the end](#summary).
 | Egg and tutor moves | ✓ | — | ⬜ | ⬜ |
 | Natures, mints | ✓ | Random nature; 21 mints change the effective nature | ✅ | ✅ |
 | IVs | ✓ | ✓ | ✅ | ✅ |
-| Hidden abilities | From snacks / Ability Patch | The Ability Patch gives the hidden ability, the Ability Capsule swaps the standard two ([evidence](docs/evidence/m11-java-ability-patch-berries.png)); no Poké Snacks | 🟡 | 🟡 |
+| Hidden abilities | From snacks / Ability Patch | The Ability Patch gives the hidden ability, the Ability Capsule swaps the standard two (verified live on Java: "Pikachu's ability changed to Lightning Rod!"); no Poké Snacks | 🟡 | 🟡 |
 | Level evolutions | ✓ | ✓, evolved from the Summary like Cobblemon | ✅ | ✅ |
 | Stone, trade, friendship, held-item, time, biome, move evolutions | ✓ | Items (stones, apples, Link Cable…) evolve at once; friendship, time, biome, held item, moves, party, stats, moon, weather become the pending evolution; no trades yet, nor defeat / use-move / distance / structure ones | 🟡 | 🟡 |
 | Party of 6 | ✓ | ✓ | ✅ | ✅ |
@@ -102,7 +102,7 @@ Counts: see [the summary at the end](#summary).
 | Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
 | Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; no bait | 🟡 | 🟡 |
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
-| Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
+| Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries; [evidence](docs/evidence/m11-java-ev-berries.png)), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
 | Berries and berry trees | 70 | Held berries work in battle; healing, status, Leppa and EV-lowering berries can be fed out of battle (and healing ones used from the bag); berries drop from sweet berry bushes; no berry trees or mulch | 🟡 | 🟡 |
@@ -120,7 +120,7 @@ Counts: see [the summary at the end](#summary).
 
 | Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
 |---|---|---|---|---|
-| Multi-language (each player's client language, en_us fallback) | 29 languages | Cobblemon's 29 lang files plus the plugin's own keys (en_us, ko_kr), rendered per player: species, moves, abilities, types, natures, stats, items, the battle, item use, trading, challenges, EXP / evolution messages, and the Summary, PC, Pokédex and move-learning screens (Java's art fonts fall back to Minecraft's font for Korean/CJK). Still English: the starter screen's art, some PC and Pokédex art labels, the Bedrock party HUD (ASCII field) | 🟡 | 🟡 |
+| Multi-language (each player's client language, en_us fallback) | 29 languages | Cobblemon's 29 lang files plus the plugin's own keys (en_us, ko_kr), rendered per player: species, moves, abilities, types, natures, stats, items, the battle, item use, trading, challenges, EXP / evolution messages, and the Summary, PC, Pokédex and move-learning screens (Java's art fonts fall back to Minecraft's font for Korean/CJK; [Summary](docs/evidence/m8-java-korean-summary.png), [stats](docs/evidence/m8-java-korean-summary-stats.png), [PC](docs/evidence/m8-java-korean-pc.png)). Still English: the starter screen's art, some PC and Pokédex art labels, the Bedrock party HUD (ASCII field) | 🟡 | 🟡 |
 
 ## Commands
 

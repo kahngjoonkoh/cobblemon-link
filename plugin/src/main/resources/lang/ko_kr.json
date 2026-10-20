@@ -92,5 +92,17 @@
  "cobblemonlink.spectate.start": "%1$s의 배틀을 관전한다. /spectate 를 다시 입력하면 그만둔다.",
  "cobblemonlink.spectate.stop": "관전을 그만두었다.",
  "cobblemonlink.spectate.none": "64블록 안에 관전할 배틀이 없다.",
- "cobblemonlink.ui.relearn": "기술 떠올리기"
+ "cobblemonlink.ui.relearn": "기술 떠올리기",
+ "cobblemonlink.item.ev_down": "%1$s의 %2$s 노력치가 %3$s 내려갔다.",
+ "cobblemonlink.ui.yes": "예",
+ "cobblemonlink.ui.no": "아니오",
+ "cobblemonlink.ui.release_q": "놓아줄까?",
+ "cobblemonlink.ui.nature_neutral": "능력 변화 없음",
+ "cobblemonlink.ui.nature_effect": "%1$s 상승, %2$s 하락",
+ "cobblemonlink.ui.stat_short.hp": "HP",
+ "cobblemonlink.ui.stat_short.atk": "공격",
+ "cobblemonlink.ui.stat_short.def": "방어",
+ "cobblemonlink.ui.stat_short.sp_atk": "특공",
+ "cobblemonlink.ui.stat_short.sp_def": "특방",
+ "cobblemonlink.ui.stat_short.speed": "스피드"
 }

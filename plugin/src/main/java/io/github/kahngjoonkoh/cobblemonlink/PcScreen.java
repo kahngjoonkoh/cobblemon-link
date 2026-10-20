@@ -95,7 +95,7 @@ final class PcScreen {
             return;
         }
         boolean art = !Ui.bedrock(p) && Ui.pcWidths != null;
-        Menu m = art ? new Menu(45, title(d, v)) : new Menu(54, Component.text(boxName(d, v.box) + "  " + (v.box + 1) + "/" + d.boxes.size()));
+        Menu m = art ? new Menu(45, title(p, d, v)) : new Menu(54, Component.text(boxName(p, d, v.box) + "  " + (v.box + 1) + "/" + d.boxes.size()));
         Store.Box box = d.boxes.get(v.box);
         for (int s = 0; s < Store.BOX; s++) {
             Loc at = new Loc(v.box, s);
@@ -124,7 +124,7 @@ final class PcScreen {
                     "Show: " + (v.type == null ? "all types" : pl.dex.label("type", v.type)), List.of("Click: next type, right-click: back")), null);
             m.set(PREV, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.prev_box", "Previous box"), List.of()), null);
             m.set(NEXT, Menu.icon(Material.ARROW, Ui.tr(p, "cobblemonlink.ui.next_box", "Next box"), List.of()), null);
-            m.set(47, Menu.icon(Material.NAME_TAG, boxName(d, v.box), List.of("Click: rename, wallpaper")), null);
+            m.set(47, Menu.icon(Material.NAME_TAG, boxName(p, d, v.box), List.of("Click: rename, wallpaper")), null);
             if (v.selected != null && v.confirm) {
                 m.set(YES, Menu.icon(Material.LIME_WOOL, "Yes, release " + v.selected.name(pl.dex, CobblemonLink.loc(p)), List.of()), null);
                 m.set(NO, Menu.icon(Material.RED_WOOL, "No", List.of()), null);
@@ -172,9 +172,9 @@ final class PcScreen {
 
     private boolean shown(View v, Mon m) { return v.type == null || pl.dex.of(m).types.contains(v.type); }
 
-    private String boxName(Store.Data d, int box) {
+    private String boxName(Player p, Store.Data d, int box) {
         String n = d.boxes.get(box).name;
-        return n == null || n.isBlank() ? "Box " + (box + 1) : n;
+        return n == null || n.isBlank() ? Ui.lang.get(CobblemonLink.loc(p), "cobblemon.ui.pc.box.title", box + 1) : n;
     }
 
     private View view(Player p) { return views.computeIfAbsent(p.getUniqueId(), k -> new View()); }
@@ -337,7 +337,7 @@ final class PcScreen {
         if (Ui.bedrock(p) && Forms.available()) {
             List<String> names = new ArrayList<>(List.of("Default"));
             for (int i = 0; i < WALLPAPERS.size(); i++) names.add(locked(d, i) ? "???" : WALLPAPER_NAMES.get(i));
-            Forms.boxSettings(p, boxName(d, boxIndex), box.name == null ? "" : box.name, names, box.wallpaper + 1, (name, w) -> pl.onMain(() -> {
+            Forms.boxSettings(p, boxName(p, d, boxIndex), box.name == null ? "" : box.name, names, box.wallpaper + 1, (name, w) -> pl.onMain(() -> {
                 if (name != null) {
                     box.name = name.isBlank() ? null : name.strip();
                     if (box.name != null && box.name.length() > 16) box.name = box.name.substring(0, 16);
@@ -366,7 +366,7 @@ final class PcScreen {
         }), once)).build();
         ActionButton cancel = ActionButton.builder(Component.text("Cancel")).action(DialogAction.customClick((resp, who) -> pl.onMain(() -> show(p, v)), once)).build();
         p.closeInventory();
-        p.showDialog(Dialog.create(f -> f.empty().base(DialogBase.builder(Component.text(boxName(d, boxIndex))).canCloseWithEscape(true)
+        p.showDialog(Dialog.create(f -> f.empty().base(DialogBase.builder(Component.text(boxName(p, d, boxIndex))).canCloseWithEscape(true)
                 .inputs(List.of(DialogInput.text("name", Component.text("Name")).initial(box.name == null ? "" : box.name).maxLength(16).build(),
                         DialogInput.singleOption("wallpaper", Component.text("Wallpaper"), opts).build())).build())
                 .type(DialogType.confirmation(done, cancel))));
@@ -393,16 +393,16 @@ final class PcScreen {
         Runnable stay = () -> show(p, v);
         o.add(new Battle.Opt("<", "none", () -> page(p, -1)));
         o.add(new Battle.Opt(">", "none", () -> page(p, 1)));
-        o.add(new Battle.Opt(boxName(d, v.box), "none", () -> rename(p)));
+        o.add(new Battle.Opt(boxName(p, d, v.box), "none", () -> rename(p)));
         o.add(new Battle.Opt(v.type == null ? Ui.tr(p, "cobblemon.ui.pc.filter", "Filter") : pl.dex.label("type", v.type, CobblemonLink.loc(p)), "none", () -> filter(p, false)));
         o.add(new Battle.Opt(" ", v.sort < 0 ? "pc/sort_options" : "pc/sort_" + List.of("name", "level", "type", "pokedex_number", "gender").get(v.sort), () -> sort(p)));
         o.add(new Battle.Opt(sel != null && !v.confirm ? Ui.tr(p, "cobblemon.ui.pc.release", "Release") : "", "none", () -> release(p, true)));
-        o.add(new Battle.Opt(sel != null && v.confirm ? "Yes" : "", "none", () -> release(p, true)));
-        o.add(new Battle.Opt(sel != null && v.confirm ? "No" : "", "none", () -> release(p, false)));
+        o.add(new Battle.Opt(sel != null && v.confirm ? Ui.tr(p, "cobblemonlink.ui.yes", "Yes") : "", "none", () -> release(p, true)));
+        o.add(new Battle.Opt(sel != null && v.confirm ? Ui.tr(p, "cobblemonlink.ui.no", "No") : "", "none", () -> release(p, false)));
         o.add(new Battle.Opt("", "pc/wall/" + WALLPAPERS.get(box.wallpaper < 0 ? 4 : box.wallpaper), stay));
         Integer body = sel == null ? null : Ui.bodies.get(sel.model(pl.dex));
         o.add(new Battle.Opt(sel == null ? "" : "Lv. " + sel.level, body == null ? "none" : "body/" + Ui.bedrockName(sel.model(pl.dex)), stay));
-        o.add(new Battle.Opt(sel == null ? "" : sel.nature, "none", stay));
+        o.add(new Battle.Opt(sel == null ? "" : Ui.nature(p, sel.nature), "none", stay));
         o.add(new Battle.Opt(sel == null ? "" : pl.dex.label("ability", sel.ability), "none", stay));
         for (int k = 0; k < 4; k++)
             o.add(new Battle.Opt(sel == null || k >= sel.moves.size() ? "" : pl.dex.label("move", sel.moves.get(k)), "none", stay));
@@ -432,7 +432,7 @@ final class PcScreen {
 
     // ---- the picture ----
 
-    Component title(Store.Data d, View v) {
+    Component title(Player p, Store.Data d, View v) {
         Ui.Title t = new Ui.Title();
         glyph(t, 0, 0, BASE, 7);
         Store.Box box = d.boxes.get(v.box);
@@ -444,18 +444,18 @@ final class PcScreen {
         for (int i = 0; i < d.party.size(); i++) cell(t, slotX(7 + i % 2), slotY(i / 2), d.party.get(i), d.party.get(i) == v.selected);
         glyph(t, slotX(7) + 3, slotY(4) + 4, (char) (SORT + Math.max(0, v.sort)), 7);
         glyph(t, slotX(8) + 3, slotY(4) + 4, v.type == null ? FILTER_ALL : (char) (TYPE_FILTER + Ui.TYPES.indexOf(v.type)), 7);
-        text(t, "pc_label", 64, 130, boxName(d, v.box), true);
+        text(t, "pc_label", 64, 130, boxName(p, d, v.box), true);
         if (v.selected != null) {
             if (v.confirm) {
                 glyph(t, slotX(7), 131, HALF, 7);
                 glyph(t, slotX(8), 131, HALF, 7);
-                text(t, "pc_label", slotX(7) + 8.5, 134, "Yes", true);
-                text(t, "pc_label", slotX(8) + 8.5, 134, "No", true);
+                text(t, "pc_label", slotX(7) + 8.5, 134, Ui.tr(p, "cobblemonlink.ui.yes", "Yes"), true);
+                text(t, "pc_label", slotX(8) + 8.5, 134, Ui.tr(p, "cobblemonlink.ui.no", "No"), true);
             } else {
                 glyph(t, slotX(7), 131, RELEASE, 7);
-                text(t, "pc_label", slotX(7) + 17, 134, "Release", true);
+                text(t, "pc_label", slotX(7) + 17, 134, Ui.tr(p, "cobblemon.ui.pc.release", "Release"), true);
             }
-            info(t, v.selected, v.confirm);
+            info(p, t, v.selected, v.confirm);
         }
         return t.build();
     }
@@ -471,26 +471,33 @@ final class PcScreen {
     }
 
     /** The info strip: the name card (Lv tab, ball, name, gender), the whole Pokémon, Type / Nature / Ability / Moves. */
-    private void info(Ui.Title t, Mon m, boolean confirm) {
+    private void info(Player p, Ui.Title t, Mon m, boolean confirm) {
         Dex.Species s = pl.dex.of(m);
         text(t, "pc_bold", 7, 147, "Lv." + m.level, false);
         glyph(t, 5, 155, BALL, 6);
-        text(t, "pc_bold", 12, 155, confirm ? "Release?" : m.name(pl.dex), false);
+        text(t, "pc_bold", 12, 155, confirm ? Ui.tr(p, "cobblemonlink.ui.release_q", "Release?") : m.name(pl.dex, CobblemonLink.loc(p)), false);
         if (!m.gender.isEmpty()) glyph(t, 48, 157, "M".equals(m.gender) ? MALE : FEMALE, 4);
         Integer b = Ui.bodies.get(m.model(pl.dex));
         if (b != null) put(t, 6, 166, Component.text(Character.toString(0xF9000 + b)).font(Key.key("cobblemonlink", "body_big")), 45, 7);
-        String typeNames = String.join(" / ", s.types.stream().map(ty -> pl.dex.label("type", ty)).toList());
-        String[][] rows = {{"Type", typeNames}, {"Nature", m.nature}, {"Ability", pl.dex.label("ability", m.ability)},
-                {"Moves", String.join(", ", m.moves.stream().map(mv -> pl.dex.label("move", mv)).toList())}};
+        String loc = CobblemonLink.loc(p), typeNames = String.join(" / ", s.types.stream().map(ty -> pl.dex.label("type", ty, loc)).toList());
+        String[][] rows = {{Ui.tr(p, "cobblemon.ui.info.type", "Type"), typeNames}, {Ui.tr(p, "cobblemon.ui.info.nature", "Nature"), Ui.nature(p, m.nature)},
+                {Ui.tr(p, "cobblemon.ui.info.ability", "Ability"), pl.dex.label("ability", m.ability, loc)},
+                {Ui.tr(p, "cobblemon.ui.moves", "Moves"), String.join(", ", m.moves.stream().map(mv -> pl.dex.label("move", mv, loc)).toList())}};
         for (int i = 0; i < rows.length; i++) {
             int y = 152 + 3 + 15 * i;
-            text(t, "pc_bold", 57, y, rows[i][0], false);
-            String value = fit("pc_text", plain(rows[i][1]), 121 - (i == 0 ? 16 : 0));
-            text(t, "pc_text", 57, y + 7, value, false);
+            boolean wide = (rows[i][0] + rows[i][1]).chars().anyMatch(c -> Ui.wide((char) c));
+            String value = fit("pc_text", rows[i][1], 121 - (i == 0 ? 16 : 0) - (wide ? (int) Ui.width(rows[i][0]) + 6 : 0));
+            if (wide) { // Minecraft's font is too tall for two lines a row: label and value side by side
+                text(t, "pc_bold", 57, y + 3, rows[i][0], false);
+                text(t, "pc_text", 57 + Ui.width(rows[i][0]) + 6, y + 3, value, false);
+            } else {
+                text(t, "pc_bold", 57, y, rows[i][0], false);
+                text(t, "pc_text", 57, y + 7, value, false); // text() plains it
+            }
             if (i == 0) {
-                double x = 57 + width("pc_text", value) + 3;
+                double x = 57 + (wide ? Ui.width(rows[i][0]) + 6 : 0) + width("pc_text", value) + 3;
                 for (String ty : s.types) {
-                    glyph(t, x, y + 7, (char) (TYPE_INFO + Ui.TYPES.indexOf(ty)), 7);
+                    glyph(t, x, y + (wide ? 3 : 7), (char) (TYPE_INFO + Ui.TYPES.indexOf(ty)), 7);
                     x += 8;
                 }
             }
@@ -534,6 +541,7 @@ final class PcScreen {
     /** Width as text() lays it out: each advance less 1. */
     static double width(String font, String s) {
         double w = 0;
+        if (s.chars().anyMatch(c -> Ui.wide((char) c))) return Ui.width(s); // text() draws it all in Minecraft's font
         for (char c : s.toCharArray()) w += width(font, c) - 1;
         return w;
     }
