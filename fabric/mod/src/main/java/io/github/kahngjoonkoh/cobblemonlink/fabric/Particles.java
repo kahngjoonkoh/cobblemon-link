@@ -13,7 +13,9 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Cobblemon's particle effects (Snowstorm, drawn by its client) as Minecraft's particles for players without the mod:
  * the closest vanilla particle by the effect's name, a small burst where Cobblemon would draw it.
- * ponytail: a name table, not Snowstorm; good enough to see sparkles, evolutions, hits and heals.
+ * Effects the name table doesn't place (most move effects) are dust in the effect's own colour, read from its
+ * Snowstorm tint. ponytail: a name table and one colour, not Snowstorm; good enough to see sparkles, evolutions,
+ * hits and heals, and which move it was.
  */
 final class Particles {
     private Particles() {}
@@ -51,20 +53,80 @@ final class Particles {
         return null;
     }
 
+    /** Effect id ("cobblemon:...") -> its tint as 0xRRGGBB, from Cobblemon's Snowstorm files; read once. */
+    private static java.util.Map<String, Integer> colours;
+
+    private static synchronized java.util.Map<String, Integer> colours() {
+        if (colours != null) return colours;
+        colours = new java.util.HashMap<>();
+        var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("cobblemon").flatMap(c -> c.findPath("assets/cobblemon/bedrock/particles"));
+        if (dir.isPresent()) try (var files = java.nio.file.Files.walk(dir.get())) {
+            files.filter(f -> f.toString().endsWith(".json")).forEach(f -> {
+                try {
+                    var pe = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(f)).getAsJsonObject().getAsJsonObject("particle_effect");
+                    var tint = pe.getAsJsonObject("components").getAsJsonObject("minecraft:particle_appearance_tinting");
+                    Integer c = tint == null ? null : colour(tint.get("color"));
+                    if (c != null) colours.put(pe.getAsJsonObject("description").get("identifier").getAsString(), c);
+                } catch (Exception ignored) { // ponytail: a few of Cobblemon's files aren't strict JSON; those keep the name table
+                }
+            });
+        } catch (java.io.IOException ignored) {
+        }
+        return colours;
+    }
+
+    /**
+     * A Snowstorm tint as 0xRRGGBB: [r, g, b(, a)] in 0..1, "#AARRGGBB", or a gradient of those (its most colourful
+     * key, since white is mostly the highlight); null for MoLang or nothing.
+     */
+    static Integer colour(com.google.gson.JsonElement t) {
+        if (t == null) return null;
+        if (t.isJsonArray()) {
+            var a = t.getAsJsonArray();
+            if (a.size() < 3 || !a.get(0).isJsonPrimitive() || !a.get(0).getAsJsonPrimitive().isNumber()) return null;
+            int rgb = 0;
+            for (int i = 0; i < 3; i++) rgb = rgb << 8 | Math.round(Math.max(0, Math.min(1, a.get(i).getAsFloat())) * 255);
+            return rgb;
+        }
+        if (t.isJsonPrimitive() && t.getAsString().startsWith("#")) {
+            String h = t.getAsString().substring(1);
+            try { return (int) (Long.parseLong(h, 16) & 0xFFFFFF); } catch (NumberFormatException e) { return null; }
+        }
+        if (t.isJsonObject() && t.getAsJsonObject().has("gradient") && t.getAsJsonObject().get("gradient").isJsonObject()) {
+            Integer best = null;
+            int most = -1;
+            for (var e : t.getAsJsonObject().getAsJsonObject("gradient").entrySet()) {
+                Integer c = colour(e.getValue());
+                if (c == null) continue;
+                int r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255, sat = Math.max(r, Math.max(g, b)) - Math.min(r, Math.min(g, b));
+                if (sat > most) { most = sat; best = c; }
+            }
+            return best;
+        }
+        return null;
+    }
+
     /** Cobblemon's particle payload as a vanilla particle packet, or null when there's nothing to show. */
     static Packet<?> of(ServerPlayer p, CustomPacketPayload payload) {
         Vec3 at;
         String effect;
+        net.minecraft.resources.ResourceLocation id;
         if (payload instanceof SpawnSnowstormParticlePacket s) {
             at = s.getPosition();
-            effect = s.getEffectId().getPath();
+            id = s.getEffectId();
+            effect = id.getPath();
         } else if (payload instanceof SpawnSnowstormEntityParticlePacket s) {
             var e = p.level().getEntity(s.getSourceEntityId());
             if (e == null) return null;
             at = e.position().add(0, e.getBbHeight() / 2, 0);
-            effect = s.getEffectId().getPath();
+            id = s.getEffectId();
+            effect = id.getPath();
         } else return null;
         Look l = look(effect.substring(effect.lastIndexOf('/') + 1));
+        Integer c = colours().get(id.toString());
+        if (c != null && (l == null || l.type() == ParticleTypes.CRIT)) // move effects: dust in their own colour
+            l = new Look(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f((c >> 16 & 255) / 255f, (c >> 8 & 255) / 255f, (c & 255) / 255f), 1.2f),
+                    l == null ? 8 : l.count(), l == null ? 0.4f : l.spread());
         return l == null ? null : new ClientboundLevelParticlesPacket(l.type(), false, at.x, at.y, at.z, l.spread(), l.spread(), l.spread(), 0.02f, l.count());
     }
 }

@@ -65,6 +65,8 @@ final class Social {
                 new com.cobblemon.mod.common.net.messages.server.battle.BattleTeamRequestPacket(target.getId()), p.server, p)));
         cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.trade"), Items.EMERALD, () -> OfferTradeHandler.INSTANCE.handle(new OfferTradePacket(target.getUUID()), p.server, p)));
         String title = target.getScoreboardName();
+        // Cobblemon checks the asker looks at the target too: they may have turned while the menu was open
+        cs.replaceAll(c -> new Choice(c.name, c.icon, facing(p, target, c.run)));
         if (Clients.bedrock(p)) {
             List<Forms.Opt> opts = cs.stream().map(c -> new Forms.Opt(c.name, "none", c.run)).toList();
             Forms.send(p, title, "", opts, i -> { if (i >= 0) opts.get(i).action().run(); });
@@ -133,7 +135,7 @@ final class Social {
         });
     }
 
-    /** Turn p to face who asked: Cobblemon only lets you answer someone you're looking at. */
+    /** Turn p to face from: Cobblemon only lets you ask or answer someone you're looking at. */
     private static Runnable facing(ServerPlayer p, ServerPlayer from, Runnable then) {
         return () -> {
             if (from != null && !from.hasDisconnected())
