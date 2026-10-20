@@ -71,10 +71,11 @@ final class PokeBalls {
         Spawner.freeze(wild, true);
         Spawner.animate(wild, "recoil", ONCE);
         Spawner.animate(b, "bounce", ONCE);
+        Sounds.play(b, "poke_ball.hit");
         Location hit = b.getLocation(), up = hit.clone().add(hit.toVector().subtract(wild.getLocation().toVector()).setY(0)
                 .normalize().multiply(0.6)).add(0, 1, 0);
         glide(b, hit, up, BOUNCE_TICKS);
-        later(BOUNCE_TICKS, () -> Spawner.animate(b, "open", HOLD));
+        later(BOUNCE_TICKS, () -> { Spawner.animate(b, "open", HOLD); Sounds.play(b, "poke_ball.open"); });
         later(BEAM_TICKS, () -> {
             Spawner.hide(wild, true);
             Spawner.animate(b, "shut", HOLD);
@@ -86,11 +87,12 @@ final class PokeBalls {
         int land = BEAM_TICKS + FALL_TICKS + BEFORE_SHAKE, shown = Math.min(shakes, 3);
         for (int i = 0; i < shown; i++) {
             String bob = "bob" + (i + 1);
-            later(land + SHAKE_GAP * i, () -> Spawner.animate(b, bob, ONCE));
+            later(land + SHAKE_GAP * i, () -> { Spawner.animate(b, bob, ONCE); Sounds.play(b, result.critical() ? "poke_ball.shake.critical" : "poke_ball.shake"); });
         }
         int end = land + SHAKE_GAP * shown;
         later(end, () -> {
             Spawner.animate(b, caught ? "capture" : "break", ONCE);
+            Sounds.play(b, caught ? "poke_ball.capture_succeeded" : "poke_ball.break");
             if (!caught) {
                 Spawner.hide(wild, false);
                 if (!frozen) Spawner.freeze(wild, false);

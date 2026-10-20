@@ -1,0 +1,12 @@
+packs 4057036a-99fc-76f5-0483-1a664b4d5788@1.0.23993 b0453084-3d39-5422-65c7-287839bd8a83@1.1.3 664d3d29-0dd6-1a4b-08af-f39fa0a58b9c@0.0.1 00495237-232f-1a1e-52bb-64199d320c89@1.0.7438 6058bc84-1a7f-3eb3-ac0f-f82702be6a88@1.0.18970
+sound cobblemon:pokemon.rattata.cry
+sound cobblemon:battle.pvw.default
+sound cobblemon:poke_ball.send_out
+sound cobblemon:pokemon.pikachu.cry
+form "Battle§r§l§1" | A wild Rattata (Lv.3) / appeared! | Fight ; Switch ; Catch ; Run
+form "Battle§r§l§2" | A wild Rattata (Lv.3) / appeared! / Go! Pikachu! | Double Team           15/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | A wild Rattata (Lv.3) / appeared! / Go! Pikachu! | Fight ; Switch ; Catch ; Run
+form "Battle§r§l§2" | Pikachu's Evasion rose. / The wild Rattata used Tail / Whip! / But it missed. | Double Team           14/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | Pikachu's Evasion rose. / The wild Rattata used Tail / Whip! / But it missed. | Fight ; Switch ; Catch ; Run
+form "Battle§r§l§2" | Pikachu's Evasion rose. / The wild Rattata used Tail / Whip! / Pikachu's Defence fell. | Double Team           13/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | Pikachu's Evasion rose. / The wild Rattata used Tail / Whip! / Pikachu's Defence fell. | Fight ; Switch ; Catch ; Run

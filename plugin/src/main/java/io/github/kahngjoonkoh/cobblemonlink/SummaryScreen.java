@@ -106,6 +106,7 @@ final class SummaryScreen {
     static void evolve(CobblemonLink pl, Player p, Mon m) {
         String said = m.evolve(pl.dex, CobblemonLink.loc(p));
         if (said == null) return;
+        p.playSound(p.getLocation(), "cobblemon:evolution.full", org.bukkit.SoundCategory.NEUTRAL, 1f, 1f);
         Store.Data d = pl.store.get(p.getUniqueId());
         d.see(m);
         d.caught.add(m.species);

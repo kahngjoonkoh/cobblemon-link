@@ -14,7 +14,7 @@ for p in assets/cobblemon/bedrock/pokemon assets/cobblemon/textures/pokemon asse
          data/cobblemon/species_features data/cobblemon/species_feature_assignments \
          data/cobblemon/spawn_pool_world data/cobblemon/tags/worldgen/biome assets/cobblemon/lang \
          data/cobblemon/bag_items data/cobblemon/mechanics data/cobblemon/recipe data/cobblemon/tags/item \
-         assets/cobblemon/blockstates assets/cobblemon/models/block assets/cobblemon/textures/block data/cobblemon/fossils data/cobblemon/tms; do
+         assets/cobblemon/sounds assets/cobblemon/blockstates assets/cobblemon/models/block assets/cobblemon/textures/block data/cobblemon/fossils data/cobblemon/tms; do
   echo "fetching $p"
   curl -sfL "$api?sha=$sha&path=$base/$p" | tar xz -C "$dest" --strip-components=5
 done
@@ -26,4 +26,6 @@ curl -sfL "$api?sha=$sha&path=$k" | tar xz -C "$dest" --strip-components=5
 echo "fetching showdown.zip"
 curl -sfL "https://gitlab.com/api/v4/projects/31496946/repository/files/common%2Fsrc%2Fmain%2Fresources%2Fdata%2Fcobblemon%2Fshowdown.zip/raw?ref=$sha" \
   -o "$dest/data/cobblemon/showdown.zip"
+curl -sfL "https://gitlab.com/api/v4/projects/31496946/repository/files/common%2Fsrc%2Fmain%2Fresources%2Fassets%2Fcobblemon%2Fsounds.json/raw?ref=$sha" \
+  -o "$dest/assets/cobblemon/sounds.json"
 echo "$sha" > "$dest/COBBLEMON_COMMIT"

@@ -50,6 +50,9 @@ mkdir -p "$D/plugins/Geyser-Spigot/custom_mappings" && cp ../assets/geyser-mappi
 # Cobblemon's items (tools/build_items.py): Java art next to the UI pack, Bedrock icons and Geyser's item mappings
 cp ../assets/items-pack.zip "$D/plugins/BetterModel/cobblemon-link-items.zip"
 cp ../assets/items.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-items.mcpack"
+# Cobblemon's sounds (tools/build_sounds.py): cries, battle music, Poké Balls, machines
+cp ../assets/sounds-pack.zip "$D/plugins/BetterModel/cobblemon-link-sounds.zip"
+cp ../assets/sounds.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-sounds.mcpack"
 cp ../assets/geyser-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-items.json"
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"

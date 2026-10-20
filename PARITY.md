@@ -103,7 +103,7 @@ Counts: see [the summary at the end](#summary).
 | Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; no bait | 🟡 | 🟡 |
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | — | ⬜ | ⬜ |
-| Cries and emotes | ✓ | — | ⬜ | ⬜ |
+| Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
 | Berries and berry trees | 70 | Held berries work in battle; berries drop from sweet berry bushes; no berry trees, mulch or out-of-battle berry effects | 🟡 | 🟡 |
 | Apricorns | ✓ | The 7 apricorns, from leaves | 🟡 | 🟡 |

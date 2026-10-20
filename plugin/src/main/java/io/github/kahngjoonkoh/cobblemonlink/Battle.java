@@ -154,10 +154,13 @@ final class Battle {
             Spawner.freeze(wildEntity, true);
             Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
             Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
+            Sounds.cry(wildEntity, wild.species);
             String appeared = t("cobblemonlink.battle.appeared", name(wild), wild.level);
             log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
         }
 
+        Sounds.music(player, pvp());
+        if (pvp()) Sounds.music(rival.player, true);
         String host = pl.getConfig().getString("sim.host");
         int port = pl.getConfig().getInt("sim.port");
         Bukkit.getScheduler().runTaskAsynchronously(pl, () -> {
@@ -689,6 +692,9 @@ final class Battle {
         ally = pl.spawner.sendOut(at, pl.store.get(player.getUniqueId()).party.get(partyIndex).model(pl.dex));
         Spawner.animate(ally, "battle_idle", AnimationIterator.Type.LOOP);
         pl.balls.sendOut(player, ally);
+        Mon sent = pl.store.get(player.getUniqueId()).party.get(partyIndex);
+        Sounds.play(ally, sent.shiny ? "poke_ball.shiny_send_out" : "poke_ball.send_out");
+        Sounds.cry(ally, sent.species);
     }
 
     /**
@@ -788,6 +794,7 @@ final class Battle {
             if (socket != null) socket.close();
         } catch (IOException ignored) {}
         player.closeDialog();
+        Sounds.stopMusic(player);
         if (screen != null) screen.close();
         player.hideBossBar(wildBar);
         player.hideBossBar(ownBar);

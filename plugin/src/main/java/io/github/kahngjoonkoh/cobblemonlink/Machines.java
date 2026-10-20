@@ -177,9 +177,13 @@ final class Machines {
                 d.party.forEach(Mon::heal);
                 pl.store.save(p.getUniqueId());
                 p.sendMessage(Component.text(pl.t(p, "cobblemon.healingmachine.healed"), NamedTextColor.GREEN));
+                Sounds.play(m.carrier, "block.healing_machine.active");
                 Spawner.animate(m.carrier, "idle", kr.toxicity.model.api.animation.AnimationIterator.Type.PLAY_ONCE);
             }
-            case "pc" -> pl.pc.open(p);
+            case "pc" -> {
+                Sounds.play(m.carrier, "pc.on");
+                pl.pc.open(p);
+            }
             case "restoration_tank" -> tank(p, m, hand);
             case "fossil_analyzer" -> p.sendMessage(Component.text(pl.t(p, "cobblemonlink.machine.analyzer"), NamedTextColor.GRAY));
             case "pasture" -> pastureMenu(p, m);
