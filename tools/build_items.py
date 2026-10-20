@@ -109,7 +109,7 @@ def table(res):
                                 'cleansetag'}  # Cobblemon's own held items (EXP, evolution, friendship)
     for f in glob.glob(f'{res}/assets/cobblemon/models/item/*.json'):
         i = os.path.basename(f)[:-5]
-        if i.replace('_', '') in sd and 'fossil' not in i:  # fossils have their own kind
+        if i.replace('_', '') in sd and 'fossil' not in i and i != 'poke_ball':  # fossils have their own kind; the Poké Ball is thrown
             items.setdefault(i, {'kind': 'held'})
     global RECIPES
     RECIPES = recipes(res, items)

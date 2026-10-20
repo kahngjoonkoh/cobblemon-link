@@ -147,6 +147,7 @@ final class Recipes {
 
     /** "cobblemon:x" -> Cobblemon's item; "minecraft:x" -> the vanilla item. */
     private static ItemStack stack(CobblemonLink pl, String id, int count) {
+        if (id.equals("cobblemon:poke_ball")) return pl.ball(count); // the throwable one (CobblemonLink.ball)
         if (id.startsWith("cobblemon:")) return pl.items.create(id.substring(10), count);
         Material m = Material.matchMaterial(id);
         return m == null || !m.isItem() ? null : new ItemStack(m, count);
