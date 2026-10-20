@@ -1,0 +1,10 @@
+# Two Bedrock bots: bot 2 taps bot 1 -> Team up; bot 1 gets the request as a form -> Accept (Cobblemon's team for multi battles)
+== bot 2
+using 4n
+form .SmokeBed |  | Battle (singles)<textures/cobblemonlink/none> ; Battle (doubles)<textures/cobblemonlink/none> ; Battle (triples)<textures/cobblemonlink/none
+text system "§r§eInvited §r§b.SmokeBed§r§e to team up for Multi Battles."
+text system "§r§b.SmokeBed§r§e accepted your invite to team up!"
+== bot 1
+text system "§r§b.SmokeBed2§r§e wants to team up for Multi Battles!"
+form .SmokeBed2 wants to team up for multi battles |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+text system "§r§eYou accepted §r§b.SmokeBed2§r§e's invite to team up."
