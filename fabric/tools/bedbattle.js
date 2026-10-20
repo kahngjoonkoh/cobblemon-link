@@ -5,7 +5,7 @@ const bp = require('bedrock-protocol')
 const [host, port, secs] = [process.argv[2], +process.argv[3], +(process.argv[4] || 60)]
 const answers = (process.argv[5] || '0,0').split(',').map(Number)
 const c = bp.createClient({ host, port, offline: true, username: 'PocBedrock', skipPing: true, connectTimeout: 20000 })
-let me, target, n = 0, pos
+let me, target, n = 0, pos, held = {}
 c.on('start_game', p => {
   me = p.runtime_entity_id; pos = p.player_position; console.log('start_game')
   if (process.env.CMD) setTimeout(() => { console.log('command', process.env.CMD); c.queue('command_request', { command: process.env.CMD, origin: { type: 'player', uuid: '00000000-0000-0000-0000-000000000000', request_id: '', player_entity_id: 0n }, internal: false, version: '72' }) }, 6000)
@@ -26,6 +26,14 @@ c.on('add_entity', p => {
     }, 3000)
   }
 })
+c.on('inventory_slot', p => { if (p.window_id === 'inventory' || p.window_id === 0) held[p.slot] = p.item })
+c.on('inventory_content', p => { if (p.window_id === 'inventory' || p.window_id === 0) (p.input || []).forEach((it, i) => held[i] = it) })
+if (process.env.USE_ITEM) setTimeout(() => {
+  console.log('using item in slot 0', held[0] && held[0].network_id)
+  c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use', actions: [],
+    transaction_data: { action_type: 'click_air', trigger_type: 'player_input', block_position: { x: 0, y: 0, z: 0 }, face: 255, hotbar_slot: 0,
+      held_item: held[0], player_pos: pos, click_pos: { x: 0, y: 0, z: 0 }, block_runtime_id: 0, client_prediction: 'success' } } })
+}, +process.env.USE_ITEM)
 c.on('modal_form_request', p => {
   const f = JSON.parse(p.data)
   console.log('form', f.title, '|', (f.content || '').replace(/\n/g, ' / '), '|', (f.buttons || []).map(b => b.text.replace(/\n/g, ' ') + '<' + (b.image && b.image.data) + '>').join(' ; '))
