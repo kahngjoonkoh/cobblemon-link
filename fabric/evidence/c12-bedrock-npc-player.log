@@ -1,0 +1,4 @@
+# Professor Sacchi as a player entity (unlisted player entry): the Bedrock bot finds it as a player and taps it -> dialogue
+using 13n
+form Professor Sacchi | Hello! You can call me Professor Sacchi, or just 'the professor' as many do! | Continue<textures/cobblemonlink/none>
+form Professor Sacchi | I would offer to heal your Pokémon, but I can't seem to find my healing machine... / I'm sorry about that! | Continue<textures/cobblemo

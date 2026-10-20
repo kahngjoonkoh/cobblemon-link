@@ -130,19 +130,17 @@ public class SendMixin {
         if (packet instanceof ClientboundSetEntityDataPacket d && h.player.level().getEntity(d.id()) instanceof com.cobblemon.mod.common.entity.boat.CobblemonBoatEntity)
             return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 15 && v.id() != 11 && v.id() != 2 && v.id() != 3
                     && Bridge.VANILLA_DATA.contains(v.serializer())).toList()); // a boat's fields but its wood (ours isn't Minecraft's)
-        // Cobblemon's NPCs (trainers, the professor...) as villagers named like them; clicks reach the NPC (its id)
-        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.npc.NPCEntity npc) {
-            var as = new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
-                    net.minecraft.world.entity.EntityType.VILLAGER, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot());
-            var named = new ClientboundSetEntityDataPacket(a.getId(), List.of(
-                    net.minecraft.network.syncher.SynchedEntityData.DataValue.create(new net.minecraft.network.syncher.EntityDataAccessor<>(2, net.minecraft.network.syncher.EntityDataSerializers.OPTIONAL_COMPONENT),
-                            java.util.Optional.of(io.github.kahngjoonkoh.cobblemonlink.fabric.Lang.resolve(h.player, npc.getName()))),
-                    net.minecraft.network.syncher.SynchedEntityData.DataValue.create(new net.minecraft.network.syncher.EntityDataAccessor<>(3, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN), true)));
-            return new ClientboundBundlePacket(List.of(as, named));
+        // Cobblemon's NPCs (trainers, the professor...) as players named like them (Minecraft's default skins), unlisted;
+        // clicks reach the NPC (its id)
+        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.npc.NPCEntity npc)
+            return io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.npcSpawn(a, npc, h.player);
+        if (packet instanceof ClientboundRemoveEntitiesPacket r) {
+            var gone = io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.npcGone(r);
+            if (gone != null) return new ClientboundBundlePacket(List.<Packet<? super ClientGamePacketListener>>of(r, gone));
         }
         if (packet instanceof ClientboundSetEntityDataPacket d && h.player.level().getEntity(d.id()) instanceof com.cobblemon.mod.common.entity.npc.NPCEntity)
             return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 15 && v.id() != 2 && v.id() != 3
-                    && Bridge.VANILLA_DATA.contains(v.serializer())).toList()); // a living entity's fields, our name kept
+                    && Bridge.VANILLA_DATA.contains(v.serializer())).toList()); // a living entity's fields, not its name
         // a Poké Rod's bobber as Minecraft's: the client keeps a hook only when its data is the angler's entity id
         if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.projectile.FishingHook hook)
             return new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),

@@ -1,6 +1,8 @@
 package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.server.level.ServerPlayer;
 
 /** Entry points the mixins call (classes in the mixin package can't be referenced from here). */
@@ -58,4 +60,32 @@ public final class Mixins {
     }
 
     public static net.minecraft.network.protocol.Packet<?> particles(ServerPlayer p, CustomPacketPayload payload) { return Particles.of(p, payload); }
+
+    private static final Map<Integer, java.util.UUID> NPCS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** An NPC for a client without the mod: an unlisted player entry (its name, ≤16 letters) and a player entity. */
+    public static net.minecraft.network.protocol.Packet<?> npcSpawn(net.minecraft.network.protocol.game.ClientboundAddEntityPacket a,
+            com.cobblemon.mod.common.entity.npc.NPCEntity npc, ServerPlayer p) {
+        String name = Lang.resolve(p, npc.getName()).getString().replaceAll("[^A-Za-z0-9_]", "");
+        if (name.length() > 16) name = name.substring(0, 16);
+        if (name.isEmpty()) name = "NPC";
+        var info = eu.pb4.polymer.core.api.entity.PolymerEntityUtils.createMutablePlayerListPacket(java.util.EnumSet.of(
+                net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER));
+        info.entries().add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(a.getUUID(),
+                new com.mojang.authlib.GameProfile(a.getUUID(), name), false, 0, net.minecraft.world.level.GameType.SURVIVAL, null, null));
+        NPCS.put(a.getId(), a.getUUID());
+        var body = new net.minecraft.network.protocol.game.ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(),
+                a.getXRot(), a.getYRot(), net.minecraft.world.entity.EntityType.PLAYER, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot());
+        var layers = new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(a.getId(), List.of(
+                net.minecraft.network.syncher.SynchedEntityData.DataValue.create(new net.minecraft.network.syncher.EntityDataAccessor<>(17,
+                        net.minecraft.network.syncher.EntityDataSerializers.BYTE), (byte) 0x7f)));
+        return new net.minecraft.network.protocol.game.ClientboundBundlePacket(List.of(info, body, layers));
+    }
+
+    /** The player entries of NPCs leaving a client's view, or null. */
+    public static net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket npcGone(net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket r) {
+        List<java.util.UUID> ids = new java.util.ArrayList<>();
+        for (int id : r.getEntityIds()) { var u = NPCS.get(id); if (u != null) ids.add(u); }
+        return ids.isEmpty() ? null : new net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket(ids);
+    }
 }
