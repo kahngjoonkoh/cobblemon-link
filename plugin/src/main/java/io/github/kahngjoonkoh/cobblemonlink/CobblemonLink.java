@@ -600,6 +600,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     @EventHandler
     public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
         if (e.getInventory().getHolder() instanceof Machines.Pot pot && e.getPlayer() instanceof Player p) pot.close(p);
+        if (e.getInventory().getHolder() instanceof Machines.Chest chest) chest.close();
         if (e.getInventory().getHolder() instanceof Menu m && m.onClose != null) m.onClose.run();
         if (e.getInventory().getHolder() instanceof Menu && e.getPlayer() instanceof Player p)
             Bukkit.getScheduler().runTask(this, () -> { if (!(p.getOpenInventory().getTopInventory().getHolder() instanceof Menu)) p.updateInventory(); });

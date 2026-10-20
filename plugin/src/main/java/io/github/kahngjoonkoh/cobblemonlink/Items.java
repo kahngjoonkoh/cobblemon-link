@@ -211,6 +211,10 @@ final class Items {
         }
         String id = id(stack);
         Def d = id == null ? null : defs.get(id);
+        if (d != null && d.kind.equals("pokedex")) { // Cobblemon's Pokédex items
+            PokedexScreen.open(pl, p, 0, null);
+            return true;
+        }
         if (d == null || !USABLE.contains(d.kind)) return false; // materials, balls, rods, machines, fossils: vanilla handling
         Battle b = pl.battles.get(p.getUniqueId());
         List<Mon> party = pl.store.get(p.getUniqueId()).party;

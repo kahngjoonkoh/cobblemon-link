@@ -37,6 +37,7 @@ import org.bukkit.inventory.ItemStack;
  * - Display Case: shows one item (right-click with it); right-click with an empty hand takes it back.
  * - Campfire Pot: put on a campfire; its menu takes a 3x3 grid and up to three seasonings and cooks Cobblemon's pot
  *   recipes while the campfire is lit. Seasonings with bait effects go into a Poké Snack or Poké Bait.
+ * - Gilded Chest: a chest of 27 slots (kept in machines.json).
  * - Poké Snack: draws a wild Pokémon within 8 blocks about once a minute, with its seasonings' bait effects; eaten
  *   after 8 bites (Cobblemon's MAX_BITES).
  */
@@ -54,6 +55,7 @@ final class Machines {
         List<Mon> pastured = new ArrayList<>();
         List<String> pasturedBy = new ArrayList<>();
         String shown;           // display case: the item inside (ItemStack bytes, Base64)
+        List<String> stored;    // gilded chest: its 27 slots (ItemStack bytes, Base64; "" = empty)
         String bait;            // Poké Snack: its seasonings (Cobblemon bait items, comma separated)
         int bites;              // Poké Snack: Pokémon drawn so far
         long nextBite;          // Poké Snack: when the next one comes (ms)
@@ -167,6 +169,31 @@ final class Machines {
             if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) hand.subtract();
         }
         save();
+    }
+
+    /** A Gilded Chest's 27 slots, saved back when closed. */
+    final class Chest implements org.bukkit.inventory.InventoryHolder {
+        final Machine m;
+        final org.bukkit.inventory.Inventory inv;
+
+        Chest(Machine m, Player p) {
+            this.m = m;
+            inv = Bukkit.createInventory(this, 27, Component.text(pl.items.name(p, m.type)));
+            if (m.stored != null)
+                for (int i = 0; i < m.stored.size() && i < 27; i++)
+                    if (!m.stored.get(i).isEmpty()) inv.setItem(i, ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(m.stored.get(i))));
+            Sounds.play(m.carrier, "block.gilded_chest.open");
+        }
+
+        @Override
+        public org.bukkit.inventory.Inventory getInventory() { return inv; }
+
+        void close() {
+            List<String> out = new ArrayList<>();
+            for (ItemStack s : inv.getContents()) out.add(s == null || s.isEmpty() ? "" : java.util.Base64.getEncoder().encodeToString(s.serializeAsBytes()));
+            m.stored = out;
+            save();
+        }
     }
 
     /** The Campfire Pot's menu: a 3x3 grid, three seasonings, Cook, the result. */
@@ -306,6 +333,8 @@ final class Machines {
         machines.remove(m.key());
         if (m.carrier != null) m.carrier.remove();
         if (m.shown != null) w.dropItemNaturally(m.at(w).add(0, 0.5, 0), ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(m.shown)));
+        if (m.stored != null) for (String st : m.stored) // a gilded chest spills what it held
+            if (!st.isEmpty()) w.dropItemNaturally(m.at(w).add(0, 0.5, 0), ItemStack.deserializeBytes(java.util.Base64.getDecoder().decode(st)));
         if (m.display != null) m.display.remove();
         m.roaming.forEach(Entity::remove);
         Block b = w.getBlockAt(m.x, m.y, m.z);
@@ -344,7 +373,10 @@ final class Machines {
             case "pasture" -> pastureMenu(p, m);
             case "tm_machine" -> tmMenu(p, 0);
             case "display_case" -> displayCase(p, m, hand);
-            default -> { if (m.type.startsWith("campfire_pot_")) p.openInventory(new Pot(m, p).inv); }
+            default -> {
+                if (m.type.startsWith("campfire_pot_")) p.openInventory(new Pot(m, p).inv);
+                if (m.type.endsWith("gilded_chest")) p.openInventory(new Chest(m, p).inv);
+            }
         }
     }
 

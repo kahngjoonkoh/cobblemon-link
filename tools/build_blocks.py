@@ -22,6 +22,7 @@ MACHINES = {
     'tm_machine': ['facing=north,empty=false,open=false,active=false,dispensed=false'],
     'display_case': None,
     'poke_snack': ['bites=0,facing=north'],
+    **{g: None for g in ['gilded_chest'] + [f'{c}_gilded_chest' for c in ('black', 'blue', 'green', 'pink', 'white', 'yellow')]},  # Gilded Chests (Machines.java: a chest)
     **{f'campfire_pot_{c}': ['facing=north,open=false,occupied=false']
        for c in ('red', 'black', 'blue', 'green', 'pink', 'white', 'yellow')},  # on a campfire (Machines.java)
 }

@@ -94,7 +94,11 @@ def table(res):
         items.setdefault(i, {'kind': 'evolution'})
     for m in MACHINES:  # placed as Machines.java's blocks
         items[m] = {'kind': 'machine'}
-    items['poke_snack'] = {'kind': 'machine'}  # placed: it draws Pokémon to it (Machines.snack)
+    items['poke_snack'] = {'kind': 'machine'}
+    for g in ['gilded_chest'] + [f'{c}_gilded_chest' for c in ('black', 'blue', 'green', 'pink', 'white', 'yellow')]:  # Gilded Chests: placed, they keep 27 stacks
+        items[g] = {'kind': 'machine'}
+    for c in ('red', 'black', 'blue', 'green', 'pink', 'white', 'yellow'):  # Pokédexes: right-click opens yours
+        items[f'pokedex_{c}'] = {'kind': 'pokedex'}  # placed: it draws Pokémon to it (Machines.snack)
     for c in ('red', 'black', 'blue', 'green', 'pink', 'white', 'yellow'):  # Campfire Pots: placed on a campfire
         items[f'campfire_pot_{c}'] = {'kind': 'machine'}
     for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json'):  # into the restoration tank
@@ -158,7 +162,7 @@ def recipes(res, items):
 
     def has_model(i):  # an item, not a block (blocks would need placing) or a boat/sign/door
         path = f'{res}/assets/cobblemon/models/item/{i}.json'
-        if i in MACHINES or i.startswith('campfire_pot_') or i == 'poke_snack':
+        if i in MACHINES or i.startswith(('campfire_pot_', 'pokedex_')) or i in ('poke_snack', 'gilded_chest') or i.endswith('_gilded_chest'):
             return os.path.exists(path)
         if not os.path.exists(path) or re.search(r'(boat|sign|door|fence|button|pressure_plate|_block|tm_machine|display_case)$', i):
             return False
