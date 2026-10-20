@@ -62,7 +62,7 @@ cp ../assets/balls/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/balls/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 cp ../assets/blocks/java/*.bbmodel "$D/plugins/BetterModel/models/"
 # Cobblemon's NPC models (tools/build_npcs.py) and the cosmetic looks (tools/looks.py), when built
-for x in npcs cosmetic; do [ -d ../assets/$x/java ] && cp ../assets/$x/java/*.bbmodel "$D/plugins/BetterModel/models/" && cp -r ../assets/$x/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"; done
+for x in npcs cosmetic shoulder; do [ -d ../assets/$x/java ] && cp ../assets/$x/java/*.bbmodel "$D/plugins/BetterModel/models/" && cp -r ../assets/$x/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"; done
 cp -r ../assets/blocks/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
 
 # configs only exist after the first boot

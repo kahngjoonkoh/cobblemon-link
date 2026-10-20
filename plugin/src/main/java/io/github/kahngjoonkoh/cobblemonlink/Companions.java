@@ -79,6 +79,7 @@ final class Companions {
         if (side < 0) return true;
         s[side] = e;
         e.setGravity(false);
+        Spawner.animate(e, side == 0 ? "shoulder_left" : "shoulder_right", kr.toxicity.model.api.animation.AnimationIterator.Type.LOOP);
         return true;
     }
 
@@ -208,6 +209,8 @@ final class Companions {
         for (int i = 0; i < 2; i++) if (e.equals(s[i])) s[i] = null;
         if (s[0] == null && s[1] == null) shoulders.remove(p.getUniqueId());
         e.setGravity(true);
+        Spawner.stopAnimation(e, "shoulder_left");
+        Spawner.stopAnimation(e, "shoulder_right");
         if (e.isValid()) e.teleport(spot(p));
     }
 
@@ -220,9 +223,8 @@ final class Companions {
                 if (s[i] == null) continue;
                 if (p == null || !s[i].isValid()) { s[i] = null; continue; }
                 Location l = p.getLocation();
-                double yaw = Math.toRadians(l.getYaw()), side = i == 0 ? 0.38 : -0.38, back = 0.12; // + left, - right of the player
-                Location at = l.clone().add(Math.cos(yaw) * side + Math.sin(yaw) * back, p.isSneaking() ? 0.95 : 1.25,
-                        Math.sin(yaw) * side - Math.cos(yaw) * back);
+                double yaw = Math.toRadians(l.getYaw()), side = 0; // the pose itself moves it onto the left or right shoulder
+                Location at = l.clone().add(Math.cos(yaw) * side, p.isSneaking() ? 0.9 : 1.2, Math.sin(yaw) * side);
                 at.setPitch(0);
                 s[i].teleport(at);
             }

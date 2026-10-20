@@ -73,6 +73,10 @@ def plan(res):
             for dst, want, fallback in (('idle', 'STAND', 'ground_idle'), ('walk', 'WALK', 'ground_walk')):
                 anims[dst] = pose_anims(poser, want) or (poser_name, fallback)
             anims['battle_idle'] = pose_anims(poser, 'STAND', avoid=('water', 'fly', 'hover'), need='battle') or (poser_name, 'battle_idle')
+            for side in ('left', 'right'):  # Companions' shoulder riding
+                got = pose_anims(poser, f'SHOULDER_{side.upper()}', avoid=())
+                if got:
+                    anims[f'shoulder_{side}'] = got
             for dst in BATTLE:
                 m = BEDROCK_ANIM.search(poser.get('animations', {}).get(dst, ''))
                 anims[dst] = m.groups() if m else (poser_name, dst)
