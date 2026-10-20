@@ -32,4 +32,19 @@ public final class Mixins {
         if (!Clients.bridged(p.connection) || !(p.getVehicle() instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity)) return;
         ((com.cobblemon.mod.common.duck.PlayerDuck) p).setDriverInput(new org.joml.Vector3f(Math.signum(xxa), jump ? 1 : sneak ? -1 : 0, Math.signum(zza)));
     }
+
+    /** Cobblemon's send-out key (R): the first Pokémon able to go out, or recall it; sneaking only. */
+    public static boolean sendOutKey(ServerPlayer p) {
+        if (!Clients.bridged(p.connection) || !p.isShiftKeyDown()) return false;
+        var party = com.cobblemon.mod.common.util.PlayerExtensionsKt.party(p);
+        for (int i = 0; i < 6; i++) {
+            var m = party.get(new com.cobblemon.mod.common.api.storage.party.PartyPosition(i));
+            if (m != null && !m.isFainted()) {
+                com.cobblemon.mod.common.net.serverhandling.storage.SendOutPokemonHandler.INSTANCE.handle(
+                        new com.cobblemon.mod.common.net.messages.server.SendOutPokemonPacket(i), p.server, p);
+                return true;
+            }
+        }
+        return true;
+    }
 }
