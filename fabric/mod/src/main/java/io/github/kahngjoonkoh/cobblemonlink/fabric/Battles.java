@@ -62,7 +62,9 @@ public final class Battles {
     /** Cobblemon's battle packets to a player without the mod (mixin.SendMixin, any thread). */
     public static void packet(ServerPlayer p, CustomPacketPayload payload) {
         // ponytail: vanilla Java gets the chest battle at every level; the full level's battle screen isn't ported yet
-        if (payload instanceof BattleMakeChoicePacket) p.server.execute(() -> BattleUi.of(p).makeChoice());
+        if (payload instanceof com.cobblemon.mod.common.net.messages.client.battle.BattleInitializePacket bi)
+            p.server.execute(() -> BattleUi.spectate(p, bi.getBattleId()));
+        else if (payload instanceof BattleMakeChoicePacket) p.server.execute(() -> BattleUi.of(p).makeChoice());
         else if (payload instanceof BattleMessagePacket m) p.server.execute(() -> BattleUi.of(p).message(m.getMessages()));
         else if (payload instanceof BattleEndPacket) p.server.execute(() -> { var ui = BattleUi.get(p); if (ui != null) ui.end(); });
     }

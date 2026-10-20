@@ -73,7 +73,24 @@ public final class BattleUi {
         }
     }
 
-    static PokemonBattle battle(ServerPlayer p) { return BattleRegistry.getBattleByParticipatingPlayer(p); }
+    /** The battle the player is in, or watching (Cobblemon's spectating). */
+    static PokemonBattle battle(ServerPlayer p) {
+        PokemonBattle b = BattleRegistry.getBattleByParticipatingPlayer(p);
+        if (b != null) return b;
+        BattleUi ui = OPEN.get(p.getUUID());
+        return ui == null || ui.watching == null ? null : BattleRegistry.getBattle(ui.watching);
+    }
+
+    /** The battle this player spectates; null when they fight in it. */
+    private java.util.UUID watching;
+
+    /** Cobblemon starts sending a battle to a player who isn't in it: they spectate (HP bars, the log in the action bar). */
+    static void spectate(ServerPlayer p, java.util.UUID battle) {
+        if (BattleRegistry.getBattleByParticipatingPlayer(p) != null) return;
+        BattleUi ui = of(p);
+        ui.watching = battle;
+        ui.bars();
+    }
 
     private BattleActor actor() {
         PokemonBattle b = battle(player);
@@ -86,6 +103,7 @@ public final class BattleUi {
         for (Component c : lines) {
             String s = Lang.resolve(player, c).getString();
             if (!s.isBlank()) log.add(s);
+            if (!s.isBlank() && watching != null) player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(s)));
 
         }
         while (log.size() > 40) log.removeFirst();
@@ -227,7 +245,7 @@ public final class BattleUi {
         if (b != null) for (ActiveBattlePokemon ap : b.getActivePokemon()) {
             BattlePokemon bp = ap.getBattlePokemon();
             if (bp == null) continue;
-            boolean own = ap.getActor() == actor();
+            boolean own = watching == null ? ap.getActor() == actor() : java.util.Arrays.asList(b.getSide1().getActors()).contains(ap.getActor());
             panel(o, own ? Ui.Overlay.TL : Ui.Overlay.TR, own ? 12 : -152, bp, own);
         }
         o.fade = hidden ? 6 : 0;
@@ -387,12 +405,12 @@ public final class BattleUi {
             BattlePokemon bp = ap.getBattlePokemon();
             if (bp == null) continue;
             var mon = bp.getEffectedPokemon();
-            boolean own = ap.getActor() == actor();
+            boolean own = watching == null ? ap.getActor() == actor() : java.util.Arrays.asList(b.getSide1().getActors()).contains(ap.getActor());
             float ratio = Math.clamp((float) bp.getHealth() / Math.max(1, bp.getMaxHealth()), 0f, 1f);
             String sd = mon.getStatus() == null ? null : mon.getStatus().getStatus().getShowdownName();
             var status = sd == null ? "" : "  " + (Lang.has("cobblemon.ui.status." + sd) ? Lang.t(player, "cobblemon.ui.status." + sd) : sd.toUpperCase(java.util.Locale.ROOT));
             if (own) {
-                ownBar.setName(Component.literal(name(mon) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + "   " + bp.getHealth() + "/" + bp.getMaxHealth() + " " + Lang.t(player, "cobblemon.ui.stats.hp") + status));
+                ownBar.setName(Component.literal((watching == null ? name(mon) : seen(mon)) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + "   " + bp.getHealth() + "/" + bp.getMaxHealth() + " " + Lang.t(player, "cobblemon.ui.stats.hp") + status));
                 ownBar.setProgress(ratio);
             } else {
                 wildBar.setName(Component.literal((mon.isWild() ? Lang.t(player, "cobblemonlink.battle.wild", seen(mon)) : seen(mon)) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + status));
