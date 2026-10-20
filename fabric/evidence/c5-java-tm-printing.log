@@ -1,0 +1,3 @@
+# vanilla Java, TM machine as a chest: TM button -> Covet; Shift-click a blank TM and 4 Normal Gems in; Start
+  before: [{count: 1, Slot: 1b, id: "cobblemon:blank_tm"}, {count: 4, Slot: 2b, id: "cobblemon:normal_gem"}]
+  12 s later: [{count: 1, Slot: 0b, components: {"cobblemon:tm_move": {move: "covet"}}, id: "cobblemon:technical_machine"}]
