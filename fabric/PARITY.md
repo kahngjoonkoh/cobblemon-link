@@ -113,6 +113,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Pokémon cries and other Cobblemon sounds | ✅ | ✅ | `Sounds`: cries and the Poké Ball's sounds played by the server by name; server sounds sent by name; Bedrock pack from `tools/bedrock_sounds.py` (2,152 sounds, 20 MB) — `c2-bedrock-sounds-bot.log` |
 | Cobblemon's particles (Snowstorm: moves, evolutions, healing) | 🟡 | 🟡 | `Particles`: the effects the server sends (move keyframes, Poké Balls, pastures, MoLang `particle` calls) become the nearest Minecraft particle by name, and effects the names don't place (most moves) dust in the effect's own Snowstorm tint (`ParticlesTest`, `c16-bedrock-particles.log`). ⬜ effects Cobblemon's client starts itself (shiny sparkle, evolution sequence) and the real Snowstorm look |
 | Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
+| 3D Poké Balls in hand | ➖ | 🟡 | Held Poké Balls are 2D in hand for vanilla Java: 1.21.1 item models can't switch by display context. Switch to 3D-in-hand / 2D-in-GUI (`minecraft:select` on `display_context`, with Cobblemon's `item/<ball>_model`) once Cobblemon runs on 1.21.4+. |
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
 | Evolution | ✅ | ✅ | Summary's Evolve (`c9-java-held-item-evolution.log`); a Pokémon whose look changes (evolution, form, shiny) gets a short evolution scene: Cobblemon's evolution sound, 3 s of light gathering round the old look, a flash, the new look with a burst (`c17-java-evolution-scene.png`, `c17-bedrock-look-change.log`); on Java the owner's view moves to in front of the Pokémon for the scene and comes back after the new look (`Mons.camera`, `c22-java-evolution-camera.png`, `c22-java-evolution-camera-back.png`); ⬜ the camera on Bedrock (Geyser doesn't carry it) and Cobblemon's Snowstorm effects |
 | Move learning, benched moves, move relearning | ✅ | ✅ | Summary swaps benched moves; TM machine as a chest (`Menus`) with its widgets as buttons: choose the TM (cycles your unlocked TMs through Cobblemon's SetActiveTM handler, `c5-java-tm-machine-choose.png`) and Start — a TM printed end to end (`c5-java-tm-printing.log`, `c5-java-tm-printed.png`); Bedrock gets the same chest through Geyser. teaching a TM: use it on your Pokémon (Cobblemon's item interaction, `c5-java-tm-teach.log`) |
@@ -136,3 +137,24 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Starter selection | ✅ | ✅ | Cobblemon's StarterHandler |
 | Battles vs wild Pokémon, catching, EXP, levels | ✅ | ✅ | see above |
 | Mega, Z, Dynamax, Tera gimmicks | ➖ | ➖ | no items unlock them in 1.8.2 |
+
+## Regression pass (fresh flat world, 2026-10-20)
+
+Java (vanilla 1.21.1 client) and Bedrock (bot through Geyser), evidence `evidence/r-*`:
+
+| Check | Java | Bedrock |
+|---|---|---|
+| Join, resource pack, party HUD | ✅ `r-java-01` | ✅ `r-bedrock-01` |
+| Starter | ✅ `r-java-02`, `r-java-03` | ✅ `r-bedrock-01` |
+| Wild battle (screen / forms), a move, EXP | ✅ `r-java-04` – `06` | ✅ `r-bedrock-01` |
+| Catch (battle UI gone on capture) | ✅ `r-java-07-catch-sequence.png` | ✅ `r-bedrock-01` |
+| Summary, moves, PC, Pokédex | ✅ `r-java-09` – `12` | ✅ `r-bedrock-02` |
+| Player menu, trade | ✅ `r-java-13`, `14` | ✅ `r-bedrock-03` |
+| Wheel, ride, get off | ✅ `r-java-15` – `18` | ✅ `r-bedrock-04` |
+| Fishing | ✅ `r-java-19` | ✅ `r-bedrock-07` |
+| NPC model and dialogue | ✅ `r-java-20`, `21` | ✅ `r-bedrock-05` |
+| Healing machine, pasture, cooking pot, TM machine | ✅ `r-java-22` – `26` | ✅ `r-bedrock-06` |
+
+Fixed on the way: the wheel was unreachable with a Poké Ball in hand; the battle UI lingered ~2 s after a catch; the
+Java rider saw the inside of their mount's head (now only the head is hidden from them); Sneak gets off a ride;
+requests and answers face the other player; the vanilla test client needed a bigger heap (1600 MB).
