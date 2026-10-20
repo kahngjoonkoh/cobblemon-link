@@ -102,4 +102,16 @@ public final class Mixins {
             return b;
         }
     }
+
+    /** After a chunk reaches a player without the mod: each Cobblemon sign in it as Minecraft's sign data. */
+    public static void chunkSigns(ServerPlayer p, int x, int z) {
+        Tasks.next(() -> {
+            if (p.hasDisconnected() || !p.level().hasChunk(x, z)) return;
+            for (var be : p.level().getChunk(x, z).getBlockEntities().values()) {
+                var type = net.minecraft.core.registries.BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+                if (type.getNamespace().equals("cobblemon") && type.getPath().contains("sign"))
+                    p.connection.send(signData(net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.create(be)));
+            }
+        });
+    }
 }

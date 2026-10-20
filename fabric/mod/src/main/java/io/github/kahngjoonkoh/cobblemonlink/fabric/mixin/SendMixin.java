@@ -155,6 +155,9 @@ public class SendMixin {
         // a Cobblemon menu (cooking pot, TM machine): a chest stands in for it (Menus)
         if (packet instanceof ClientboundOpenScreenPacket o && io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.moddedMenu(o.getType()))
             return io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.menuOpen(o, h.player);
+        // a chunk with Cobblemon's signs in it: their text right after (the chunk's own copy names a type the client lacks)
+        if (packet instanceof ClientboundLevelChunkWithLightPacket ch)
+            io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.chunkSigns(h.player, ch.getX(), ch.getZ());
         // Cobblemon's signs: their text, as Minecraft's sign (PolyEntry shows the block as one)
         if (packet instanceof ClientboundBlockEntityDataPacket b && BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getPath().contains("sign")
                 && BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getNamespace().equals("cobblemon"))
