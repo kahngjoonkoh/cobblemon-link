@@ -94,6 +94,7 @@ public final class Mons {
         if (h != null || e.isRemoved() || !(e.level() instanceof ServerLevel level)) return h;
         if (e instanceof com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity b) ball(b, level);
         else if (e instanceof PokemonEntity p) pokemon(p, level);
+        else if (e instanceof com.cobblemon.mod.common.entity.npc.NPCEntity n) npc(n, level);
         return HOLDERS.get(e.getId());
     }
 
@@ -109,6 +110,48 @@ public final class Mons {
         h.battling(p::isBattling);
         HOLDERS.put(p.getId(), h);
         EntityAttachment.ofTicking(h, p);
+    }
+
+    /** Cobblemon's NPC variations: an NPC class ("cobblemon:sacchi") -> our model of its geometry ("npc_sacchi"). */
+    private static Map<String, String> npcLooks;
+
+    static String npcLook(com.cobblemon.mod.common.entity.npc.NPCEntity n) {
+        if (npcLooks == null) {
+            Map<String, String> m = new java.util.HashMap<>();
+            var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("cobblemon").flatMap(c -> c.findPath("assets/cobblemon/bedrock/npcs/variations"));
+            if (dir.isPresent()) try (var walk = java.nio.file.Files.walk(dir.get())) {
+                for (var f : (Iterable<java.nio.file.Path>) walk::iterator) {
+                    if (!f.toString().endsWith(".json")) continue;
+                    var o = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(f)).getAsJsonObject();
+                    for (var v : o.getAsJsonArray("variations")) {
+                        var vo = v.getAsJsonObject();
+                        if (vo.has("model") && vo.getAsJsonArray("aspects").isEmpty())
+                            m.put(o.get("name").getAsString(), "npc_" + vo.get("model").getAsString().split(":")[1].replace(".geo", ""));
+                    }
+                }
+            } catch (java.io.IOException ignored) {}
+            npcLooks = m;
+        }
+        return npcLooks.getOrDefault(n.getResourceIdentifier().toString(), "npc_trainer");
+    }
+
+    /** A Cobblemon NPC drawn like a Pokémon: its own model and skin, its name above. */
+    private static void npc(com.cobblemon.mod.common.entity.npc.NPCEntity n, ServerLevel level) {
+        Models.Model m = Models.get(npcLook(n));
+        if (m == null) return;
+        ModelHolder h = new ModelHolder(n, m, 1f) {
+            @Override
+            protected void bedrockChanged(int[] anims) {
+                level.getChunkSource().broadcast(n, new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(n.getId(), anims)));
+            }
+        };
+        var name = new eu.pb4.polymer.virtualentity.api.elements.TextDisplayElement(Lang.resolve(n.getName())); // ponytail: in English for everyone (one display for all viewers)
+        name.setBillboardMode(net.minecraft.world.entity.Display.BillboardConstraints.CENTER);
+        name.setOffset(new net.minecraft.world.phys.Vec3(0, n.getBbHeight() + 0.3, 0));
+        name.setViewRange(0.5f);
+        h.addElement(name);
+        HOLDERS.put(n.getId(), h);
+        EntityAttachment.ofTicking(h, n);
     }
 
     /** The look (model) a Pokémon is drawn with: its species and aspects through Cobblemon's variation table. */

@@ -132,8 +132,10 @@ public class SendMixin {
                     && Bridge.VANILLA_DATA.contains(v.serializer())).toList()); // a boat's fields but its wood (ours isn't Minecraft's)
         // Cobblemon's NPCs (trainers, the professor...) as players named like them (Minecraft's default skins), unlisted;
         // clicks reach the NPC (its id)
+        // ... or, when we have its model, drawn like a Pokémon (Mons; Bedrock above, as the model's carrier)
         if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.npc.NPCEntity npc)
-            return io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.npcSpawn(a, npc, h.player);
+            return io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.ensure(npc) != null ? new ClientboundBundlePacket(List.of())
+                    : io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.npcSpawn(a, npc, h.player);
         if (packet instanceof ClientboundRemoveEntitiesPacket r) {
             var gone = io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.npcGone(r);
             if (gone != null) return new ClientboundBundlePacket(List.<Packet<? super ClientGamePacketListener>>of(r, gone));
