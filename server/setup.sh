@@ -34,10 +34,10 @@ EOF
 [ -d ../assets/java ] || { echo "no models in ../assets: run tools/build.sh, or use a release zip" >&2; exit 1; }
 # gameplay plugin: prebuilt in release zips, or built by tools/build.sh from plugin/
 jar=
-for f in ../plugin/cobblemon-link.jar ../plugin/build/libs/cobblemon-link-*.jar; do [ -f "$f" ] && { jar=$f; break; }; done
+for f in ../plugin/cobblemon-link-plugin.jar ../plugin/build/libs/cobblemon-link-plugin-*.jar; do [ -f "$f" ] && { jar=$f; break; }; done
 [ -n "$jar" ] || { echo "no plugin jar: run tools/build.sh, or use a release zip" >&2; exit 1; }
 rm -f "$D"/plugins/cobblemon-link*.jar
-cp "$jar" "$D/plugins/cobblemon-link.jar"
+cp "$jar" "$D/plugins/cobblemon-link-plugin.jar"
 mkdir -p "$D/plugins/CobblemonLink"
 cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json ../assets/tms.json "$D/plugins/CobblemonLink/"
 rm -rf "$D/plugins/CobblemonLink/lang" && cp -r ../assets/lang "$D/plugins/CobblemonLink/lang"  # Cobblemon's 29 languages

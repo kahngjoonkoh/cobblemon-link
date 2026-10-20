@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1, "id": "cobblemonlink", "version": "${version}", "name": "cobblemon-link (Fabric)",
+  "schemaVersion": 1, "id": "cobblemonlink", "version": "${version}", "name": "cobblemon-link",
   "description": "Cobblemon for vanilla Java and Bedrock players: server-side only",
   "license": "MPL-2.0", "environment": "server",
   "entrypoints": { "main": ["io.github.kahngjoonkoh.cobblemonlink.fabric.Bridge"], "polymc": ["io.github.kahngjoonkoh.cobblemonlink.fabric.PolyEntry"] },

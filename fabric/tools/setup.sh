@@ -6,7 +6,7 @@ set -e
 cd "$(dirname "$0")/.."
 [ -f .env ] && set -a && . ./.env && set +a
 DATA=${DATA:-./data}; MODELS=${MODELS:-$DATA/models}; ASSETS=${ASSETS:-../assets}
-mkdir -p mods-extra mod/libs "$DATA/fabric/config/floodgate" "$DATA/geyser/extensions/geysermodelengineextension/input" \
+mkdir -p mods-extra "$DATA/fabric/config/floodgate" "$DATA/geyser/extensions/geysermodelengineextension/input" \
     "$DATA/geyser/packs" "$DATA/geyser/custom_mappings" "$DATA/viaproxy" "$MODELS"
 
 # name | url | sha256 (pinned; bump together). GeyserUtils and the GeyserModelEngine extension are the builds the
@@ -26,20 +26,25 @@ $DATA/geyser/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/
 $DATA/geyser/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-geyser-1.0-SNAPSHOT.jar|50120094bd46fefbb1672737540e3a66a483391e062625676805b4bb08e79ea9
 EOF2
 
-# PolyMc has no 1.21.1 release: built from TheEpicBlock/PolyMc master at a pinned commit (its datagen first)
+# PolyMc has no 1.21.1 release: built from TheEpicBlock/PolyMc master at a pinned commit (its datagen first);
+# release zips ship the built jar
 POLYMC=mods-extra/PolyMc-5.7.0-rev.a3eaae6+1.21.jar
 if [ ! -f "$POLYMC" ]; then
   src=~/.cache/cl-fabric/src/PolyMc
   [ -d "$src" ] || git clone -q https://github.com/TheEpicBlock/PolyMc.git "$src"
+  mkdir -p ~/.cache/cl-fabric/gradle  # else Docker creates it as root
   git -C "$src" checkout -q a3eaae6
   docker run --rm -u "$(id -u):$(id -g)" -e GRADLE_USER_HOME=/g -e HOME=/tmp -v ~/.cache/cl-fabric/gradle:/g -v "$src":/w -w /w \
       eclipse-temurin:21-jdk bash -c "./gradlew -q --no-daemon runDatagen && ./gradlew -q --no-daemon build -x test"
   cp "$src/build/libs/PolyMc-5.7.0-rev.a3eaae6+1.21.jar" "$POLYMC"
 fi
-# the mod builds against these (tools/build.sh)
-cp "$POLYMC" mods-extra/Floodgate-Fabric-2.2.4-b38.jar mod/libs/
-unzip -o -q -j mods-extra/Floodgate-Fabric-2.2.4-b38.jar META-INF/jars/cumulus-1.1.2.jar META-INF/jars/common-2.2.1-SNAPSHOT-unshaded.jar -d mod/libs
-tools/build.sh
+# the mod builds against these (tools/build.sh); a release zip ships the built mod instead of mod/
+if [ -d mod/src ]; then
+  mkdir -p mod/libs
+  cp "$POLYMC" mods-extra/Floodgate-Fabric-2.2.4-b38.jar mod/libs/
+  unzip -o -q -j mods-extra/Floodgate-Fabric-2.2.4-b38.jar META-INF/jars/cumulus-1.1.2.jar META-INF/jars/common-2.2.1-SNAPSHOT-unshaded.jar -d mod/libs
+  tools/build.sh
+fi
 
 # models: one item model a bone for vanilla Java, GeyserModelEngine's input for Bedrock (both from tools/build_all.py)
 if [ -d "$ASSETS/java" ]; then
@@ -50,9 +55,9 @@ if [ -d "$ASSETS/java" ]; then
   cp "$ASSETS/bedrock-ui.mcpack" "$DATA/geyser/packs/cobblemon-link-ui.mcpack"
   # Cobblemon's sounds (cries, the Poké Ball) for Bedrock, from the Cobblemon jar the server downloaded
   J=$(ls "$DATA"/fabric/mods/Cobblemon-fabric-*.jar 2>/dev/null | head -1)
-  [ -n "$J" ] && python3 tools/bedrock_sounds.py "$J" "$DATA/geyser/packs/cobblemon-link-sounds.mcpack" >/dev/null
+  [ -n "$J" ] && python3 ../tools/bedrock_sounds.py "$J" "$DATA/geyser/packs/cobblemon-link-sounds.mcpack" >/dev/null
   # Cobblemon's machine blocks (healing machine, PC...) as GeyserModelEngine models; keep in step with Furniture.BLOCKS
-  [ -n "$J" ] && VANILLA_JAR=$(ls "$DATA"/fabric/polymer/cached_client_jars/*.jar 2>/dev/null | head -1) python3 tools/bedrock_blocks.py "$J" "$DATA/geyser/extensions/geysermodelengineextension/input" healing_machine pc \
+  [ -n "$J" ] && VANILLA_JAR=$(ls "$DATA"/fabric/polymer/cached_client_jars/*.jar 2>/dev/null | head -1) python3 ../tools/bedrock_blocks.py "$J" "$DATA/geyser/extensions/geysermodelengineextension/input" healing_machine pc \
       pasture display_case fossil_analyzer restoration_tank monitor tm_machine campfire_pot_{red,blue,green,white,yellow,pink,black} plants berries gilded >/dev/null
   # Cobblemon's NPCs as models (their skins), from the Cobblemon jar unpacked
   if [ -n "$J" ]; then rm -rf ~/.cache/cl-fabric/cobj && mkdir -p ~/.cache/cl-fabric/cobj && unzip -q -o "$J" 'assets/*' -d ~/.cache/cl-fabric/cobj

@@ -1,1 +1,1 @@
-rootProject.name = "cobblemon-link"
+rootProject.name = "cobblemon-link-plugin"

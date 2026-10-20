@@ -1,9 +1,12 @@
 #!/bin/bash
 # Build assets/ from the Cobblemon commit pinned in COBBLEMON_COMMIT.
 #   tools/build.sh                 -> assets/ (models, gamedata.json, datapack, ui-pack.zip, bedrock-ui.mcpack) + plugin jar
-#   tools/build.sh --zip v0.1.0    -> also dist/cobblemon-link-v0.1.0.zip (ready-to-run server bundle)
+#   tools/build.sh --zip v1.0.0    -> also the two server bundles: dist/cobblemon-link-plugin-v1.0.0.zip (Paper) and
+#                                     dist/cobblemon-link-v1.0.0.zip (Fabric; run fabric/tools/setup.sh first, it builds the mod)
+#   tools/build.sh --zip-only v1.0.0  -> only the bundles, from what is already built
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [ "${1:-}" != --zip-only ]; then  # --zip-only: package what is already built
 sha=$(cat COBBLEMON_COMMIT)
 src=$(mktemp -d); trap 'rm -rf "$src"' EXIT
 tools/fetch_cobblemon.sh "$sha" "$src"
@@ -27,20 +30,25 @@ python3 tools/build_ui.py "$src/assets/cobblemon/textures/gui" assets/ui-pack.zi
 # plugin: Gradle in Docker, so only Docker is needed (JDK 25 + Gradle come with the image)
 docker run --rm -u "$(id -u):$(id -g)" -e GRADLE_USER_HOME=/w/.gradle-home -v "$PWD/plugin":/w -w /w \
   gradle:9.1-jdk25 gradle -q --no-daemon build
-# the optional client mod (client/, Fabric): attached to each release, not published elsewhere
-mkdir -p "$HOME/.cache/cl-gradle-mod"
-docker run --rm -u "$(id -u):$(id -g)" -e GRADLE_USER_HOME=/g -e HOME=/tmp -v "$HOME/.cache/cl-gradle-mod":/g -v "$PWD/client":/w -w /w \
-  eclipse-temurin:25-jdk ./gradlew -q --no-daemon build
+fi
 
-if [ "${1:-}" = --zip ]; then
-  v=$2 name=cobblemon-link-$2
-  rm -rf "dist/$name" && mkdir -p "dist/$name"
-  cp -r README.md LICENSE COBBLEMON_COMMIT assets server sim "dist/$name/"
+if [ "${1:-}" = --zip ] || [ "${1:-}" = --zip-only ]; then
+  v=$2
+  zipit() { (cd dist && rm -f "$1.zip" && zip -qr "$1.zip" "$1") && echo "dist/$1.zip ($(du -h "dist/$1.zip" | cut -f1))"; }
+  # cobblemon-link-plugin (Paper)
+  name=cobblemon-link-plugin-$v
+  rm -rf "dist/$name" && mkdir -p "dist/$name/plugin"
+  cp -r README.md PARITY.md LICENSE COBBLEMON_COMMIT assets server sim "dist/$name/"
   rm -rf "dist/$name/server/data" "dist/$name/server/.env"
-  mkdir -p "dist/$name/plugin" && cp plugin/build/libs/cobblemon-link-*.jar "dist/$name/plugin/cobblemon-link.jar"
-  mod=$(ls client/build/libs/cobblemon-link-client-*.jar | grep -v sources)
-  cp "$mod" "dist/cobblemon-link-client-$v.jar"  # a release asset of its own, for players
-  (cd dist && rm -f "$name.zip" && zip -qr "$name.zip" "$name")
-  echo "dist/$name.zip ($(du -h "dist/$name.zip" | cut -f1))"
-  echo "dist/cobblemon-link-client-$v.jar (attach to the release with the zip)"
+  cp plugin/build/libs/cobblemon-link-plugin-*.jar "dist/$name/plugin/cobblemon-link-plugin.jar"
+  zipit "$name"
+  # cobblemon-link (Fabric): the built mod and PolyMc (fabric/tools/setup.sh makes both), the shared tools it calls
+  name=cobblemon-link-$v
+  ls fabric/mods-extra/cobblemon-link-[0-9]*.jar fabric/mods-extra/PolyMc-*.jar >/dev/null || { echo "run fabric/tools/setup.sh first" >&2; exit 1; }
+  rm -rf "dist/$name" && mkdir -p "dist/$name/fabric/mods-extra" "dist/$name/tools"
+  cp -r README.md LICENSE COBBLEMON_COMMIT assets "dist/$name/"
+  cp -r fabric/README.md fabric/PARITY.md fabric/docker-compose.yml fabric/tools "dist/$name/fabric/"
+  cp fabric/mods-extra/cobblemon-link-[0-9]*.jar fabric/mods-extra/PolyMc-*.jar "dist/$name/fabric/mods-extra/"
+  cp tools/geo2bb.py tools/bedrock_blocks.py tools/bedrock_sounds.py "dist/$name/tools/"
+  zipit "$name"
 fi

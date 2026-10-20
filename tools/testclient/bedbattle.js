@@ -4,7 +4,7 @@
 const bp = require('bedrock-protocol')
 const [host, port, secs] = [process.argv[2], +process.argv[3], +(process.argv[4] || 60)]
 const answers = (process.argv[5] || '0,0').split(',').map(Number)
-const c = bp.createClient({ host, port, offline: true, username: process.env.NAME || 'PocBedrock', skipPing: true, connectTimeout: 20000, skinData: { LanguageCode: process.env.LANG_CODE || 'en_GB' } }) // LANG_CODE: the Bedrock language, e.g. de_DE
+const c = bp.createClient({ host, port, offline: true, username: process.env.NAME || 'BotBedrock', skipPing: true, connectTimeout: 20000, skinData: { LanguageCode: process.env.LANG_CODE || 'en_GB' } }) // LANG_CODE: the Bedrock language, e.g. de_DE
 if (process.env.XUID) { if (c.profile) c.profile.xuid = process.env.XUID; else c.once('session', () => { c.profile.xuid = process.env.XUID }) } // XUID: a distinct Floodgate player per bot name
 let me, target, n = 0, pos, held = {}
 c.on('start_game', p => {

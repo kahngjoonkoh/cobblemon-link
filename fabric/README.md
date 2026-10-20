@@ -9,7 +9,7 @@ This is one of cobblemon-link's two products:
   (spawning, battles, catching, EXP, evolution, storage, Pokédex); the mod shows it to players without the mod.
 - **cobblemon-link-plugin** (`plugin/`): the Paper plugin that recreates Cobblemon's gameplay for vanilla clients.
 
-Feature by feature, against the Paper version: [PARITY.md](PARITY.md). How it was proven: [POC.md](POC.md).
+Feature by feature, against the Paper version: [PARITY.md](PARITY.md). How it was proven: [docs/fabric-poc.md](../docs/fabric-poc.md).
 
 ## Versions
 
@@ -57,7 +57,8 @@ party (the Paper version's healing; Cobblemon's healing machine works too).
 
 ## Run it
 
-You need Docker, Python 3 and the repo's converted assets (`tools/build.sh` at the repo root). Accept the
+From a release: unzip `cobblemon-link-<version>.zip` (models and packs built, the mod and PolyMc included). From
+source: Docker, Python 3 and the repo's converted assets (`tools/build.sh` at the repo root). Accept the
 [Minecraft EULA](https://aka.ms/MinecraftEULA).
 
 ```bash
@@ -97,7 +98,8 @@ Commands for players without the mod: `/starter`, `/party`, `/pokedex`, `/battle
 
 ```
 mod/          the Fabric mod (Gradle; tools/build.sh builds it in Docker). Tests: mod/src/test
-tools/        setup.sh, build.sh, build_models.py, bil_models.py + split_rotations.py, bedrock_items.py;
-              test helpers: client.sh, modclient.sh, bedbot.js, bedbattle.js, snap.py, xkey98.py, restart.sh, deploy.sh
+tools/        setup.sh, build.sh, build_models.py, bil_models.py + split_rotations.py, bedrock_items.py, npc_models.py,
+              ui_pack.py; the shared ../tools (geo2bb.py, bedrock_blocks.py, bedrock_sounds.py) and test clients
+              (../tools/testclient: bedbot.js, bedbattle.js for Bedrock)
 evidence/     screenshots and logs behind PARITY.md
 ```

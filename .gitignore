@@ -40,3 +40,10 @@ assets/balls/
 assets/cosmetic/
 assets/npcs/
 assets/shoulder/
+fabric/data/
+fabric/mods-extra/
+fabric/mod/libs/
+fabric/mod/build/
+fabric/mod/.gradle/
+fabric/mod/logs/
+fabric/.env

@@ -4,7 +4,7 @@ uses becomes a GeyserModelEngine model "clb_<model>" (geometry from the Java mod
 one atlas), which the server shows on a carrier at the block (Furniture.java). Java models are Blockbench's: the
 same conversion as geo2bb.py, backwards (x mirrored, rotations' x and y negated).
 ponytail: no per-face UV rotation; animated textures show their first frame.
-usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK..."""
+usage: [VANILLA_JAR=client.jar] bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint; 'berries': their fruit and flowers)"""
 import io, json, os, sys, zipfile
 from PIL import Image
 
@@ -24,6 +24,17 @@ class Src:
         return os.path.exists(os.path.join(self.dir, n))
 
 
+class Srcs:
+    """Several sources, the first that has a file wins (Cobblemon's jar, then Minecraft's for its parent models)."""
+    def __init__(self, *srcs): self.srcs = srcs
+    def read(self, n): return next(s for s in self.srcs if s.has(n)).read(n)
+    def has(self, n): return any(s.has(n) for s in self.srcs)
+    @property
+    def z(self): return self.srcs[0].z
+    @property
+    def dir(self): return self.srcs[0].dir
+
+
 def ref(r, kind):
     ns, p = r.split(':') if ':' in r else ('minecraft', r)
     return f'assets/{ns}/{kind}/{p}'
@@ -31,6 +42,7 @@ def ref(r, kind):
 
 def model(src, name):
     """Elements and textures with the parents' filled in."""
+    if not src.has(ref(name, 'models') + '.json'): return {'textures': {}, 'elements': []}
     m = json.loads(src.read(ref(name, 'models') + '.json'))
     tex, els = dict(m.get('textures', {})), m.get('elements')
     if m.get('parent') and not m['parent'].startswith('minecraft:block/block') and src.has(ref(m['parent'], 'models') + '.json'):
@@ -107,6 +119,63 @@ def models_of(src, block):
     return sorted(out)
 
 
+def berries(src, out):
+    """The fruit and flower each berry bush shows (Cobblemon draws them on the grown bush): its Bedrock geometry as
+    it is, as GeyserModelEngine model "clberry_<geometry>" with its texture."""
+    base = 'assets/cobblemon/'
+    names = src.z.namelist() if src.z else [os.path.relpath(os.path.join(r, f), src.dir) for r, _, fs in os.walk(os.path.join(src.dir, 'data/cobblemon/berries')) for f in fs]
+    pairs = set()
+    for n in names:
+        if n.startswith('data/cobblemon/berries/') and n.endswith('.json'):
+            d = json.loads(src.read(n))
+            for m, t in ((d.get('fruitModel'), d.get('fruitTexture')), (d.get('flowerModel'), d.get('flowerTexture'))):
+                if m and t: pairs.add((m.split(':')[1], t.split(':')[1]))
+    n = 0
+    for geo, tex in sorted(pairs):
+        g = base + 'bedrock/berries/' + geo + '.json'
+        t = base + 'textures/berries/' + tex + '.png'
+        if not (src.has(g) and src.has(t)): continue
+        name = 'clberry_' + geo.replace('.geo', '')
+        d = json.loads(src.read(g))
+        d['minecraft:geometry'][0]['description']['identifier'] = 'geometry.' + name
+        os.makedirs(os.path.join(out, name), exist_ok=True)
+        json.dump(d, open(os.path.join(out, name, name + '.geo.json'), 'w'))
+        open(os.path.join(out, name, name + '.png'), 'wb').write(src.read(t))
+        json.dump({"format_version": "1.8.0", "animations": {"idle": {"loop": True, "animation_length": 1, "bones": {}}}},
+                  open(os.path.join(out, name, name + '.animation.json'), 'w'))
+        n += 1
+    return n
+
+
+def gilded(src, out):
+    """Cobblemon's gilded chests (drawn by its client from Bedrock geometry): each colour as "clb_<chest>"."""
+    base = 'assets/cobblemon/bedrock/block_entities/'
+    names = src.z.namelist() if src.z else [base + 'variations/' + f for f in os.listdir(os.path.join(src.dir, base, 'variations'))]
+    n = 0
+    for v in [x for x in names if x.startswith(base + 'variations/') and x.endswith('.json')]:
+        var = json.loads(src.read(v))['variations'][0]
+        geo, tex = var['model'].split(':')[1], var['texture'].split(':')[1]
+        name = 'clb_' + os.path.basename(v)[:-5]
+        d = json.loads(src.read(base + 'models/' + geo + '.json'))
+        d['minecraft:geometry'][0]['description']['identifier'] = 'geometry.' + name
+        os.makedirs(os.path.join(out, name), exist_ok=True)
+        json.dump(d, open(os.path.join(out, name, name + '.geo.json'), 'w'))
+        open(os.path.join(out, name, name + '.png'), 'wb').write(src.read('assets/cobblemon/' + tex))
+        json.dump({"format_version": "1.8.0", "animations": {"idle": {"loop": True, "animation_length": 1, "bones": {}}}},
+                  open(os.path.join(out, name, name + '.animation.json'), 'w'))
+        n += 1
+    return n
+
+
+def plants(src):
+    """Cobblemon's plants and crystals (Furniture.plant): berry bushes, apricorns, mints, saplings, clusters."""
+    base = 'assets/cobblemon/blockstates/'
+    names = src.z.namelist() if src.z else [base + f for f in os.listdir(os.path.join(src.dir, base))]
+    plant = lambda b: (b.endswith(('_berry', '_apricorn', '_mint', '_cluster', '_leaf_litter')) or 'sapling' in b or 'budding_' in b
+                       or b in ('revival_herb', 'pomohana', 'galarica_wreath'))
+    return sorted(n[len(base):-5] for n in names if n.startswith(base) and n.endswith('.json') and plant(n[len(base):-5]))
+
+
 def demo():
     import tempfile
     with tempfile.TemporaryDirectory() as t:
@@ -123,8 +192,16 @@ def demo():
 
 if __name__ == '__main__':
     demo()
-    src, out = Src(sys.argv[1]), sys.argv[2]
+    # VANILLA_JAR: Minecraft's client jar, for parents such as block/cross (saplings) and amethyst_cluster
+    src, out = Srcs(*[Src(p) for p in (sys.argv[1], os.environ.get('VANILLA_JAR')) if p]), sys.argv[2]
     n = 0
     for b in sys.argv[3:]:
-        for m in models_of(src, b): n += convert(src, m, out)
+        if b == 'berries':
+            print(berries(src, out), 'berry models')
+            continue
+        if b == 'gilded':
+            print(gilded(src, out), 'gilded chests')
+            continue
+        for name in plants(src) if b == 'plants' else [b]:
+            for m in models_of(src, name): n += convert(src, m, out)
     print(n, 'block models')
