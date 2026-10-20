@@ -1,4 +1,9 @@
-# PoC: real Cobblemon on Fabric 1.21.1 (data under ~/.cache/cl-fabric-poc)
+# Test servers: real Cobblemon on Fabric 1.21.1, Geyser standalone and ViaProxy. Data under $CLPOC_DATA
+# (default ~/.cache/cl-fabric-poc), models from tools/build_models.py under $CLPOC_MODELS; ports on $CLPOC_BIND.
+name: clpoc
+networks:
+  default:
+    name: clpoc-net
 services:
   fabric:
     image: itzg/minecraft-server:java21
@@ -17,11 +22,11 @@ services:
       ENABLE_RCON: "true"
       RCON_PASSWORD: poc-only
     volumes:
-      - ${HOME}/.cache/cl-fabric-poc/fabric:/data
+      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/fabric:/data
       - ./mods-extra:/mods:ro
-      - ${HOME}/.cache/cl-fabric/modelpack:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
+      - ${CLPOC_MODELS:-${HOME}/.cache/cl-fabric/modelpack}:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
     ports:
-      - "127.0.0.1:25570:25565"
+      - "${CLPOC_BIND:-127.0.0.1}:25570:25565"
   # Bedrock path: phone (latest Bedrock) -> Geyser standalone (latest, speaks Java 26.3) -> ViaProxy (26.3 -> 1.21.1) -> fabric
   viaproxy:
     image: eclipse-temurin:25-jre
@@ -30,7 +35,7 @@ services:
     working_dir: /w
     command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1", "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE", "--rewrite-handshake-packet", "false"]  # keeps Floodgate's data in the handshake
     volumes:
-      - ${HOME}/.cache/cl-fabric-poc/viaproxy:/w
+      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/viaproxy:/w
   geyser:
     image: eclipse-temurin:25-jre
     container_name: clpoc-geyser
@@ -39,6 +44,6 @@ services:
     stdin_open: true
     command: ["java", "-jar", "Geyser-Standalone.jar", "--nogui"]
     volumes:
-      - ${HOME}/.cache/cl-fabric-poc/geyser:/w
+      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/geyser:/w
     ports:
-      - "127.0.0.1:19140:19132/udp"
+      - "${CLPOC_BIND:-127.0.0.1}:19140:19132/udp"
