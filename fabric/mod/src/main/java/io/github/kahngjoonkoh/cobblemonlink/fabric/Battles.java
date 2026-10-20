@@ -32,12 +32,16 @@ public final class Battles {
     /** A player without the mod used (or hit) a Pokémon; true if this took the click. */
     public static boolean interact(ServerPlayer p, PokemonEntity pe) {
         if (!Clients.bridged(p.connection)) return false;
+        if (p.getMainHandItem().getItem() instanceof PokeBallItem) { // the client sent a click on the Pokémon, not a throw
+            p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
+            return true;
+        }
         var ui = BattleUi.get(p);
         if (ui != null) { // in a battle: the menu again
             ui.reveal();
             return true;
         }
-        if (!pe.getPokemon().isWild() || pe.isBattling() || p.getMainHandItem().getItem() instanceof PokeBallItem) return false;
+        if (!pe.getPokemon().isWild() || pe.isBattling()) return false;
         var result = BattleBuilder.INSTANCE.pve(p, pe);
         if (result instanceof com.cobblemon.mod.common.battles.ErroredBattleStart err) err.sendTo(p, c -> c);
         return true;

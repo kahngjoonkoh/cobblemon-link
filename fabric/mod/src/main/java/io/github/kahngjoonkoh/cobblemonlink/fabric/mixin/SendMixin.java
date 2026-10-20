@@ -48,14 +48,14 @@ public class SendMixin {
         }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its look (as on Paper)
         if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a
-                && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity p) {
-            var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(p.getId());
+                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(a.getId()) != null) {
+            var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(a.getId());
             List<Packet<? super ClientGamePacketListener>> out = new ArrayList<>();
-            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.look(p))));
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + holder.model().name())));
             out.add(new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
                     net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot()));
-            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(a.getId(), io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.scale(p))));
-            if (holder != null) out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(a.getId(), holder.scale())));
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
             return new ClientboundBundlePacket(out);
         }
         if (packet instanceof ClientboundCustomPayloadPacket c) {

@@ -30,9 +30,12 @@ public class ModelHolder extends ElementHolder {
     private String loop = "idle", shot;
     private int age, shotStart, loopStart;
     private java.util.function.BooleanSupplier battling = () -> false;
+    private java.util.function.Supplier<String> state; // the loop to play, for things that aren't Pokémon (Poké Balls)
     private double lastX, lastZ;
 
-    public ModelHolder(Entity entity, Models.Model model, float scale) {
+    public ModelHolder(Entity entity, Models.Model model, float scale) { this(entity, model, scale, true); }
+
+    public ModelHolder(Entity entity, Models.Model model, float scale, boolean clickable) {
         this.entity = entity;
         this.model = model;
         this.scale = scale;
@@ -49,8 +52,8 @@ public class ModelHolder extends ElementHolder {
             d.setViewRange(5);
             displays[i] = addElement(d);
         }
-        hitbox = addElement(InteractionElement.redirect(entity));
-        hitbox.setSize(entity.getBbWidth(), entity.getBbHeight());
+        hitbox = clickable ? addElement(InteractionElement.redirect(entity)) : null;
+        if (hitbox != null) hitbox.setSize(entity.getBbWidth(), entity.getBbHeight());
         pose(0);
     }
 
@@ -81,6 +84,13 @@ public class ModelHolder extends ElementHolder {
     /** Whether the entity is in a battle: battle_idle while it stands still. */
     public void battling(java.util.function.BooleanSupplier b) { battling = b; }
 
+    /** The loop comes from this instead of the Pokémon rules (idle, walk...). */
+    public void state(java.util.function.Supplier<String> s) { state = s; }
+
+    public Models.Model model() { return model; }
+
+    public float scale() { return scale; }
+
     @Override
     public void tick() {
         super.tick();
@@ -88,7 +98,7 @@ public class ModelHolder extends ElementHolder {
         boolean moving = Math.abs(entity.getX() - lastX) + Math.abs(entity.getZ() - lastZ) > 0.01;
         lastX = entity.getX();
         lastZ = entity.getZ();
-        setLoop(entity instanceof LivingEntity l && l.isDeadOrDying() ? "faint" : moving ? "walk"
+        setLoop(state != null ? state.get() : entity instanceof LivingEntity l && l.isDeadOrDying() ? "faint" : moving ? "walk"
                 : battling.getAsBoolean() ? "battle_idle" : "idle");
         int every = Config.vanillaJava().poseEvery(); // 0: a still model, posed once (and turned every second)
         if (every > 0 && age % every == 0 && !getWatchingPlayers().isEmpty()) pose((age - loopStart) / 20f);
@@ -99,7 +109,7 @@ public class ModelHolder extends ElementHolder {
             lastBits = bits;
             bedrockChanged(bits);
         }
-        hitbox.setSize(entity.getBbWidth(), entity.getBbHeight());
+        if (hitbox != null) hitbox.setSize(entity.getBbWidth(), entity.getBbHeight());
     }
 
     private int[] lastBits = new int[0];

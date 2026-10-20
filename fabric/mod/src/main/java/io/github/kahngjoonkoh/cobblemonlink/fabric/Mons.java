@@ -19,6 +19,7 @@ public final class Mons {
 
     static void register() {
         ServerEntityEvents.ENTITY_LOAD.register((e, level) -> {
+            if (e instanceof com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity b) ball(b, level);
             if (!(e instanceof PokemonEntity p)) return;
             String look = look(p);
             Models.Model m = Models.get(look);
@@ -34,13 +35,59 @@ public final class Mons {
             HOLDERS.put(p.getId(), h);
         });
         ServerEntityEvents.ENTITY_UNLOAD.register((e, level) -> {
-            if (!(e instanceof PokemonEntity)) return;
+            if (!(e instanceof PokemonEntity) && !(e instanceof com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity)) return;
             ModelHolder h = HOLDERS.remove(e.getId());
             if (h != null) h.destroy(); // Cobblemon's removals don't always reach Polymer's attachment
         });
     }
 
     public static ModelHolder holder(int entityId) { return HOLDERS.get(entityId); }
+
+    /**
+     * Cobblemon's thrown Poké Ball (EmptyPokeBallEntity) as cobblemon-link's ball model: spinning in flight, open on
+     * the hit, shut and falling, a bob a shake, then capture or break, from the ball's own capture state.
+     * ponytail: every ball is the Poké Ball's model.
+     */
+    static void ball(com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity b, ServerLevel level) {
+        Models.Model m = Models.get("poke_ball");
+        if (m == null) return;
+        int[] shakes = {0};
+        boolean[] last = {false};
+        ModelHolder h = new ModelHolder(b, m, 1f, false) {
+            @Override
+            protected void bedrockChanged(int[] anims) {
+                level.getChunkSource().broadcast(b, new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(b.getId(), anims)));
+            }
+        };
+        h.state(() -> switch (b.getCaptureState()) {
+            case HIT, CRITICAL -> "open";
+            case FALL -> "shut";
+            case SHAKE -> {
+                boolean s = b.getEntityData().get(shakeData());
+                if (s != last[0]) {
+                    last[0] = s;
+                    shakes[0]++;
+                }
+                yield shakes[0] == 0 ? "shut" : "bob" + (1 + (shakes[0] - 1) % 3);
+            }
+            case CAPTURED -> "capture";
+            case BROKEN_FREE -> "break";
+            default -> "throw";
+        });
+        EntityAttachment.ofTicking(h, b);
+        HOLDERS.put(b.getId(), h);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static net.minecraft.network.syncher.EntityDataAccessor<Boolean> shakeData() {
+        try {
+            var f = com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity.class.getDeclaredField("SHAKE");
+            f.setAccessible(true);
+            return (net.minecraft.network.syncher.EntityDataAccessor<Boolean>) f.get(null);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     /** The look (model) a Pokémon is drawn with: its species and aspects through Cobblemon's variation table. */
     public static String look(PokemonEntity p) {
