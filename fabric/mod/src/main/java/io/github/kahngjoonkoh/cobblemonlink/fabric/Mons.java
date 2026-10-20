@@ -83,7 +83,30 @@ public final class Mons {
                 level.getChunkSource().broadcast(b, new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(b.getId(), anims)));
             }
         };
-        h.state(() -> switch (b.getCaptureState()) {
+        String[] heard = {"throw"};
+        h.state(() -> {
+            String state = ballState(b, shakes, last);
+            if (!state.equals(heard[0])) { // the ball's sounds, as Cobblemon's client plays them
+                heard[0] = state;
+                String sound = switch (state) {
+                    case "open" -> "poke_ball.open";
+                    case "shut" -> "poke_ball.shut";
+                    case "bob1", "bob2", "bob3" -> "poke_ball.shake";
+                    case "capture" -> "poke_ball.capture_succeeded";
+                    case "break" -> "poke_ball.break";
+                    default -> null;
+                };
+                if (sound != null) Sounds.play(b, sound);
+            }
+            return state;
+        });
+        HOLDERS.put(b.getId(), h);
+        EntityAttachment.ofTicking(h, b);
+        Sounds.play(b, "poke_ball.throw");
+    }
+
+    private static String ballState(com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity b, int[] shakes, boolean[] last) {
+        return switch (b.getCaptureState()) {
             case HIT, CRITICAL -> "open";
             case FALL -> "shut";
             case SHAKE -> {
@@ -97,9 +120,7 @@ public final class Mons {
             case CAPTURED -> "capture";
             case BROKEN_FREE -> "break";
             default -> "throw";
-        });
-        HOLDERS.put(b.getId(), h);
-        EntityAttachment.ofTicking(h, b);
+        };
     }
 
     @SuppressWarnings("unchecked")

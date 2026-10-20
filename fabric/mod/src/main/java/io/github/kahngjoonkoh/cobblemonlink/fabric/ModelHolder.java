@@ -67,7 +67,13 @@ public class ModelHolder extends ElementHolder {
 
     /** A one-shot animation, if the model has it (true); it replaces the loop on the bones it moves. */
     public boolean play(String name) {
-        if (!model.anims().containsKey(name) || !Config.vanillaJava().moveAnimations()) return false;
+        if (name.equals("cry") && entity instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe) Sounds.cry(pe);
+        if (!model.anims().containsKey(name)) return false;
+        if (!Config.vanillaJava().moveAnimations()) { // Java gets no one-shots below full; Bedrock always does
+            shot = name;
+            shotStart = age;
+            return true;
+        }
         shot = name;
         shotStart = age;
         return true;
@@ -103,7 +109,7 @@ public class ModelHolder extends ElementHolder {
         int every = Config.vanillaJava().poseEvery(); // 0: a still model, posed once (and turned every second)
         if (every > 0 && age % every == 0 && !getWatchingPlayers().isEmpty()) pose((age - loopStart) / 20f);
         else if (every == 0 && age % 20 == 0) turn();
-        else if (shot != null && (age - shotStart) / 20f > model.anims().get(shot).length() && model.anims().get(shot).loop() == 0) shot = null;
+        if (shot != null && (age - shotStart) / 20f > model.anims().get(shot).length() && model.anims().get(shot).loop() == 0) shot = null;
         int[] bits = bedrockAnims();
         if (!java.util.Arrays.equals(bits, lastBits)) {
             lastBits = bits;
@@ -128,7 +134,7 @@ public class ModelHolder extends ElementHolder {
     protected void bedrockChanged(int[] anims) {}
 
     private void pose(float seconds) {
-        Models.Anim base = model.anims().get(loop), one = shot == null ? null : model.anims().get(shot);
+        Models.Anim base = model.anims().get(loop), one = shot == null || !Config.vanillaJava().moveAnimations() ? null : model.anims().get(shot);
         float tb = base == null ? 0 : time(base, seconds);
         float to = 0;
         if (one != null) {

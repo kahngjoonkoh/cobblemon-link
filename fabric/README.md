@@ -67,6 +67,7 @@ docker compose up -d           # first boot: Cobblemon, configs, the Floodgate k
 docker compose down && tools/setup.sh && docker compose up -d   # Geyser through Floodgate, Bedrock item icons
 ```
 
+- Restart the server with `docker compose restart` (all three): ViaProxy keeps the server's address from its start.
 - Java: `<host>:25565` (bound to localhost; set `JAVA_BIND=0.0.0.0` in `fabric/.env` to expose it).
 - Bedrock: `<host>:19132` (UDP).
 - Other `.env` settings: `JAVA_PORT`, `BEDROCK_BIND`, `BEDROCK_PORT`, `MEMORY` (4G), `MAX_PLAYERS` (12),

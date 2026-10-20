@@ -62,6 +62,12 @@ public class SendMixin {
             out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
             return new ClientboundBundlePacket(out);
         }
+        // Cobblemon's own sound events: by name (the client's sound registry hasn't got their ids)
+        if (packet instanceof ClientboundSoundPacket sp && sp.getSound().unwrapKey().map(k -> !k.location().getNamespace().equals("minecraft")).orElse(false))
+            return new ClientboundSoundPacket(net.minecraft.core.Holder.direct(sp.getSound().value()), sp.getSource(), sp.getX(), sp.getY(), sp.getZ(), sp.getVolume(), sp.getPitch(), sp.getSeed());
+        if (packet instanceof ClientboundSoundEntityPacket se && se.getSound().unwrapKey().map(k -> !k.location().getNamespace().equals("minecraft")).orElse(false)
+                && h.player.level().getEntity(se.getId()) instanceof net.minecraft.world.entity.Entity at)
+            return new ClientboundSoundEntityPacket(net.minecraft.core.Holder.direct(se.getSound().value()), se.getSource(), at, se.getVolume(), se.getPitch(), se.getSeed());
         // Cobblemon's spawn packets wrap the vanilla one (with extra data only its client reads): the vanilla one
         if (packet instanceof ClientboundCustomPayloadPacket c
                 && c.payload() instanceof com.cobblemon.mod.common.net.messages.client.spawn.SpawnExtraDataEntityPacket<?, ?> spawn)

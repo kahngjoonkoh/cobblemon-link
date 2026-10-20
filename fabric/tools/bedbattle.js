@@ -41,6 +41,8 @@ c.on('modal_form_request', p => {
   setTimeout(() => c.queue('modal_form_response', { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
 })
 c.on('set_entity_data', p => p.properties && (p.properties.ints || []).length && console.log('props', p.runtime_entity_id, JSON.stringify(p.properties.ints)))
+c.on('play_sound', p => console.log('sound', p.name))
+c.on('level_sound_event', p => p.sound_id && console.log('levelsound', p.sound_id, p.extra_data))
 c.on('boss_event', p => p.title && console.log('bossbar', p.title, p.progress))
 c.on('text', p => console.log('text', p.type, JSON.stringify(p.message)))
 c.on('set_title', p => p.text && console.log('title', p.type, JSON.stringify(p.text)))

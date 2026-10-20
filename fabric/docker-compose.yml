@@ -38,6 +38,8 @@ services:
     # --rewrite-handshake-packet false keeps Floodgate's data in the handshake
     command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1",
               "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE", "--rewrite-handshake-packet", "false"]
+    depends_on: [fabric]   # ViaProxy resolves the server once: restart it with the server
+    restart: unless-stopped
     volumes:
       - ${DATA:-./data}/viaproxy:/w
   geyser:

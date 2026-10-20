@@ -48,6 +48,9 @@ if [ -d "$ASSETS/java" ]; then
       python3 tools/build_models.py ~/.cache/cl-fabric/models "$MODELS" "$ASSETS/gamedata.json"
   cp -r "$ASSETS"/bedrock/* "$DATA/geyser/extensions/geysermodelengineextension/input/"
   cp "$ASSETS/bedrock-ui.mcpack" "$DATA/geyser/packs/cobblemon-link-ui.mcpack"
+  # Cobblemon's sounds (cries, the Poké Ball) for Bedrock, from the Cobblemon jar the server downloaded
+  J=$(ls "$DATA"/fabric/mods/Cobblemon-fabric-*.jar 2>/dev/null | head -1)
+  [ -n "$J" ] && python3 tools/bedrock_sounds.py "$J" "$DATA/geyser/packs/cobblemon-link-sounds.mcpack" >/dev/null
   python3 tools/ui_pack.py "$ASSETS/ui-pack.zip" "$ASSETS/pics" "${UI:-$DATA/ui}" >/dev/null   # vanilla Java's UI art
 else
   echo "no $ASSETS/java: run tools/build.sh at the repo root first (it converts Cobblemon's models)"
