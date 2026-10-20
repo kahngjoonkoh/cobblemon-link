@@ -46,6 +46,7 @@ public final class Summary {
         if (party.isEmpty()) return;
         int i = Math.clamp(index, 0, party.size() - 1);
         if (Clients.bedrock(p)) bedrock(p, party, i, tab);
+        else if (Ui.loaded && Config.vanillaJava().screenArt()) SummaryArt.open(p, party, i, tab);
         else JavaScreens.party(p);
     }
 

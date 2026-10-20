@@ -75,7 +75,7 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Move animations (cry, physical, special, recoil) | full | From Cobblemon's animation packet | 🟡 wired |
 | 3D Poké Ball | standard | Own renderer on Cobblemon's `EmptyPokeBallEntity` | ✅ `m3-java-pokeball-capture.png` |
 | Starter (`/starter`, toast) | basic: chest · standard: art | Cobblemon's StarterHandler; chest a row a region, or the Paper version's starter art | ✅ chest `j2-java-basic-starter-party-dex.png`, art `j5-java-standard-starter-art.png` |
-| Party / Summary / PC / Pokédex | basic: chest · standard: art | The Paper version's chest menus on Cobblemon's data (party + options, PC with sort/filter/release/wallpaper, Pokédex) | 🟡 chests ✅ `j2-java-basic-starter-party-dex.png`; art ⬜ |
+| Party / Summary / PC / Pokédex | basic: chest · standard: art | The Paper version's chest menus on Cobblemon's data; the Paper art screens | 🟡 chests ✅ `j2-java-basic-starter-party-dex.png`; Summary art ✅ `j6-java-standard-summary-art.png`; PC and Pokédex art ⬜ |
 | Battle | basic/standard: chest menu · full: battle screen | BattleUi's menus as a chest, HP boss bars | 🟡 chest ✅ `j1-java-basic-battle.png` (all levels for now); battle screen ⬜ |
 | Party HUD, chat-free EXP | full | The Paper version's overlay through the 1.21.1 text shader, from Cobblemon's party | ✅ `j4-java-full-party-hud.png` |
 | UI pack for the 1.21.1 client (fonts, pictures, text shader) | standard | `tools/ui_pack.py`, merged into Polymer's pack | ✅ `j3-java-ui-pack-toast.png` (Cobblemon's starter toast) |
