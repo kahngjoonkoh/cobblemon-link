@@ -98,3 +98,40 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Pinned, hash-checked downloads; PolyMc built from source; models and packs | `fabric/tools/setup.sh` | ✅ (run against a scratch data dir) |
 | Gradle build of the mod, unit tests | `fabric/tools/build.sh` (`ConfigTest`, `PartyHudTest`) | ✅ |
 | README, versions | `fabric/README.md` | ✅ |
+
+## Cobblemon features beyond Paper
+
+Everything Cobblemon 1.8.2 has with its own screen, interaction or visual (from its client packets, blocks and
+entities), and whether players without the mod can see and use it. Bedrock first; the Java column follows the
+`vanillaJava` level. ➖ = works already through Cobblemon plus Geyser/PolyMc, nothing to do.
+
+| Cobblemon feature | Bedrock | Vanilla Java | Notes |
+|---|---|---|---|
+| Wild spawning everywhere (water, caves, fishing pools, herds, alphas) | ➖ | ➖ | Cobblemon's own spawner |
+| Shiny Pokémon (shiny looks) | ✅ | ✅ | the `__shiny` looks; ⬜ the shiny sparkle particles |
+| Pokémon cries and other Cobblemon sounds | ⬜ | ✅ | Java plays them from the pack; Bedrock needs Geyser sound mappings |
+| Cobblemon's particles (Snowstorm: moves, evolutions, healing) | ⬜ | ⬜ | client-side Bedrock particle files; could map to vanilla particles |
+| Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
+| Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
+| Evolution | ✅ | ✅ | Summary's Evolve; ⬜ Cobblemon's evolution animation |
+| Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; ⬜ TM machine screen (1.8 TMs) |
+| Held items (give / take) | ⬜ | ⬜ | Cobblemon's interaction wheel (`InteractPokemonUIPacket`) |
+| Pokémon interaction wheel (shoulder, ride, held item, ...) | ⬜ | ⬜ | `InteractPokemonUIPacket` → a form / chest |
+| Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
+| Pokémon on your shoulder | ⬜ | ⬜ | vanilla parrot data with a Pokémon id |
+| Sending out / recalling (R key) | 🟡 | 🟡 | Summary's Send out / Recall; ⬜ a key for it |
+| PvP battle challenges, multi battles, spectating | ⬜ | ⬜ | challenge packets; the battle screens already handle any Showdown request |
+| Trading | ⬜ | ⬜ | Cobblemon's trade packets → a form / chest |
+| NPCs (Professor, trainers) and their dialogues | ⬜ | ⬜ | `NPCEntity` is hidden from these clients; dialogue packets |
+| Fishing with Poké Rods (bobber, bites, reeling) | ⬜ | ⬜ | `PokeBobberEntity` is hidden from these clients |
+| Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, TM machine blocks | 🟡 | 🟡 | PolyMc stand-in blocks (they work, they don't look like Cobblemon's); PC opens our PC |
+| Pasture block screen | ⬜ | ⬜ | `OpenPasturePacket` |
+| Fossils and the resurrection machine | 🟡 | 🟡 | block interactions work through PolyMc; the revived Pokémon is a normal one |
+| Berries, apricorns, mints, saplings, gem clusters (blocks and growth) | 🟡 | 🟡 | PolyMc stand-ins; some berry block models fail to generate |
+| Campfire pot cooking, Poké Snacks, seasonings | ⬜ | ⬜ | Cobblemon's menu type is hidden from these clients (`SendMixin`) |
+| Apricorn boats, signs, gilded chests | 🟡 | 🟡 | boats are Cobblemon entities (hidden) ⬜ |
+| Pokédex (all of it: forms, genders, scanner) | 🟡 | 🟡 | ours shows seen/caught and entries; ⬜ scanner, regional dexes |
+| Toasts (new Pokédex entries, ...) | ✅ | 🟡 | action bar (Java only with the UI pack) |
+| Starter selection | ✅ | ✅ | Cobblemon's StarterHandler |
+| Battles vs wild Pokémon, catching, EXP, levels | ✅ | ✅ | see above |
+| Mega, Z, Dynamax, Tera gimmicks | ➖ | ➖ | no items unlock them in 1.8.2 |
