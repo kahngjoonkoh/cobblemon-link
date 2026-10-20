@@ -32,14 +32,14 @@ final class Pasture {
         List<Forms.Opt> opts = new ArrayList<>();
         List<Pokemon> shown = new ArrayList<>(); // opts' Pokémon, null for the buttons
         if (perms.getCanPasture() && be.getTetheredPokemon().size() < perms.getMaxPokemon()) {
-            opts.add(new Forms.Opt("Pasture a Pokémon", "none", () -> choose(p, link)));
+            opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.pasture.add"), "none", () -> choose(p, link)));
             shown.add(null);
         }
         for (var t : be.getTetheredPokemon()) {
             Pokemon m = t.getPokemon();
             if (m == null) continue;
             boolean mine = t.getPlayerId().equals(p.getUUID());
-            String text = BattleUi.name(m) + "  Lv. " + m.getLevel() + (mine ? "" : "  (" + t.getPlayerName() + ")");
+            String text = BattleUi.name(m) + "  " + Lang.t(p, "cobblemon.ui.lv") + " " + m.getLevel() + (mine ? "" : "  (" + t.getPlayerName() + ")"); // ponytail: "Lv." from Cobblemon below
             Runnable recall = mine || perms.getCanUnpastureOthers() ? () -> {
                 UnpasturePokemonHandler.INSTANCE.handle(new UnpasturePokemonPacket(link.getLinkId(), t.getPokemonId()), p.server, p);
                 p.server.execute(() -> open(p));
@@ -47,20 +47,20 @@ final class Pasture {
             opts.add(new Forms.Opt(text, image(m), recall));
             shown.add(m);
         }
-        opts.add(new Forms.Opt("Recall all mine", "none", () -> {
+        opts.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.pasture.recall_all"), "none", () -> {
             UnpastureAllPokemonHandler.INSTANCE.handle(new UnpastureAllPokemonPacket(link.getLinkId()), p.server, p);
             p.server.execute(() -> open(p));
         }));
         shown.add(null);
-        String title = "Pasture  " + be.getTetheredPokemon().size() + "/" + perms.getMaxPokemon();
+        String title = Lang.t(p, "cobblemon.ui.pasture") + "  " + be.getTetheredPokemon().size() + "/" + perms.getMaxPokemon();
         if (Clients.bedrock(p)) {
-            Forms.send(p, title, "Tap a Pokémon to bring it back to your PC.", opts, i -> { if (i >= 0) opts.get(i).action().run(); });
+            Forms.send(p, title, Lang.t(p, "cobblemonlink.pasture.hint"), opts, i -> { if (i >= 0) opts.get(i).action().run(); });
             return;
         }
         Chest c = new Chest(6, title);
         for (int i = 0; i < Math.min(opts.size(), 54); i++) {
             Pokemon m = shown.get(i);
-            c.set(i, m == null ? Chest.icon(Items.HAY_BLOCK, opts.get(i).text(), List.of()) : JavaScreens.mon(m, "Click: recall"), opts.get(i).action());
+            c.set(i, m == null ? Chest.icon(Items.HAY_BLOCK, opts.get(i).text(), List.of()) : JavaScreens.mon(m, Lang.t(p, "cobblemonlink.pasture.click_recall")), opts.get(i).action());
         }
         c.open(p);
     }
@@ -81,15 +81,15 @@ final class Pasture {
         }
         if (Clients.bedrock(p)) {
             List<Forms.Opt> opts = new ArrayList<>();
-            for (int i = 0; i < act.length; i++) opts.add(new Forms.Opt(BattleUi.name(mons.get(i)) + "  Lv. " + mons.get(i).getLevel(), image(mons.get(i)), act[i]));
-            Forms.send(p, "Pasture a Pokémon", mons.isEmpty() ? "Your PC has no Pokémon to put out." : "From your PC:", opts,
+            for (int i = 0; i < act.length; i++) opts.add(new Forms.Opt(BattleUi.name(mons.get(i)) + "  " + Lang.t(p, "cobblemon.ui.lv") + " " + mons.get(i).getLevel(), image(mons.get(i)), act[i]));
+            Forms.send(p, Lang.t(p, "cobblemonlink.pasture.add"), Lang.t(p, mons.isEmpty() ? "cobblemonlink.pasture.none" : "cobblemonlink.pasture.from_pc"), opts,
                     i -> { if (i >= 0) opts.get(i).action().run(); else open(p); });
             return;
         }
         // ponytail: the first 53 PC Pokémon; pages if someone's PC is bigger and they want the rest
-        Chest c = new Chest(6, "Pasture a Pokémon");
-        for (int i = 0; i < Math.min(act.length, 53); i++) c.set(i, JavaScreens.mon(mons.get(i), "Click: put out to pasture"), act[i]);
-        c.set(53, Chest.icon(Items.ARROW, "Back", List.of()), () -> open(p));
+        Chest c = new Chest(6, Lang.t(p, "cobblemonlink.pasture.add"));
+        for (int i = 0; i < Math.min(act.length, 53); i++) c.set(i, JavaScreens.mon(mons.get(i), Lang.t(p, "cobblemonlink.pasture.click_add")), act[i]);
+        c.set(53, Chest.icon(Items.ARROW, Lang.t(p, "cobblemonlink.back"), List.of()), () -> open(p));
         c.open(p);
     }
 

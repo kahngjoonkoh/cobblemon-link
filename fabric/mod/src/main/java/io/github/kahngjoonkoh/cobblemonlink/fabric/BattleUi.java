@@ -84,7 +84,7 @@ public final class BattleUi {
 
     void message(List<Component> lines) {
         for (Component c : lines) {
-            String s = Lang.resolve(c).getString();
+            String s = Lang.resolve(player, c).getString();
             if (!s.isBlank()) log.add(s);
 
         }
@@ -304,7 +304,7 @@ public final class BattleUi {
             InBattleMove mv = moves.get(i);
             var template = Moves.getByName(mv.getId());
             String type = template == null ? "normal" : template.getElementalType().getName().toLowerCase(java.util.Locale.ROOT);
-            String name = template == null ? mv.getMove() : Lang.resolve(template.getDisplayName()).getString();
+            String name = template == null ? mv.getMove() : Lang.resolve(player, template.getDisplayName()).getString();
             opts.add(new Forms.Opt(name + "\n          " + mv.getPp() + "/" + mv.getMaxpp(), "move_" + (TYPES.contains(type) ? type : "normal"),
                     mv.getDisabled() ? this::openFight : () -> respond(new MoveActionResponse(mv.getId(), target(a, mv), null))));
         }
@@ -397,5 +397,5 @@ public final class BattleUi {
         }
     }
 
-    static String name(com.cobblemon.mod.common.pokemon.Pokemon mon) { return Lang.resolve(mon.getDisplayName(false)).getString(); }
+    static String name(com.cobblemon.mod.common.pokemon.Pokemon mon) { return Lang.resolve(mon.getOwnerPlayer(), mon.getDisplayName(false)).getString(); }
 }

@@ -27,7 +27,7 @@ final class StarterArt {
 
     /** top: the first region shown; region, index: the selected starter. */
     static void open(ServerPlayer p, List<Starters.Region> regions, int top, int region, int index) {
-        Chest m = new Chest(4, title(regions, top, region, index)).hideInventory();
+        Chest m = new Chest(4, title(p, regions, top, region, index)).hideInventory();
         for (int k = 0; k < VISIBLE && top + k < regions.size(); k++) {
             List<String> species = regions.get(top + k).species();
             int r = top + k;
@@ -46,7 +46,7 @@ final class StarterArt {
         m.open(p);
     }
 
-    static Component title(List<Starters.Region> regions, int top, int region, int index) {
+    static Component title(net.minecraft.server.level.ServerPlayer p, List<Starters.Region> regions, int top, int region, int index) {
         String selected = regions.get(region).species().get(index);
         var sp = PokemonSpecies.getByName(selected);
         Ui.Title t = new Ui.Title();
@@ -81,7 +81,7 @@ final class StarterArt {
         for (int i = 0; i < n; i++)
             small(t, 8, (int) Math.round(first + gap * i), i == 5 && lines.size() > 6 ? lines.get(i) + "..." : lines.get(i));
         label(t, 70, 5, String.format("#%04d", sp == null ? 0 : sp.getNationalPokedexNumber()), false, true);
-        label(t, 14, 6, sp == null ? selected : Lang.resolve(sp.getTranslatedName()).getString(), false, true);
+        label(t, 14, 6, sp == null ? selected : Lang.resolve(p, sp.getTranslatedName()).getString(), false, true);
         return t.build();
     }
 

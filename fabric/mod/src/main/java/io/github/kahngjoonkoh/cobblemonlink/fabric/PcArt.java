@@ -110,10 +110,10 @@ final class PcArt {
         var b = Art.body(Summary.look(m), true);
         if (b != null) Art.put(t, 6, 166, b, 45, 7);
         List<String> types = new ArrayList<>();
-        m.getTypes().forEach(ty -> types.add(Lang.resolve(ty.getDisplayName()).getString()));
-        String[][] rows = {{"Type", String.join(" / ", types)}, {"Nature", Lang.get(m.getNature().getDisplayName())},
-                {"Ability", Lang.get(m.getAbility().getDisplayName())},
-                {"Moves", String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(mv.getDisplayName()).getString()).toList())}};
+        m.getTypes().forEach(ty -> types.add(Lang.resolve(m.getOwnerPlayer(), ty.getDisplayName()).getString()));
+        String[][] rows = {{"Type", String.join(" / ", types)}, {"Nature", Lang.get(m.getOwnerPlayer(), m.getNature().getDisplayName())},
+                {"Ability", Lang.get(m.getOwnerPlayer(), m.getAbility().getDisplayName())},
+                {"Moves", String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(m.getOwnerPlayer(), mv.getDisplayName()).getString()).toList())}};
         for (int i = 0; i < rows.length; i++) {
             int y = 152 + 3 + 15 * i;
             Art.text(t, "pc_bold", 57, y, rows[i][0], false);

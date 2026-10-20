@@ -107,6 +107,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 
 | Cobblemon feature | Bedrock | Vanilla Java | Notes |
 |---|---|---|---|
+| Cobblemon's 29 languages, per player | ✅ | ✅ | `Lang`: each player's own client language (Geyser reports the Bedrock one), falling back to en_us; server-written text (forms, HUD, chat, names, our chests) from Cobblemon's lang file for that language; every Cobblemon lang file and ours go in the Java pack so the client translates the rest. Our own UI text has keys (`assets/cobblemonlink/lang/en_us.json`), reusing Cobblemon's keys where it has the words. `LangTest`; `l1-bedrock-german-bot.log` (Weide, Alle Zurückrufen, Glumanda), `l1-java-german-pasture.png`. 🟡 our own keys exist in English only, and older screens (battle, PC, Summary, Pokédex art) still have English labels; wild Pokémon names on Bedrock in en_us |
 | Wild spawning everywhere (water, caves, fishing pools, herds, alphas) | ➖ | ➖ | Cobblemon's own spawner |
 | Shiny Pokémon (shiny looks) | ✅ | ✅ | the `__shiny` looks; ⬜ the shiny sparkle particles |
 | Pokémon cries and other Cobblemon sounds | ✅ | ✅ | `Sounds`: cries and the Poké Ball's sounds played by the server by name; server sounds sent by name; Bedrock pack from `tools/bedrock_sounds.py` (2,152 sounds, 20 MB) — `c2-bedrock-sounds-bot.log` |

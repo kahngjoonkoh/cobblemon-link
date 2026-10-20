@@ -129,7 +129,7 @@ final class SummaryArt {
                 for (int k = 0; k < moves.size(); k++) {
                     int my = Art.y(1 + k) - 1;
                     Art.glyph(t, px, my, MOVE, 7);
-                    Art.text(t, "pc_bold", px + 6, my + 6, Lang.resolve(moves.get(k).getDisplayName()).getString(), false);
+                    Art.text(t, "pc_bold", px + 6, my + 6, Lang.resolve(p, moves.get(k).getDisplayName()).getString(), false);
                     if (pick != null && pick == k) Art.glyph(t, px, my, MOVE_SEL, 7);
                 }
                 Art.text(t, "pc_text", px + 6, Art.y(5) + 2, pick == null ? "Click a move, then another," : "Now click where it goes.", false);
@@ -155,7 +155,7 @@ final class SummaryArt {
                     String iv = "IV " + m.getIvs().getOrDefault(STATS[k]);
                     Art.text(t, "pc_text", px + 104 - Art.width("pc_text", iv), ry + 4, iv, false);
                 }
-                String natName = Lang.get(nat.getDisplayName());
+                String natName = Lang.get(p, nat.getDisplayName());
                 Art.text(t, "pc_bold", px + 7, py + 110, "Nature: " + natName, false);
                 Art.text(t, "pc_text", px + 7, py + 118, up == 0 ? "No stat changes" : "Raises " + STAT_NAMES[up] + ", lowers " + STAT_NAMES[down], false);
             }
@@ -164,11 +164,11 @@ final class SummaryArt {
                 var curve = m.getSpecies().getExperienceGroup();
                 long next = m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience();
                 List<String> types = new ArrayList<>();
-                m.getTypes().forEach(ty -> types.add(Lang.resolve(ty.getDisplayName()).getString()));
+                m.getTypes().forEach(ty -> types.add(Lang.resolve(p, ty.getDisplayName()).getString()));
                 String[][] rows = {{"Dex No.", String.format("%04d", m.getSpecies().getNationalPokedexNumber())},
-                        {"Species", Lang.resolve(m.getSpecies().getTranslatedName()).getString()}, {"Type", String.join(" / ", types)},
+                        {"Species", Lang.resolve(p, m.getSpecies().getTranslatedName()).getString()}, {"Type", String.join(" / ", types)},
                         {"OT", m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName()},
-                        {"Nature", Lang.get(m.getNature().getDisplayName())}, {"Ability", Lang.get(m.getAbility().getDisplayName())}};
+                        {"Nature", Lang.get(p, m.getNature().getDisplayName())}, {"Ability", Lang.get(p, m.getAbility().getDisplayName())}};
                 for (int k = 0; k < rows.length; k++) {
                     int ry = py + 5 + 15 * k;
                     Art.text(t, "pc_bold", px + 7, ry + 3, rows[k][0], false);

@@ -12,37 +12,111 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.TranslatableContents;
 
 /**
- * Cobblemon's English text for Bedrock players: Geyser only knows Minecraft's own keys, so "cobblemon.*" keys are
- * written out on the server (Java clients read them from the resource pack). ponytail: English only.
+ * Cobblemon's text (and ours, "cobblemonlink.*") in each player's own language, falling back to en_us: written out
+ * on the server where the client can't (Bedrock: Geyser only knows Minecraft's keys; our screens' item names and
+ * forms). Java clients also get every language file in the pack. The language is the one the client reports
+ * (Geyser reports the Bedrock player's), e.g. "de_de".
  */
 public final class Lang {
-    private static final Map<String, String> EN = new HashMap<>();
+    static final String[] NAMESPACES = {"cobblemon", "cobblemonlink"};
+    private static final Map<String, Map<String, String>> LANGS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<String, String> EN = table("en_us");
     private static final Pattern ARG = Pattern.compile("%(?:(\\d+)\\$)?s|%%");
 
     private Lang() {}
 
     static void load() {
-        for (String ns : new String[]{"cobblemon", "cobblemonlink"})
-            try (var in = Lang.class.getClassLoader().getResourceAsStream("assets/" + ns + "/lang/en_us.json")) {
-                if (in != null) JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject()
-                        .entrySet().forEach(e -> EN.put(e.getKey(), e.getValue().getAsString()));
-            } catch (Exception e) {
-                System.out.println("[cobblemonlink] no " + ns + " lang: " + e);
-            }
         System.out.println("[cobblemonlink] lang: " + EN.size() + " keys");
+        // every language file to vanilla Java clients (PolyMc's pack has none)
+        eu.pb4.polymer.resourcepack.api.PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(b -> {
+            for (String ns : NAMESPACES) for (String code : codes(ns)) {
+                byte[] d = bytes("assets/" + ns + "/lang/" + code + ".json");
+                if (d != null) b.addData("assets/" + ns + "/lang/" + code + ".json", d);
+            }
+        });
+    }
+
+    /** The language files a mod ships (Cobblemon 1.8.2: 29), from its lang folder. */
+    static java.util.List<String> codes(String ns) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        var dir = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer(ns).flatMap(m -> m.findPath("assets/" + ns + "/lang"));
+        if (dir.isEmpty()) return out;
+        try (var files = java.nio.file.Files.list(dir.get())) {
+            files.forEach(f -> { String n = f.getFileName().toString(); if (n.endsWith(".json")) out.add(n.substring(0, n.length() - 5)); });
+        } catch (java.io.IOException e) {
+            out.add("en_us");
+        }
+        return out;
+    }
+
+    private static byte[] bytes(String path) {
+        try (var in = Lang.class.getClassLoader().getResourceAsStream(path)) {
+            return in == null ? null : in.readAllBytes();
+        } catch (java.io.IOException e) {
+            return null;
+        }
+    }
+
+    /** A language's keys (ours and Cobblemon's), read once; empty when nobody ships it. */
+    static Map<String, String> table(String code) {
+        return LANGS.computeIfAbsent(code, c -> {
+            Map<String, String> m = new HashMap<>();
+            for (String ns : NAMESPACES) {
+                byte[] d = bytes("assets/" + ns + "/lang/" + c + ".json");
+                if (d != null) JsonParser.parseString(new String(d, StandardCharsets.UTF_8)).getAsJsonObject()
+                        .entrySet().forEach(e -> m.put(e.getKey(), e.getValue().getAsString()));
+            }
+            return m;
+        });
+    }
+
+    /** The player's language code as the client reports it ("de_de"); en_us when unknown. */
+    static String code(net.minecraft.server.level.ServerPlayer p) { return code(p == null ? null : p.clientInformation().language()); }
+
+    static String code(String reported) {
+        return reported == null || reported.isEmpty() ? "en_us" : reported.toLowerCase(java.util.Locale.ROOT).replace('-', '_');
+    }
+
+    /** key in language code, then en_us, then the key itself. */
+    static String lookup(String code, String key) {
+        String v = table(code).get(key);
+        return v != null ? v : EN.getOrDefault(key, key);
     }
 
     public static boolean has(String key) { return EN.containsKey(key); }
 
     public static String get(String key) { return EN.getOrDefault(key, key); }
 
-    /** c with every known mod key written out (styles kept); c itself when nothing changes. */
+    public static String get(net.minecraft.server.level.ServerPlayer p, String key) { return lookup(code(p), key); }
+
+    /** One of our own or Cobblemon's keys, formatted with args (String.format style) in the player's language. */
+    public static String t(net.minecraft.server.level.ServerPlayer p, String key, Object... args) {
+        String f = get(p, key);
+        try { return args.length == 0 ? f : String.format(f, args); } catch (java.util.IllegalFormatException e) { return f; }
+    }
+
+    private static final ThreadLocal<String> CODE = ThreadLocal.withInitial(() -> "en_us");
+
+    /** c for player p: every known mod key written out in p's language. */
+    public static Component resolve(net.minecraft.server.level.ServerPlayer p, Component c) {
+        String was = CODE.get();
+        CODE.set(code(p));
+        try { return resolve(c); } finally { CODE.set(was); }
+    }
+
+    public static net.minecraft.world.item.ItemStack item(net.minecraft.server.level.ServerPlayer p, net.minecraft.world.item.ItemStack it) {
+        String was = CODE.get();
+        CODE.set(code(p));
+        try { return item(it); } finally { CODE.set(was); }
+    }
+
+    /** c with every known mod key written out (styles kept), in the language being resolved for (en_us by default). */
     public static Component resolve(Component c) {
         if (c == null || !needs(c)) return c;
         MutableComponent out;
         if (c.getContents() instanceof TranslatableContents t && EN.containsKey(t.getKey())) {
             out = Component.empty();
-            String f = EN.get(t.getKey());
+            String f = lookup(CODE.get(), t.getKey());
             Matcher m = ARG.matcher(f);
             int at = 0, next = 0;
             while (m.find()) {

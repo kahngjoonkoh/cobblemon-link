@@ -134,7 +134,7 @@ final class DexArt {
             Art.glyph(t, 38, 40, UNKNOWN_BIG, 7);
         }
         Art.text(t, "pc_bold", 84, 29, String.format("%04d", s.getNationalPokedexNumber()), false);
-        Art.text(t, "pc_bold", 104, 29, Art.fit("pc_bold", seen ? Lang.resolve(s.getTranslatedName()).getString() : "-----", 66), false);
+        Art.text(t, "pc_bold", 104, 29, Art.fit("pc_bold", seen ? Lang.resolve(p, s.getTranslatedName()).getString() : "-----", 66), false);
         List<String> lines = page(p, v, s, seen, caught);
         int per = LINES, from = lines.size() <= per ? 0 : Math.floorMod(v.scroll, (lines.size() + per - 1) / per) * per;
         for (int k = from; k < Math.min(lines.size(), from + per); k++) {
@@ -160,7 +160,7 @@ final class DexArt {
             case 1 -> {
                 List<String> out = new ArrayList<>();
                 for (var a : s.getAbilities()) {
-                    String n = Lang.get(a.getTemplate().getDisplayName());
+                    String n = Lang.get(p, a.getTemplate().getDisplayName());
                     if (!out.contains(n)) out.add(n);
                 }
                 yield out;
@@ -174,7 +174,7 @@ final class DexArt {
             case 3 -> {
                 List<String> out = new ArrayList<>();
                 new java.util.TreeMap<>(s.getMoves().getLevelUpMoves()).forEach((lv, ms) -> ms.forEach(mv ->
-                        out.add("Lv" + lv + "  " + Lang.resolve(mv.getDisplayName()).getString())));
+                        out.add("Lv" + lv + "  " + Lang.resolve(p, mv.getDisplayName()).getString())));
                 yield out;
             }
             default -> evolutions(p, s);
@@ -191,7 +191,7 @@ final class DexArt {
     }
 
     private static void family(ServerPlayer p, Species s, String how, List<String> out) {
-        String name = seen(p, s) ? Lang.resolve(s.getTranslatedName()).getString() : "???";
+        String name = seen(p, s) ? Lang.resolve(p, s.getTranslatedName()).getString() : "???";
         out.add(how.isEmpty() ? name : how + " > " + name);
         if (out.size() > 12) return;
         for (var e : s.getEvolutions()) {

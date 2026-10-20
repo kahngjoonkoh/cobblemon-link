@@ -20,10 +20,10 @@ final class Wheel {
 
     static void open(ServerPlayer p, PokemonEntity pe) {
         record Choice(String name, String image, net.minecraft.world.item.Item item, InteractTypePokemon type) {}
-        List<Choice> choices = List.of(new Choice("Shoulder", "none", Items.FEATHER, InteractTypePokemon.SHOULDER),
-                new Choice("Ride", "none", Items.SADDLE, InteractTypePokemon.RIDE),
-                new Choice(p.getMainHandItem().isEmpty() ? "Take held item" : "Give held item", "none", Items.CHEST, InteractTypePokemon.HELD_ITEM),
-                new Choice(p.getMainHandItem().isEmpty() ? "Take cosmetic item" : "Give cosmetic item", "none", Items.LEATHER_HELMET, InteractTypePokemon.COSMETIC_ITEM));
+        List<Choice> choices = List.of(new Choice(Lang.t(p, "cobblemon.ui.interact.mount.shoulder"), "none", Items.FEATHER, InteractTypePokemon.SHOULDER),
+                new Choice(Lang.t(p, "cobblemon.ui.interact.ride"), "none", Items.SADDLE, InteractTypePokemon.RIDE),
+                new Choice(Lang.t(p, p.getMainHandItem().isEmpty() ? "cobblemonlink.wheel.take_item" : "cobblemon.ui.interact.give.item"), "none", Items.CHEST, InteractTypePokemon.HELD_ITEM),
+                new Choice(Lang.t(p, p.getMainHandItem().isEmpty() ? "cobblemonlink.wheel.take_cosmetic" : "cobblemon.ui.interact.give.cosmetic_item"), "none", Items.LEATHER_HELMET, InteractTypePokemon.COSMETIC_ITEM));
         Runnable[] act = new Runnable[choices.size()];
         for (int i = 0; i < act.length; i++) {
             var type = choices.get(i).type();

@@ -43,9 +43,9 @@ public final class JavaScreens {
         List<String> lore = new ArrayList<>();
         lore.add("HP " + m.getCurrentHealth() + "/" + m.getMaxHealth() + (m.isFainted() ? "  (fainted)" : ""));
         List<String> types = new ArrayList<>();
-        m.getTypes().forEach(t -> types.add(Lang.resolve(t.getDisplayName()).getString()));
-        lore.add(String.join(" / ", types) + "   " + Lang.get(m.getNature().getDisplayName()) + "   " + Lang.get(m.getAbility().getDisplayName()));
-        lore.add("Moves: " + String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(mv.getDisplayName()).getString()).toList()));
+        m.getTypes().forEach(t -> types.add(Lang.resolve(m.getOwnerPlayer(), t.getDisplayName()).getString()));
+        lore.add(String.join(" / ", types) + "   " + Lang.get(m.getOwnerPlayer(), m.getNature().getDisplayName()) + "   " + Lang.get(m.getOwnerPlayer(), m.getAbility().getDisplayName()));
+        lore.add("Moves: " + String.join(", ", m.getMoveSet().getMoves().stream().map(mv -> Lang.resolve(m.getOwnerPlayer(), mv.getDisplayName()).getString()).toList()));
         var curve = m.getSpecies().getExperienceGroup();
         lore.add("EXP to next level: " + (m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience()));
         if (m.getShiny()) lore.add("★ Shiny");
@@ -103,10 +103,10 @@ public final class JavaScreens {
                 if (sp == null) continue;
                 int idx = j;
                 List<String> types = new ArrayList<>();
-                sp.getTypes().forEach(t -> types.add(Lang.resolve(t.getDisplayName()).getString()));
+                sp.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
                 List<String> lore = new ArrayList<>(List.of(String.join(" / ", types)));
                 lore.addAll(wrap(Starters.desc(region.species().get(j)), 40));
-                c.set(r * 9 + 2 + j, Chest.icon(typeIcon(type(sp.getPrimaryType())), Lang.resolve(sp.getTranslatedName()).getString(), lore), () -> {
+                c.set(r * 9 + 2 + j, Chest.icon(typeIcon(type(sp.getPrimaryType())), Lang.resolve(p, sp.getTranslatedName()).getString(), lore), () -> {
                     p.closeContainer();
                     Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, region.category(), idx);
                 });
@@ -236,11 +236,11 @@ public final class JavaScreens {
                 continue;
             }
             List<String> types = new ArrayList<>();
-            s.getTypes().forEach(t -> types.add(Lang.resolve(t.getDisplayName()).getString()));
+            s.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
             List<String> lore = new ArrayList<>(List.of(String.join(" / ", types)));
             if (k == PokedexEntryProgress.OWNED) lore.addAll(wrap(Starters.desc(s.getResourceIdentifier().getPath()), 40));
             else lore.add("Seen");
-            c.set(i, Chest.icon(typeIcon(type(s.getPrimaryType())), no + Lang.resolve(s.getTranslatedName()).getString(), lore), null);
+            c.set(i, Chest.icon(typeIcon(type(s.getPrimaryType())), no + Lang.resolve(p, s.getTranslatedName()).getString(), lore), null);
         }
         if (pg > 0) c.set(45, Chest.icon(Items.ARROW, "Previous page", List.of()), () -> dex(p, pg - 1));
         if (pg < pages - 1) c.set(53, Chest.icon(Items.ARROW, "Next page", List.of()), () -> dex(p, pg + 1));

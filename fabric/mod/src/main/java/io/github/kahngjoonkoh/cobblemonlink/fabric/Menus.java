@@ -76,7 +76,7 @@ public final class Menus {
             PENDING.remove(p.getUUID());
             MenuType<?> type = switch (r.rows) { case 1 -> MenuType.GENERIC_9x1; case 2 -> MenuType.GENERIC_9x2; case 3 -> MenuType.GENERIC_9x3;
                 case 4 -> MenuType.GENERIC_9x4; case 5 -> MenuType.GENERIC_9x5; default -> MenuType.GENERIC_9x6; };
-            p.connection.send(new ClientboundOpenScreenPacket(m.containerId, type, Lang.resolve(title)));
+            p.connection.send(new ClientboundOpenScreenPacket(m.containerId, type, Lang.resolve(p, title)));
             m.sendAllDataToRemote();
         });
         return new ClientboundBundlePacket(List.of());
@@ -101,7 +101,7 @@ public final class Menus {
             for (int i = 0; i < 9; i++) top[i / 3 * 9 + 1 + i % 3] = own.get(1 + i);
             for (int i = 0; i < 3 && 10 + i < own.size(); i++) top[i * 9 + 5] = own.get(10 + i);
             top[9 + 7] = own.get(0);
-            buttons.put(2 * 9 + 7, new Button(Chest.icon(Items.CAMPFIRE, "Lid: open / close (cooks when closed)", List.of()), () -> {
+            buttons.put(2 * 9 + 7, new Button(Chest.icon(Items.CAMPFIRE, Lang.t(p, "cobblemonlink.cooking.lid"), List.of()), () -> {
                 boolean open = pot.getContainerData().get(com.cobblemon.mod.common.block.entity.CampfireBlockEntity.IS_LID_OPEN_INDEX) == 1;
                 com.cobblemon.mod.common.client.net.cooking.ToggleCookingPotLidHandler.INSTANCE.handle(
                         new com.cobblemon.mod.common.net.messages.client.cooking.ToggleCookingPotLidPacket(!open), p.server, p);

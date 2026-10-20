@@ -52,11 +52,11 @@ final class Social {
         record Choice(String name, net.minecraft.world.item.Item icon, Runnable run) {}
         List<Choice> cs = new ArrayList<>();
         if (lead != null) {
-            cs.add(new Choice("Battle (singles)", Items.IRON_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_SINGLES())));
-            cs.add(new Choice("Battle (doubles)", Items.GOLDEN_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_DOUBLES())));
-            cs.add(new Choice("Battle (triples)", Items.DIAMOND_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_TRIPLES())));
+            cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.singles") + ")", Items.IRON_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_SINGLES())));
+            cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.doubles") + ")", Items.GOLDEN_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_DOUBLES())));
+            cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.triples") + ")", Items.DIAMOND_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_TRIPLES())));
         }
-        cs.add(new Choice("Trade", Items.EMERALD, () -> OfferTradeHandler.INSTANCE.handle(new OfferTradePacket(target.getUUID()), p.server, p)));
+        cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.trade"), Items.EMERALD, () -> OfferTradeHandler.INSTANCE.handle(new OfferTradePacket(target.getUUID()), p.server, p)));
         String title = target.getScoreboardName();
         if (Clients.bedrock(p)) {
             List<Forms.Opt> opts = cs.stream().map(c -> new Forms.Opt(c.name, "none", c.run)).toList();
@@ -88,14 +88,14 @@ final class Social {
             ServerPlayer from = p.server.getPlayerList().getPlayer(n.getSenderID());
             if (from == null) return;
             String type = n.getBattleFormat().getBattleType().getName();
-            ask(p, from.getScoreboardName() + " challenges you to a " + type + " battle", () -> {
+            ask(p, Lang.t(p, "cobblemonlink.challenge.received", from.getScoreboardName(), type), () -> {
                 Pokemon lead = lead(p);
                 if (lead != null) ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(from.getId(), n.getChallengeID(), lead.getUuid(), true), p.server, p);
             }, () -> ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(from.getId(), n.getChallengeID(), p.getUUID(), false), p.server, p));
         });
         else if (payload instanceof TradeOfferNotificationPacket n) p.server.execute(() -> {
             ServerPlayer from = p.server.getPlayerList().getPlayer(n.getSenderID());
-            ask(p, (from == null ? "Someone" : from.getScoreboardName()) + " wants to trade",
+            ask(p, Lang.t(p, "cobblemonlink.trade.received", from == null ? "?" : from.getScoreboardName()),
                     () -> AcceptTradeRequestHandler.INSTANCE.handle(new AcceptTradeRequestPacket(n.getRequestID()), p.server, p), () -> {});
         });
         else if (payload instanceof TradeStartedPacket || payload instanceof TradeUpdatedPacket || payload instanceof TradeAcceptanceChangedPacket)
@@ -114,13 +114,13 @@ final class Social {
 
     private static void ask(ServerPlayer p, String question, Runnable yes, Runnable no) {
         if (Clients.bedrock(p)) {
-            Forms.send(p, question, "", List.of(new Forms.Opt("Accept", "none", yes), new Forms.Opt("Decline", "none", no)),
+            Forms.send(p, question, "", List.of(new Forms.Opt(Lang.t(p, "cobblemon.ui.interact.accept"), "none", yes), new Forms.Opt(Lang.t(p, "cobblemon.ui.interact.decline"), "none", no)),
                     i -> (i == 0 ? yes : no).run());
             return;
         }
         Chest c = new Chest(1, question);
-        c.set(2, Chest.icon(Items.LIME_WOOL, "Accept", List.of()), () -> { p.closeContainer(); yes.run(); });
-        c.set(6, Chest.icon(Items.RED_WOOL, "Decline", List.of()), () -> { p.closeContainer(); no.run(); });
+        c.set(2, Chest.icon(Items.LIME_WOOL, Lang.t(p, "cobblemon.ui.interact.accept"), List.of()), () -> { p.closeContainer(); yes.run(); });
+        c.set(6, Chest.icon(Items.RED_WOOL, Lang.t(p, "cobblemon.ui.interact.decline"), List.of()), () -> { p.closeContainer(); no.run(); });
         c.open(p);
     }
 
@@ -132,32 +132,33 @@ final class Social {
         var them = t.getOppositePlayer(me);
         var mine = t.getOffer(me);
         var theirs = t.getOpposingOffer(me);
-        String name = Lang.resolve(them.getName()).getString();
-        String status = "You offer: " + describe(mine.getPokemon()) + (mine.getAccepted() ? "  (accepted)" : "")
-                + "\n" + name + " offers: " + describe(theirs.getPokemon()) + (theirs.getAccepted() ? "  (accepted)" : "");
+        String name = Lang.resolve(p, them.getName()).getString();
+        String acc = "  (" + Lang.t(p, "cobblemonlink.trade.accepted") + ")";
+        String status = Lang.t(p, "cobblemonlink.trade.you_offer", describe(p, mine.getPokemon())) + (mine.getAccepted() ? acc : "")
+                + "\n" + Lang.t(p, "cobblemonlink.trade.they_offer", name, describe(p, theirs.getPokemon())) + (theirs.getAccepted() ? acc : "");
         List<Forms.Opt> opts = new ArrayList<>();
-        opts.add(new Forms.Opt("Offer a Pokémon", "none", () -> offer(p)));
+        opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.trade.offer"), "none", () -> offer(p)));
         if (mine.getPokemon() != null && theirs.getPokemon() != null)
-            opts.add(new Forms.Opt(mine.getAccepted() ? "Take back acceptance" : "Accept the trade", "none", () ->
+            opts.add(new Forms.Opt(Lang.t(p, mine.getAccepted() ? "cobblemonlink.trade.unaccept" : "cobblemonlink.trade.accept"), "none", () ->
                     ChangeTradeAcceptanceHandler.INSTANCE.handle(new ChangeTradeAcceptancePacket(theirs.getPokemon().getUuid(), !mine.getAccepted()), p.server, p)));
-        opts.add(new Forms.Opt("Cancel the trade", "none", () -> CancelTradeHandler.INSTANCE.handle(new CancelTradePacket(), p.server, p)));
+        opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.trade.cancel"), "none", () -> CancelTradeHandler.INSTANCE.handle(new CancelTradePacket(), p.server, p)));
         if (Clients.bedrock(p)) {
-            Forms.send(p, "Trade with " + name, status, opts, i -> { if (i >= 0) opts.get(i).action().run(); });
+            Forms.send(p, Lang.t(p, "cobblemonlink.trade.title", name), status, opts, i -> { if (i >= 0) opts.get(i).action().run(); });
             return;
         }
-        Chest c = new Chest(3, "Trade with " + name);
-        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, "Your offer: none", List.of()) : JavaScreens.mon(mine.getPokemon(), mine.getAccepted() ? "Accepted" : ""), null);
-        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, name + "'s offer: none", List.of()) : JavaScreens.mon(theirs.getPokemon(), theirs.getAccepted() ? "Accepted" : ""), null);
+        Chest c = new Chest(3, Lang.t(p, "cobblemonlink.trade.title", name));
+        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.you_offer", "-"), List.of()) : JavaScreens.mon(mine.getPokemon(), mine.getAccepted() ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
+        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.they_offer", name, "-"), List.of()) : JavaScreens.mon(theirs.getPokemon(), theirs.getAccepted() ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
         net.minecraft.world.item.Item[] icons = {Items.CHEST, Items.LIME_WOOL, Items.BARRIER};
         for (int i = 0; i < opts.size(); i++) {
             Forms.Opt o = opts.get(i);
-            net.minecraft.world.item.Item icon = o.text().startsWith("Offer") ? icons[0] : o.text().startsWith("Cancel") ? icons[2] : icons[1];
+            net.minecraft.world.item.Item icon = i == 0 ? icons[0] : i == opts.size() - 1 ? icons[2] : icons[1];
             c.set(12 + i, Chest.icon(icon, o.text(), List.of()), o.action());
         }
         c.open(p);
     }
 
-    private static String describe(Pokemon m) { return m == null ? "nothing yet" : BattleUi.name(m) + " Lv. " + m.getLevel(); }
+    private static String describe(ServerPlayer p, Pokemon m) { return m == null ? "-" : BattleUi.name(m) + " " + Lang.t(p, "cobblemon.ui.lv") + " " + m.getLevel(); }
 
     /** Pick one of your party to offer (Cobblemon checks it may be traded). */
     private static void offer(ServerPlayer p) {
@@ -169,15 +170,15 @@ final class Social {
             if (m == null) continue;
             int s = slot;
             mons.add(m);
-            opts.add(new Forms.Opt(describe(m), Models.has(Summary.look(m)) ? "body/" + Summary.look(m) : "none",
+            opts.add(new Forms.Opt(describe(p, m), Models.has(Summary.look(m)) ? "body/" + Summary.look(m) : "none",
                     () -> UpdateTradeOfferHandler.INSTANCE.handle(new UpdateTradeOfferPacket(new kotlin.Pair<>(m.getUuid(), new PartyPosition(s))), p.server, p)));
         }
         if (Clients.bedrock(p)) {
-            Forms.send(p, "Offer a Pokémon", "", opts, i -> { if (i >= 0) opts.get(i).action().run(); else trade(p); });
+            Forms.send(p, Lang.t(p, "cobblemonlink.trade.offer"), "", opts, i -> { if (i >= 0) opts.get(i).action().run(); else trade(p); });
             return;
         }
-        Chest c = new Chest(1, "Offer a Pokémon");
-        for (int i = 0; i < opts.size(); i++) c.set(i, JavaScreens.mon(mons.get(i), "Click: offer"), opts.get(i).action());
+        Chest c = new Chest(1, Lang.t(p, "cobblemonlink.trade.offer"));
+        for (int i = 0; i < opts.size(); i++) c.set(i, JavaScreens.mon(mons.get(i), Lang.t(p, "cobblemonlink.trade.click_offer")), opts.get(i).action());
         c.open(p);
     }
 }

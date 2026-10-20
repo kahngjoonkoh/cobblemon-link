@@ -290,11 +290,11 @@ public final class Pc {
         o.add(new Forms.Opt("", "pc/wall/" + wallpaperOf(box), stay));
         String look = sel == null ? null : Summary.look(sel);
         o.add(new Forms.Opt(sel == null ? "" : "Lv. " + sel.getLevel(), look != null && Models.has(look) ? "body/" + look : "none", stay));
-        o.add(new Forms.Opt(sel == null ? "" : Lang.get(sel.getNature().getDisplayName()), "none", stay));
-        o.add(new Forms.Opt(sel == null ? "" : Lang.get(sel.getAbility().getDisplayName()), "none", stay));
+        o.add(new Forms.Opt(sel == null ? "" : Lang.get(p, sel.getNature().getDisplayName()), "none", stay));
+        o.add(new Forms.Opt(sel == null ? "" : Lang.get(p, sel.getAbility().getDisplayName()), "none", stay));
         for (int k = 0; k < 4; k++) {
             var moves = sel == null ? List.<com.cobblemon.mod.common.api.moves.Move>of() : sel.getMoveSet().getMoves();
-            o.add(new Forms.Opt(k >= moves.size() ? "" : Lang.resolve(moves.get(k).getDisplayName()).getString(), "none", stay));
+            o.add(new Forms.Opt(k >= moves.size() ? "" : Lang.resolve(p, moves.get(k).getDisplayName()).getString(), "none", stay));
         }
         o.add(new Forms.Opt(sel == null ? "" : sel.getGender() == Gender.MALE ? "♂" : sel.getGender() == Gender.FEMALE ? "♀" : "", "none", stay));
         List<ElementalType> types = new ArrayList<>();

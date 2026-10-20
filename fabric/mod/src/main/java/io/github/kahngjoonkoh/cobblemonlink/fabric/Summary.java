@@ -161,13 +161,13 @@ public final class Summary {
                 Integer picked = PICKED.get(p.getUUID());
                 for (int k = 0; k < 4; k++) {
                     Move mv = k < moves.size() ? moves.get(k) : null;
-                    rows.add(mv == null ? new String[]{"", "", "none"} : new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(mv.getDisplayName()).getString(),
+                    rows.add(mv == null ? new String[]{"", "", "none"} : new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(p, mv.getDisplayName()).getString(),
                             mv.getCurrentPp() + "/" + mv.getMaxPp(), "pc/type/" + mv.getType().getName().toLowerCase(Locale.ROOT)});
                 }
                 int k = 4;
                 for (var b : m.getBenchedMoves()) {
                     if (k >= 8) break;
-                    rows.add(new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(b.getMoveTemplate().getDisplayName()).getString(),
+                    rows.add(new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(p, b.getMoveTemplate().getDisplayName()).getString(),
                             "(benched)", "pc/type/" + b.getMoveTemplate().getElementalType().getName().toLowerCase(Locale.ROOT)});
                     k++;
                 }
@@ -185,13 +185,13 @@ public final class Summary {
                 var curve = m.getSpecies().getExperienceGroup();
                 long next = m.getLevel() >= 100 ? 0 : curve.getExperience(m.getLevel() + 1) - m.getExperience();
                 List<String> types = new ArrayList<>();
-                m.getTypes().forEach(t -> types.add(Lang.resolve(t.getDisplayName()).getString()));
+                m.getTypes().forEach(t -> types.add(Lang.resolve(p, t.getDisplayName()).getString()));
                 rows.add(new String[]{"Pokédex No.", String.format("%04d", m.getSpecies().getNationalPokedexNumber()), "none"});
-                rows.add(new String[]{"Species", Lang.resolve(m.getSpecies().getTranslatedName()).getString(), "none"});
+                rows.add(new String[]{"Species", Lang.resolve(p, m.getSpecies().getTranslatedName()).getString(), "none"});
                 rows.add(new String[]{"Type", String.join(" / ", types), "none"});
                 rows.add(new String[]{"OT", m.getOriginalTrainerName() == null ? p.getScoreboardName() : m.getOriginalTrainerName(), "none"});
-                rows.add(new String[]{"Nature", Lang.get(m.getNature().getDisplayName()), "none"});
-                rows.add(new String[]{"Ability", Lang.get(m.getAbility().getDisplayName()), "none"});
+                rows.add(new String[]{"Nature", Lang.get(p, m.getNature().getDisplayName()), "none"});
+                rows.add(new String[]{"Ability", Lang.get(p, m.getAbility().getDisplayName()), "none"});
                 rows.add(new String[]{"EXP. Points", String.valueOf(m.getExperience()), "none"});
                 rows.add(new String[]{"To Next Lv.", String.valueOf(next), "none"});
             }

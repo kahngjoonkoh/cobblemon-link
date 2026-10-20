@@ -82,7 +82,7 @@ public final class Dex {
                     kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> bedrock(p, pg, sp)));
         }
         String entry = caught ? Starters.desc(sel.getResourceIdentifier().getPath()) : seen ? "Catch it to read its Pokédex entry." : "";
-        String name = seen ? Lang.resolve(sel.getTranslatedName()).getString() : "???";
+        String name = seen ? Lang.resolve(p, sel.getTranslatedName()).getString() : "???";
         Forms.send(p, name + Forms.MARK + 8, entry, o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
     }
 

@@ -47,7 +47,7 @@ public final class Starters {
         List<Region> out = new ArrayList<>();
         for (StarterCategory c : Cobblemon.INSTANCE.getStarterHandler().getStarterList(p)) {
             List<String> sp = c.getPokemon().stream().map(x -> x.getSpecies() == null ? "" : x.getSpecies().replace("cobblemon:", "")).toList();
-            out.add(new Region(c.getName(), Lang.get(c.getDisplayName()), sp));
+            out.add(new Region(c.getName(), Lang.get(p, c.getDisplayName()), sp));
         }
         return out;
     }
@@ -94,7 +94,7 @@ public final class Starters {
                         () -> bedrock(p, regions, page, ri, sj)));
             }
         }
-        String name = species == null ? selected : Lang.resolve(species.getTranslatedName()).getString();
+        String name = species == null ? selected : Lang.resolve(p, species.getTranslatedName()).getString();
         Forms.send(p, name + Forms.MARK + 4, desc(selected), opts, i -> { if (i >= 0 && i < opts.size()) opts.get(i).action().run(); });
     }
 }

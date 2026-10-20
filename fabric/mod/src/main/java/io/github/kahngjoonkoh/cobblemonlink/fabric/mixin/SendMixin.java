@@ -49,7 +49,7 @@ public class SendMixin {
         if (menu instanceof ClientboundBundlePacket) return menu;
         if (menu != null) packet = menu;
         if (Clients.bedrock(h.player)) { // Cobblemon's text in English: Geyser only knows Minecraft's keys
-            var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
+            var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet, h.player);
             if (t == null) return new ClientboundBundlePacket(List.of());
             if (t != packet) return t;
         }

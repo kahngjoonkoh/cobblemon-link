@@ -51,7 +51,7 @@ final class Callbacks {
     }
 
     static void party(ServerPlayer p, UUID id, Component title, List<PartySelectPokemonDTO> mons, IntConsumer chosen, Runnable cancelled) {
-        String t = Lang.resolve(title).getString();
+        String t = Lang.resolve(p, title).getString();
         if (Clients.bedrock(p)) {
             List<Forms.Opt> opts = new ArrayList<>();
             for (int i = 0; i < mons.size(); i++) {
@@ -76,14 +76,14 @@ final class Callbacks {
     }
 
     static void moves(ServerPlayer p, Component title, List<MoveSelectDTO> moves, IntConsumer chosen, Runnable cancelled) {
-        String t = Lang.resolve(title).getString();
+        String t = Lang.resolve(p, title).getString();
         if (Clients.bedrock(p)) {
             List<Forms.Opt> opts = new ArrayList<>();
             for (int i = 0; i < moves.size(); i++) {
                 var m = moves.get(i);
                 int ii = i;
                 String type = m.getMoveTemplate().getElementalType().getName().toLowerCase(java.util.Locale.ROOT);
-                opts.add(new Forms.Opt(Lang.resolve(m.getMoveTemplate().getDisplayName()).getString() + "\n" + m.getPp() + "/" + m.getPpMax(),
+                opts.add(new Forms.Opt(Lang.resolve(p, m.getMoveTemplate().getDisplayName()).getString() + "\n" + m.getPp() + "/" + m.getPpMax(),
                         "move_" + (BattleUi.TYPES.contains(type) ? type : "normal"), () -> chosen.accept(ii)));
             }
             Forms.send(p, t, "", opts, i -> { if (i >= 0 && i < opts.size() && moves.get(i).getEnabled()) opts.get(i).action().run(); else cancelled.run(); });
@@ -94,7 +94,7 @@ final class Callbacks {
             var m = moves.get(i);
             int ii = i;
             String type = m.getMoveTemplate().getElementalType().getName().toLowerCase(java.util.Locale.ROOT);
-            c.set(i, Chest.icon(m.getEnabled() ? JavaScreens.typeIcon(type) : Items.BARRIER, Lang.resolve(m.getMoveTemplate().getDisplayName()).getString(),
+            c.set(i, Chest.icon(m.getEnabled() ? JavaScreens.typeIcon(type) : Items.BARRIER, Lang.resolve(p, m.getMoveTemplate().getDisplayName()).getString(),
                     List.of("PP " + m.getPp() + "/" + m.getPpMax())), m.getEnabled() ? () -> { p.closeContainer(); chosen.accept(ii); } : null);
         }
         c.open(p);
@@ -105,6 +105,6 @@ final class Callbacks {
         String n = props.getNickname() != null ? props.getNickname().getString() : null;
         if (n != null && !n.isBlank()) return n;
         var sp = props.getSpecies() == null ? null : com.cobblemon.mod.common.api.pokemon.PokemonSpecies.getByName(props.getSpecies().replace("cobblemon:", ""));
-        return sp == null ? String.valueOf(props.getSpecies()) : Lang.resolve(sp.getTranslatedName()).getString() + (props.getLevel() != null ? "  Lv." + props.getLevel() : "");
+        return sp == null ? String.valueOf(props.getSpecies()) : Lang.resolve((net.minecraft.server.level.ServerPlayer) null, sp.getTranslatedName()).getString() + (props.getLevel() != null ? "  Lv." + props.getLevel() : "");
     }
 }
