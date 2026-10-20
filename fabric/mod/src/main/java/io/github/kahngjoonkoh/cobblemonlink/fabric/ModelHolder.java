@@ -21,7 +21,6 @@ import org.joml.Vector3f;
  * ponytail: posed every 2 ticks, the client interpolates between; no head look, no blink.
  */
 public class ModelHolder extends ElementHolder {
-    private static final int EVERY = 2;
     private final Entity entity;
     private final Models.Model model;
     private final ItemDisplayElement[] displays;
@@ -45,7 +44,7 @@ public class ModelHolder extends ElementHolder {
             if (item == null) continue;
             var d = new ItemDisplayElement(item.copy());
             d.setModelTransformation(ItemDisplayContext.HEAD);
-            d.setInterpolationDuration(EVERY + 1);
+            d.setInterpolationDuration(Math.max(1, Config.vanillaJava().poseEvery()) + 1);
             d.setTeleportDuration(3);
             d.setViewRange(5);
             displays[i] = addElement(d);
@@ -65,7 +64,7 @@ public class ModelHolder extends ElementHolder {
 
     /** A one-shot animation, if the model has it (true); it replaces the loop on the bones it moves. */
     public boolean play(String name) {
-        if (!model.anims().containsKey(name)) return false;
+        if (!model.anims().containsKey(name) || !Config.vanillaJava().moveAnimations()) return false;
         shot = name;
         shotStart = age;
         return true;
@@ -91,7 +90,9 @@ public class ModelHolder extends ElementHolder {
         lastZ = entity.getZ();
         setLoop(entity instanceof LivingEntity l && l.isDeadOrDying() ? "faint" : moving ? "walk"
                 : battling.getAsBoolean() ? "battle_idle" : "idle");
-        if (age % EVERY == 0 && !getWatchingPlayers().isEmpty()) pose((age - loopStart) / 20f);
+        int every = Config.vanillaJava().poseEvery(); // 0: a still model, posed once (and turned every second)
+        if (every > 0 && age % every == 0 && !getWatchingPlayers().isEmpty()) pose((age - loopStart) / 20f);
+        else if (every == 0 && age % 20 == 0) turn();
         else if (shot != null && (age - shotStart) / 20f > model.anims().get(shot).length() && model.anims().get(shot).loop() == 0) shot = null;
         int[] bits = bedrockAnims();
         if (!java.util.Arrays.equals(bits, lastBits)) {
@@ -156,6 +157,11 @@ public class ModelHolder extends ElementHolder {
             d.setYaw(yaw);
             d.startInterpolationIfDirty();
         }
+    }
+
+    private void turn() {
+        float yaw = entity instanceof LivingEntity l ? l.yBodyRot : entity.getYRot();
+        for (ItemDisplayElement d : displays) if (d != null) d.setYaw(yaw);
     }
 
     private static float time(Models.Anim a, float seconds) {

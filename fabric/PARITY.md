@@ -4,91 +4,95 @@ Every user-facing feature of `plugin/` (the Paper product, including the uncommi
 2026-10-20: party HUD, Bedrock form fixes, 3D Poké Balls, battle animations), and where the Fabric product stands.
 
 On Fabric the game itself is **real Cobblemon 1.8.2**: spawning, battles (Showdown inside Cobblemon), catching,
-EXP, evolution, storage and the Pokédex are Cobblemon's own. So the Fabric work is the bridge that shows all of it to
-players without the mod: vanilla Java (1.21.1, resource pack only) and Bedrock (Geyser + Floodgate). Players with
-the Cobblemon mod see Cobblemon itself.
+EXP, evolution, storage and the Pokédex are Cobblemon's own. The Fabric work is the bridge that shows all of it to
+players without the mod. Players with the Cobblemon mod see Cobblemon itself.
+
+**Priorities (2026-10-20):** Bedrock comes first and should be as close to real Cobblemon as possible. Vanilla Java
+is a taster: how much it gets is the server's choice, `vanillaJava` in `config/cobblemonlink/config.json`.
 
 ✅ done (evidence in `evidence/`) · 🟡 partly · ⬜ not yet · ➖ not needed on Fabric (Cobblemon does it, or Paper-only)
 
-## Joining and packs
+## Vanilla Java levels
+
+The server draws everything a vanilla Java client sees, so each level costs CPU and bandwidth. Bedrock players
+always get everything (their client animates the models itself); Cobblemon-mod players cost nothing extra.
+
+| Level | What vanilla Java players get | Cost per Java player |
+|---|---|---|
+| `off` | A disconnect message: install Cobblemon or join on Bedrock | none |
+| `basic` | Join and play. Pokémon are still models (turned once a second), screens are plain chest menus, battles a chest menu | spawn packets only (~31 displays a Pokémon, once); no per-tick work |
+| `standard` | Animated models (idle, walk, battle idle, faint, 5 poses a second); the screens with Cobblemon's art (starter, Summary, PC, Pokédex) | ~31 display updates × 5/s per visible Pokémon (~10 KB/s each); bone maths per Pokémon on the server thread |
+| `full` (default) | Everything, as the Paper version: 10 poses a second, Cobblemon's move animations (cry, physical, special, recoil), the battle screen (held camera, cursor, tiles, redrawn hotbar) and the party HUD | ~31 × 10/s per visible Pokémon (~20 KB/s each), plus a HUD/battle overlay every tick |
+
+Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/levels-off-disconnect.png`.
+
+## 1. Bedrock (first)
 
 | Feature (Paper) | Fabric | Status |
 |---|---|---|
-| Vanilla Java joins with no mods | PolyMc + `SendMixin` filters Cobblemon's registries, entities and entity data | ✅ PoC |
-| Bedrock joins (Geyser + Floodgate) | Geyser standalone → ViaProxy → Fabric, Floodgate-Fabric on the server | ⬜ |
-| Bedrock players told apart (Paper: Floodgate UUID) | Floodgate API | ⬜ |
-| Java resource packs sent on join, required | Polymer auto-host; only to vanilla Java (none for Cobblemon-mod or Bedrock players) | ⬜ |
-| Bedrock packs (models, UI) pushed by Geyser | Same packs in Geyser standalone's `packs/` | 🟡 PoC (models) |
-| Pack manifest versions ≤ 65535 (Bedrock refuses larger) | Reuses `tools/build_bedrock_ui.py` (fixed in the main checkout, uncommitted) | ⬜ |
-| Cobblemon-mod players play normal Cobblemon | PolyMc's no-op map + no bridge filtering for them | ✅ PoC |
-
-## Pokémon in the world
-
-| Feature (Paper) | Fabric | Status |
-|---|---|---|
-| All 2,391 looks (forms, shinies, genders, features) as models, Java | BIL `.bbmodel` per look, from `tools/geo2bb.py` + rotation split | ⬜ |
-| Same on Bedrock (GeyserModelEngine) | GeyserUtils `CustomEntityPacket` on a pig carrier | 🟡 PoC (3 species) |
-| Species scale (Cobblemon baseScale) | BIL holder scale; Bedrock `CustomEntityDataPacket.scale` | ⬜ |
-| Facing (yaw) | Bones follow the entity's body yaw | ⬜ |
-| idle / walk animations | From Cobblemon's pose (moving or not) | ⬜ |
-| Battle animations: battle_idle, cry, physical, special, recoil, faint | From Cobblemon's battle state and its `PlayPosableAnimationPacket` | ⬜ |
-| Bedrock animations | GeyserModelEngine `anim` int properties (sorted animation bits) | ⬜ |
-| Right-click or hit a wild Pokémon starts a battle | Interaction hitbox (Java) / pig (Bedrock) → Cobblemon `BattleBuilder.pve` | ⬜ |
-| 3D Poké Ball: thrown, capture shakes, send-out arc | Cobblemon's own `EmptyPokeBallEntity` drawn as an item display (Java) / GME `poke_ball` (Bedrock) | ⬜ |
-| Wild spawning (Cobblemon's rules) | Cobblemon's spawner | ➖ |
-| Sending out the lead (Ctrl while standing still) | Sprint start while still → Cobblemon send-out / recall | ⬜ |
-| Companions follow, recalled for battles | Cobblemon | ➖ |
-
-## Screens: vanilla Java (UI pack over chests, action bar and titles)
-
-| Screen (Paper) | Fabric | Status |
-|---|---|---|
-| UI pack (fonts, art, text shader) | Same art; shaders rewritten for the 1.21.1 client | ⬜ |
-| Starter toast + `/starter` screen (27 starters) | Cobblemon's starter list → `StarterHandler.chooseStarter` | ⬜ |
-| Battle screen (camera, cursor, Fight / Switch / Catch / Run, move tiles, party, log, hotbar) | Cobblemon battle request → `PlayerBattleActor` responses | ⬜ |
-| Hide / reveal battle (Shift, double Shift, `/battle`) | Same controls | ⬜ |
-| Party panel (HUD, EXP/level-up/new move/evolve pop-ups, `/partyhud`) | From Cobblemon's party each tick | ⬜ |
-| `/party` → Summary (Info / Moves / Stats, nickname, move order, send out / lead / to PC, Evolve) | Cobblemon Pokémon API | ⬜ |
-| PC (40 boxes, move/swap, sort, type filter, release, box name and wallpaper, wallpaper unlocks) | Cobblemon `PCStore` | ⬜ |
-| Pokédex (seen/caught, entries, search, filter, tabs) | Cobblemon Pokédex records | ⬜ |
-| Move learning prompt | ➖ Cobblemon benches the move; swap it in from the Summary's Moves tab | ➖ |
-| Evolution (ready notice, Evolve button) | Cobblemon `evolutionProxy` | ⬜ |
-| Chat-free EXP (shown on the party panel) | Cobblemon's messages for vanilla players go to the panel | ⬜ |
-
-## Screens: Bedrock (forms drawn by the Bedrock UI pack)
-
-| Screen (Paper) | Fabric | Status |
-|---|---|---|
-| Battle forms (menu, moves, switch) + HP boss bars | Floodgate forms (same titles/MARK kinds) | ⬜ |
-| Starter form | | ⬜ |
-| Summary form | | ⬜ |
-| PC form + box settings form | | ⬜ |
-| Pokédex form | | ⬜ |
+| Bedrock joins (Geyser + Floodgate) | Geyser standalone → ViaProxy (handshake kept) → Fabric with Floodgate-Fabric 2.2.4-b38 | ✅ `m1-bedrock-floodgate-bot.log` |
+| Bedrock players told apart | Floodgate API (`Clients`) | ✅ |
+| Cobblemon's text in English (Geyser only knows Minecraft's keys) | Chat, action bar, titles and item names written out on the server (`Lang`) | ✅ `m1-bedrock-text.log` |
+| Models: every look (forms, shinies, genders, features) | GeyserModelEngine custom entity `modelengine:<look>` on a pig, look from Cobblemon's aspects | ✅ `m2-bedrock-models-anims.log` (protocol) |
+| Species scale | GeyserUtils `CustomEntityDataPacket.scale` | ✅ (protocol) |
+| idle / walk / battle_idle / faint | GeyserModelEngine `anim` int properties, from the server's state | ✅ (protocol) |
+| Move animations: cry, physical, special, recoil | Cobblemon's `PlayPosableAnimationPacket` → the same properties | 🟡 wired, not yet seen in a battle |
+| Tap or hit a wild Pokémon starts a battle | pig click → Cobblemon `BattleBuilder.pve` | ⬜ |
+| 3D Poké Ball (thrown, shakes, send-out) | GME `poke_ball` on Cobblemon's `EmptyPokeBallEntity` | ⬜ |
+| Bedrock UI pack (forms art, HUD) pushed by Geyser | `bedrock-ui.mcpack` from `tools/build_bedrock_ui.py` in Geyser's `packs/` | 🟡 served, screens not wired |
+| Pack versions ≤ 65535 | Reuses the main checkout's fix (uncommitted there) | 🟡 |
+| Battle forms (menu, moves, switch, catch, run) + HP boss bars | Floodgate forms with the Paper titles (MARK kinds), driven by Cobblemon's battle request | ⬜ |
+| Starter form | Cobblemon's starter list → `StarterHandler` | ⬜ |
+| Summary form (tabs, nickname, move order, evolve) | Cobblemon Pokémon API | ⬜ |
+| PC form + box settings | Cobblemon `PCStore` | ⬜ |
+| Pokédex form | Cobblemon Pokédex records | ⬜ |
 | Party HUD (title payload `|CL…`) | Same payload from Cobblemon's party | ⬜ |
-| Starter prompt in the action bar | | ⬜ |
+| Starter prompt (action bar) | | ⬜ |
 
-## Commands
-
-| Command (Paper) | Fabric | Status |
-|---|---|---|
-| `/starter`, `/party`, `/pokedex`, `/battle`, `/partyhud` | Same names | ⬜ |
-| `/pc` (admin) | Cobblemon's `/pc` for mod players; ours for the rest | ⬜ |
-| `/pokegive`, `/pokespawn`, `/pokeheal`, `/pokeballs` (admin) | Aliases over Cobblemon's `PokemonProperties` | ⬜ |
-
-## Other
+## 2. Shared (all players without the mod)
 
 | Feature (Paper) | Fabric | Status |
 |---|---|---|
-| Beds heal the party | Kept (Cobblemon's healing machine also works) | ⬜ |
-| Poké Ball recipe (dye, button, iron) | ➖ Cobblemon's own recipes | ➖ |
-| Optional client mod (`client/`) | ➖ Java players with mods use Cobblemon itself | ➖ |
-| Plugin API events (`StarterPromptEvent`, `WildBattleEndEvent`) | ➖ Cobblemon's event API | ➖ |
-| Quick-action dialog (26.3 dialogs, G key) | ➖ 1.21.1 has no dialogs | ➖ |
+| Vanilla Java joins with no mods | PolyMc + `SendMixin` | ✅ PoC |
+| Cobblemon-mod players play normal Cobblemon, no pack | PolyMc's no-op map; pack only for vanilla Java | ✅ `m1-mod-client-no-pack.log` |
+| Packet audit: Cobblemon entities, entity data, block entities, menus, payloads | Filtered for players without the mod (`SendMixin`) | ✅ (effects, sounds, villager professions checked: fine) |
+| Wild spawning, catching, EXP, evolution, storage | Cobblemon | ➖ |
+| Commands `/starter`, `/party`, `/pokedex`, `/battle`, `/partyhud` | | ⬜ |
+| Admin `/pokegive`, `/pokespawn`, `/pokeheal`, `/pokeballs`, `/pc` | Aliases over Cobblemon | ⬜ |
+| Beds heal the party | | ⬜ |
+
+## 3. Vanilla Java, by level
+
+| Feature (Paper) | Level | Fabric | Status |
+|---|---|---|---|
+| `off`: friendly disconnect | off | `Bridge` join check | ✅ `levels-off-disconnect.png` |
+| Resource pack sent on join, required | basic | Polymer auto-host, in game (8 s in: a 1.21.1 toast race can kill the download) | ✅ `m1-java-pack-in-game.png` |
+| Models of every look | basic | Own renderer: one item model per bone (`tools/build_models.py`), Polymer virtual entities | ✅ `m2-java-gengar.png` |
+| Facing (yaw) | basic | | ✅ |
+| Click a Pokémon (hitbox) | basic | Interaction element redirected to the entity | 🟡 hitbox in place, battle start ⬜ |
+| idle / walk / battle_idle / faint | standard | Keyframes posed on the server | ✅ `m2-java-charizard-walking.png` |
+| Move animations (cry, physical, special, recoil) | full | From Cobblemon's animation packet | 🟡 wired |
+| 3D Poké Ball | standard | Item display on Cobblemon's `EmptyPokeBallEntity` | ⬜ |
+| Starter (`/starter`, toast) | basic: chest · standard: art | | ⬜ |
+| Party / Summary / PC / Pokédex | basic: chest · standard: art | | ⬜ |
+| Battle | basic/standard: chest menu · full: battle screen | | ⬜ |
+| Party HUD, chat-free EXP | full | | ⬜ |
+| UI pack shaders for the 1.21.1 client | standard | | ⬜ |
+
+## Not needed on Fabric
+
+| Paper feature | Why |
+|---|---|
+| Move learning prompt | Cobblemon benches the move; swap it in from the Summary's Moves tab |
+| Poké Ball recipe | Cobblemon's own recipes |
+| Optional client mod (`client/`) | Java players with mods use Cobblemon itself |
+| Plugin API events | Cobblemon's event API |
+| Quick-action dialog (26.3 dialogs) | 1.21.1 has no dialogs |
 
 ## Deployment
 
 | | Fabric | Status |
 |---|---|---|
-| docker compose: Fabric + Geyser standalone + ViaProxy | `fabric/docker-compose.yml` | 🟡 PoC |
-| Gradle build of the mod | `fabric/mod` | 🟡 PoC |
+| docker compose: Fabric + Geyser standalone + ViaProxy | `fabric/docker-compose.yml` | 🟡 |
+| Gradle build of the mod | `fabric/tools/build.sh` | ✅ |
 | README section, versions note | `fabric/README.md` | ⬜ |

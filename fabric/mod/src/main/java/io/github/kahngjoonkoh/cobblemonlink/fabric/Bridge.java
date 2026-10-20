@@ -27,6 +27,7 @@ public class Bridge implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        Config.load(Path.of("config/cobblemonlink/config.json"));
         Tasks.register();
         Clients.register();
         Polys.register();
@@ -37,6 +38,11 @@ public class Bridge implements ModInitializer {
         // the pack once in game, vanilla Java only (Packs); Polymer may still be building it
         ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
             System.out.println("[cobblemonlink] " + h.player.getScoreboardName() + " is " + Clients.kind(h));
+            if (Clients.java(h) && Config.vanillaJava() == Config.Level.OFF) {
+                h.disconnect(net.minecraft.network.chat.Component.literal(
+                        "This server plays Cobblemon.\n\nInstall the Cobblemon mod (Fabric, Minecraft 1.21.1) to join on Java,\nor join from Minecraft Bedrock: no mods needed."));
+                return;
+            }
             // ponytail: 8 s in, after the join toasts: the 1.21.1 client can crash its pack download when a toast
             // expires while the progress toast updates (ToastComponent isn't thread-safe)
             long at = System.currentTimeMillis() + 8000;
