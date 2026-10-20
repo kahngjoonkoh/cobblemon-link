@@ -114,7 +114,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
 | Evolution | ✅ | ✅ | Summary's Evolve; ⬜ Cobblemon's evolution animation |
-| Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; TM machine's slots open as a chest (`Menus`, generic layout); ⬜ choosing the move to make a TM |
+| Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; TM machine's slots open as a chest (`Menus`, generic layout, `c5-java-tm-machine-chest.png`); ⬜ choosing the move to make a TM |
 | Held items (give / take) | 🟡 | 🟡 | `Wheel`: Shift + right-click (tap) your Pokémon → Cobblemon's InteractPokemonHandler; built, not yet tried in a client |
 | Pokémon interaction wheel (shoulder, ride, held item, cosmetic) | 🟡 | 🟡 | `Wheel` (form / chest) → Cobblemon's handler; not yet tried in a client |
 | Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
