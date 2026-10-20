@@ -141,7 +141,7 @@ Counts: see [the summary at the end](#summary).
 
 ## Summary
 
-95 rows; Java and Bedrock are level.
+95 rows; Java and Bedrock are level; nothing is ⬜. Last full regression pass: a fresh world on 2026-10-21 ([notes](docs/evidence/m28-regression.md)).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|

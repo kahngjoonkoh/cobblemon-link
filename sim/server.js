@@ -23,8 +23,32 @@ const PORT = +(process.env.PORT || 9000);
 // Showdown's RandomPlayerAI assumes at most two per side (pokemon[i ^ 1]) and throws in triples; let Showdown pick then
 const receiveRequest = RandomPlayerAI.prototype.receiveRequest;
 RandomPlayerAI.prototype.receiveRequest = function (request) {
-  try { receiveRequest.call(this, request); } catch (e) { this.choose('default'); }
+  this.lastRequest = request;
+  this.tries = 0;
+  try { receiveRequest.call(this, request); } catch (e) { this.receiveError(e); }
 };
+// an invalid AI choice (a fainted target in triples) must not throw: that would take the whole sim process down.
+// Pick again at random a few times. ponytail: Showdown's own 'default' crashes in this fork's autoChoose.
+RandomPlayerAI.prototype.receiveError = function () {
+  if (!this.lastRequest) return;
+  if (this.tries++ < 5) {
+    try { return receiveRequest.call(this, this.lastRequest); } catch (e) { /* below */ }
+  }
+  this.choose(fallback(this.lastRequest)); // (its own pick throws with three actives and no fourth Pokémon)
+};
+
+/** A choice that is always valid: the first usable move at the foe straight across, or the first free switch. */
+function fallback(r) {
+  const mons = r.side.pokemon, used = new Set();
+  const free = () => { const j = mons.findIndex((p, k) => !p.active && !p.condition.endsWith(' fnt') && !used.has(k)); if (j >= 0) used.add(j); return j; };
+  if (r.forceSwitch) return r.forceSwitch.map(f => { const j = f ? free() : -1; return j >= 0 ? `switch ${j + 1}` : 'pass'; }).join(', ');
+  const n = r.active.length;
+  return r.active.map((a, k) => {
+    if (mons[k].condition.endsWith(' fnt')) return 'pass';
+    const m = a.moves.findIndex(x => !x.disabled), mv = a.moves[Math.max(0, m)];
+    return `move ${Math.max(0, m) + 1}` + (n > 1 && ['normal', 'any', 'adjacentFoe'].includes(mv.target) ? ` ${n - k}` : '');
+  }).join(', ');
+}
 // BattleFormat.GEN_9_SINGLES, as Cobblemon sends it (BattleFormat.toFormatJSON)
 const FORMAT = { mod: 'cobblemon', gameType: 'singles', gen: 9, ruleset: ['Obtainable', '+Past', '+Unobtainable'], effectType: 'Format' };
 const toID = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');

@@ -1,0 +1,24 @@
+# Fresh world (2026-10-21), Bedrock bot .FreshBed
+## /starter (earlier run in the same world)
+form "Bulbasaur§r§l§4" | Bulbasaur can be seen napping in bright sunlight. … | (starter form)
+text system "§r§aYou chose Bulbasaur! Right-click (or tap) a wild Pokémon to battle it."
+## wild battle
+
+start_game
+text system "§r§e.FreshBed joined the game" 
+hitting minecraft:pig
+bossbar §rWild Rattata  Lv.3 1
+bossbar §rBulbasaur  Lv.10   31/31 HP 1
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rBulbasaur  Lv.10   31/31 HP 0
+form "Battle§r§l§1" | A wild Rattata (Lv.3) / appeared! | Fight ; Switch ; Catch ; Run
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rBulbasaur  Lv.10   31/31 HP 0
+form "Battle§r§l§2" | A wild Rattata (Lv.3) / appeared! / Go! Bulbasaur! | Tackle           35/35 ; Vine Whip           25/25 ; Growth           20/20 ; Leech Seed           10/10 ;  
+form "Battle§r§l§1" | A wild Rattata (Lv.3) / appeared! / Go! Bulbasaur! | Fight ; Switch ; Catch ; Run
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rBulbasaur  Lv.10   28/31 HP 0
+form "Battle§r§l§2" | appeared! / Go! Bulbasaur! / Bulbasaur used Tackle! / The wild Rattata used Tackle! | Tackle           34/35 ; Vine Whip           25/25 ; Growth           20/20 ; Leech Seed 
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rBulbasaur  Lv.10   28/31 HP 0
+done after 85 s
