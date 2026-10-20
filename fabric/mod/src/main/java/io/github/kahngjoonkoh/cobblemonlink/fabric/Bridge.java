@@ -37,6 +37,7 @@ public class Bridge implements ModInitializer {
         Tasks.register();
         Clients.register();
         Polys.register();
+        Lang.load();
         // the pack once in game, vanilla Java only (Packs); Polymer may still be building it
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
             if (Clients.java(h)) Tasks.until(() -> h.player.hasDisconnected() || Packs.send(h));

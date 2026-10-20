@@ -40,6 +40,10 @@ public class SendMixin {
             }
             return new ClientboundBundlePacket(out);
         }
+        if (Clients.bedrock(h.player)) { // Cobblemon's text in English: Geyser only knows Minecraft's keys
+            var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
+            if (t != packet) return t;
+        }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its species (as on Paper)
         if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a
                 && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity p) {
@@ -53,6 +57,12 @@ public class SendMixin {
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
             return new ClientboundBundlePacket(List.of());
         if (packet instanceof ClientboundSetEntityDataPacket d && modded(d.id(), h)) return new ClientboundBundlePacket(List.of());
+        // a Cobblemon menu (cooking pot...): the client can't open its type. ponytail: the server keeps it open until Esc
+        if (packet instanceof ClientboundOpenScreenPacket o && !BuiltInRegistries.MENU.getKey(o.getType()).getNamespace().equals("minecraft"))
+            return new ClientboundBundlePacket(List.of());
+        // a Cobblemon block entity (healing machine, PC...): the client can't decode its type
+        if (packet instanceof ClientboundBlockEntityDataPacket b && !BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(b.getType()).getNamespace().equals("minecraft"))
+            return new ClientboundBundlePacket(List.of());
         if (packet instanceof ClientboundSetEntityDataPacket d && d.packedItems().stream().anyMatch(v -> !Bridge.VANILLA_DATA.contains(v.serializer())))
             return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> Bridge.VANILLA_DATA.contains(v.serializer())).toList());
         return packet;
