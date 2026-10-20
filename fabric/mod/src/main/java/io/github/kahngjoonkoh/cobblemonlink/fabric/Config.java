@@ -44,9 +44,13 @@ public final class Config {
     /** The file's fields. */
     static final class File {
         String vanillaJava = "full";
+        boolean bedsHeal = true; // lying down in a bed heals the party (the Paper version's healing)
     }
 
     private static Level vanillaJava = Level.FULL;
+    private static boolean bedsHeal = true;
+
+    public static boolean bedsHeal() { return bedsHeal; }
 
     private Config() {}
 
@@ -65,6 +69,7 @@ public final class Config {
             System.out.println("[cobblemonlink] " + path + ": " + e);
         }
         vanillaJava = Level.parse(f.vanillaJava);
+        bedsHeal = f.bedsHeal;
         System.out.println("[cobblemonlink] vanilla Java: " + vanillaJava);
     }
 }

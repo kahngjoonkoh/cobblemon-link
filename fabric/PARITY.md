@@ -37,17 +37,17 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Species scale | GeyserUtils `CustomEntityDataPacket.scale` | ✅ (protocol) |
 | idle / walk / battle_idle / faint | GeyserModelEngine `anim` int properties, from the server's state | ✅ (protocol) |
 | Move animations: cry, physical, special, recoil | Cobblemon's `PlayPosableAnimationPacket` → the same properties | 🟡 wired, not yet seen in a battle |
-| Tap or hit a wild Pokémon starts a battle | pig click → Cobblemon `BattleBuilder.pve` | ⬜ |
-| 3D Poké Ball (thrown, shakes, send-out) | GME `poke_ball` on Cobblemon's `EmptyPokeBallEntity` | ⬜ |
-| Bedrock UI pack (forms art, HUD) pushed by Geyser | `bedrock-ui.mcpack` from `tools/build_bedrock_ui.py` in Geyser's `packs/` | 🟡 served, screens not wired |
+| Tap or hit a wild Pokémon starts a battle | pig click/hit → Cobblemon `BattleBuilder.pve` (`InteractMixin`) | ✅ `b1-bedrock-battle-bot.log` |
+| 3D Poké Ball (thrown, shakes, capture/break) | GME `poke_ball` on Cobblemon's `EmptyPokeBallEntity`, animation from its capture state | 🟡 same code as Java (`m3-java-pokeball-capture.png`); not seen on a phone |
+| Bedrock UI pack (forms art, HUD) pushed by Geyser | `bedrock-ui.mcpack` from `tools/build_bedrock_ui.py` in Geyser's `packs/` | ✅ ("packs offered: 3") |
 | Pack versions ≤ 65535 | Reuses the main checkout's fix (uncommitted there) | 🟡 |
-| Battle forms (menu, moves, switch, catch, run) + HP boss bars | Floodgate forms with the Paper titles (MARK kinds), driven by Cobblemon's battle request | ⬜ |
-| Starter form | Cobblemon's starter list → `StarterHandler` | ⬜ |
-| Summary form (tabs, nickname, move order, evolve) | Cobblemon Pokémon API | ⬜ |
-| PC form + box settings | Cobblemon `PCStore` | ⬜ |
-| Pokédex form | Cobblemon Pokédex records | ⬜ |
-| Party HUD (title payload `|CL…`) | Same payload from Cobblemon's party | ⬜ |
-| Starter prompt (action bar) | | ⬜ |
+| Battle forms (menu, moves, switch, catch, run) + HP boss bars, prompt, `/battle` | Floodgate forms with the Paper titles (MARK 1-3), answers sent as Cobblemon's Showdown responses | ✅ `b1-bedrock-battle-bot.log` (a won battle) |
+| Starter form, `/starter` | Cobblemon's StarterHandler (its starter packet opens the form, `chooseStarter` takes the pick) | ✅ `b3-bedrock-starter-bot.log` |
+| Summary form (tabs, nickname, move order + benched moves, send out, lead, to PC, Evolve), `/party` | Cobblemon Pokémon API | ✅ `b4-bedrock-summary-bot.log` |
+| PC form + box settings (move/swap, sort, filter, release, name, wallpaper) | Cobblemon `PCStore`, opened by Cobblemon (PC block or `/pc`) | ✅ `b5-bedrock-pc-bot.log` |
+| Pokédex form, `/pokedex` | Cobblemon Pokédex records | ✅ `b6-bedrock-pokedex-bot.log` |
+| Party HUD (title payload `|CL…`), EXP / level-up / move / evolution notices, `/partyhud` | Same payload from Cobblemon's party; Cobblemon's EXP chat lines dropped | ✅ `b2-bedrock-party-hud-bot.log` |
+| Starter prompt (action bar) | Until Cobblemon's `starterSelected` | ✅ |
 
 ## 2. Shared (all players without the mod)
 
@@ -57,9 +57,9 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Cobblemon-mod players play normal Cobblemon, no pack | PolyMc's no-op map; pack only for vanilla Java | ✅ `m1-mod-client-no-pack.log` |
 | Packet audit: Cobblemon entities, entity data, block entities, menus, payloads | Filtered for players without the mod (`SendMixin`) | ✅ (effects, sounds, villager professions checked: fine) |
 | Wild spawning, catching, EXP, evolution, storage | Cobblemon | ➖ |
-| Commands `/starter`, `/party`, `/pokedex`, `/battle`, `/partyhud` | | ⬜ |
-| Admin `/pokegive`, `/pokespawn`, `/pokeheal`, `/pokeballs`, `/pc` | Aliases over Cobblemon | ⬜ |
-| Beds heal the party | | ⬜ |
+| Commands `/starter`, `/party`, `/pokedex`, `/battle`, `/partyhud` | | ✅ (Bedrock; Java by level below) |
+| Admin `/pokegive`, `/pokespawn`, `/pokeheal`, `/pokeballs`, `/pc` | Cobblemon's own (same names); `/pokeballs` added | ✅ |
+| Beds heal the party | `bedsHeal` in the config (default on) | ✅ |
 
 ## 3. Vanilla Java, by level
 
@@ -69,10 +69,10 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Resource pack sent on join, required | basic | Polymer auto-host, in game (8 s in: a 1.21.1 toast race can kill the download) | ✅ `m1-java-pack-in-game.png` |
 | Models of every look | basic | Own renderer: one item model per bone (`tools/build_models.py`), Polymer virtual entities | ✅ `m2-java-gengar.png` |
 | Facing (yaw) | basic | | ✅ |
-| Click a Pokémon (hitbox) | basic | Interaction element redirected to the entity | 🟡 hitbox in place, battle start ⬜ |
+| Click a Pokémon (hitbox) | basic | Interaction element redirected to the entity; with a Poké Ball in hand it throws it | ✅ |
 | idle / walk / battle_idle / faint | standard | Keyframes posed on the server | ✅ `m2-java-charizard-walking.png` |
 | Move animations (cry, physical, special, recoil) | full | From Cobblemon's animation packet | 🟡 wired |
-| 3D Poké Ball | standard | Item display on Cobblemon's `EmptyPokeBallEntity` | ⬜ |
+| 3D Poké Ball | standard | Own renderer on Cobblemon's `EmptyPokeBallEntity` | ✅ `m3-java-pokeball-capture.png` |
 | Starter (`/starter`, toast) | basic: chest · standard: art | | ⬜ |
 | Party / Summary / PC / Pokédex | basic: chest · standard: art | | ⬜ |
 | Battle | basic/standard: chest menu · full: battle screen | | ⬜ |

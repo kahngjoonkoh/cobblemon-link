@@ -9,6 +9,9 @@ public final class BedrockText {
     private BedrockText() {}
 
     public static Packet<?> text(Packet<?> p) {
+        if (p instanceof ClientboundSystemChatPacket c && !c.overlay() && c.content().getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents t
+                && t.getKey().startsWith("cobblemon.experience."))
+            return null; // as Cobblemon: EXP, level-ups and new moves show on the party panel, not in chat
         if (p instanceof ClientboundSystemChatPacket c) {
             var r = Lang.resolve(c.content());
             return r == c.content() ? p : new ClientboundSystemChatPacket(r, c.overlay());

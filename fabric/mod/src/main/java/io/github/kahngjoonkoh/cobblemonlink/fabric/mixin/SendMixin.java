@@ -44,6 +44,7 @@ public class SendMixin {
         }
         if (Clients.bedrock(h.player)) { // Cobblemon's text in English: Geyser only knows Minecraft's keys
             var t = io.github.kahngjoonkoh.cobblemonlink.fabric.BedrockText.text(packet);
+            if (t == null) return new ClientboundBundlePacket(List.of());
             if (t != packet) return t;
         }
         // Bedrock: the Pokémon becomes a pig carrying GeyserModelEngine's model of its look (as on Paper)
