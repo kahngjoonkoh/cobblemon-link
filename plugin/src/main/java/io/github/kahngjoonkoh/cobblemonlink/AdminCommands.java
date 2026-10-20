@@ -89,6 +89,15 @@ final class AdminCommands {
         });
         add("boxcount", "/boxcount <player>: how many Pokémon are in the PC", (s, a) ->
                 player(a, 0).getName() + " has " + pl.store.get(player(a, 0).getUniqueId()).pcCount() + " Pokémon in the PC.");
+        add("checkspawn", "/checkspawn <player> [grounded|submerged|surface|seafloor|fishing]: what can spawn where they stand", (s, a) -> {
+            Player p = player(a, 0);
+            String type = a.length > 1 ? a[1] : "grounded";
+            var block = type.equals("fishing") ? p.getTargetBlockExact(32, org.bukkit.FluidCollisionMode.ALWAYS) : p.getLocation().getBlock();
+            if (block == null) return "Look at water.";
+            var fits = pl.spawner.fitting(block, type, 3, null);
+            return fits.isEmpty() ? "Nothing fits here." : fits.entrySet().stream()
+                    .map(e -> e.getKey() + ": " + String.join(", ", new java.util.TreeSet<>(e.getValue()))).collect(java.util.stream.Collectors.joining("\n"));
+        });
         add("pokemonedit", "/pokemonedit <player> <slot> <key=value...> (level, shiny, nature, ability, gender, nickname, held_item, friendship)", (s, a) -> {
             Mon m = mon(a);
             for (int i = 2; i < a.length; i++) {

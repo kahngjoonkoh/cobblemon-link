@@ -67,11 +67,25 @@ def build(res, out):
             ident = f'clb_clb_{block}'
             geo = json.load(open(f'{tmp}/geo/{ident}/{ident}.geo.json'))['minecraft:geometry'][0]
             png = open(f'{tmp}/geo/{ident}/{ident}.png', 'rb').read()
+            # faces a block model leaves out: BetterModel wants all six, and an untextured one shows the missing
+            # texture, so they point at a clear pixel (added to the atlas if it has none)
+            from PIL import Image
+            im = Image.open(io.BytesIO(png)).convert('RGBA')
+            clear = next(((x, y) for y in range(im.height) for x in range(im.width) if im.getpixel((x, y))[3] == 0), None)
+            if clear is None:
+                wider = Image.new('RGBA', (im.width + 1, im.height))
+                wider.paste(im, (0, 0))
+                im, clear = wider, (im.width, 0)
+                geo['description']['texture_width'] = im.width
+                buf = io.BytesIO()
+                im.save(buf, 'PNG')
+                png = buf.getvalue()
             name = f'clb_{block}'
             bb, g, an, _ = geo2bb.convert(geo, {'idle': {'loop': True, 'animation_length': 1, 'bones': {}}}, png, name)
-            for e in bb['elements']:  # a block model may leave faces out; BetterModel wants all six (an empty one hides)
+            cx, cy = clear
+            for e in bb['elements']:
                 for side in ('north', 'east', 'south', 'west', 'up', 'down'):
-                    e.setdefault('faces', {}).setdefault(side, {'uv': [0, 0, 0, 0]})
+                    e.setdefault('faces', {}).setdefault(side, {'uv': [cx, cy, cx + 0.5, cy + 0.5], 'texture': 0})
             geo2bb.write(name, bb, g, an, png, f'{out}/blocks/java', f'{out}/blocks/bedrock')
             n += 1
     return n

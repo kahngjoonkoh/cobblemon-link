@@ -107,6 +107,7 @@ final class Machines {
             e.setGravity(false);
             e.setCollidable(false);
             e.setRotation(at.getYaw(), 0);
+            e.getPersistentDataContainer().set(pl.companionKey, org.bukkit.persistence.PersistentDataType.STRING, "machine");
         });
         BetterModel.model(model).ifPresent(r -> r.create(BukkitAdapter.adapt(pig)));
         return pig;

@@ -110,15 +110,21 @@ final class Ui {
 
     static int width(String s) {
         int w = 0;
-        for (char c : s.toCharArray()) w += c >= 32 && c < 127 ? ASCII.charAt(c - 32) - '0' : 6;
+        for (char c : s.toCharArray()) w += c >= 32 && c < 127 ? ASCII.charAt(c - 32) - '0' : wide(c) ? 8 : 6;
         return w;
+    }
+
+    /** A full-width glyph (Hangul, kana, CJK, full-width forms): measured on the client, an advance of 8. */
+    static boolean wide(char c) {
+        return c >= 0x1100 && c <= 0x115F || c >= 0x2E80 && c <= 0xA4CF || c >= 0xAC00 && c <= 0xD7A3
+                || c >= 0xF900 && c <= 0xFAFF || c >= 0xFE30 && c <= 0xFE4F || c >= 0xFF00 && c <= 0xFF60 || c >= 0xFFE0 && c <= 0xFFE6;
     }
 
     /** Width in the uniform font (UnihexProvider: inked width / 2 + 1). */
     static double uniWidth(String s, boolean bold) {
         double w = 0;
         for (char c : s.toCharArray()) // bold: half a pixel on a unifont glyph, a whole one on the space (include/space)
-            w += (c >= 32 && c < 127 ? UNI.charAt(c - 32) - '0' : 4) + (bold ? (c == ' ' ? 1 : 0.5) : 0);
+            w += (c >= 32 && c < 127 ? UNI.charAt(c - 32) - '0' : wide(c) ? 8 : 5) + (bold ? (c == ' ' ? 1 : 0.5) : 0);
         return w;
     }
 

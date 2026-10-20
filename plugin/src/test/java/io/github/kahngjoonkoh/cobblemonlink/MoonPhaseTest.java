@@ -14,6 +14,8 @@ class MoonPhaseTest {
         assertTrue(Rules.moonPhase(0, 0));
         assertTrue(Rules.moonPhase(List.of("0", "4-5"), 5));
         assertFalse(Rules.moonPhase(List.of("0", "4-5"), 6));
+        assertTrue(Rules.moonPhase("0,4", 4)); // as some fishing spawns write it
+        assertFalse(Rules.moonPhase("0,4", 2));
     }
 
     @Test

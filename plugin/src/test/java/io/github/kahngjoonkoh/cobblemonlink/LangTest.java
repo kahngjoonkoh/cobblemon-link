@@ -19,4 +19,11 @@ class LangTest {
         assertEquals("ko_kr", Lang.locale(java.util.Locale.of("ko", "KR")));
         assertTrue(l.has("en_us", "cobblemonlink.trade.cancelled")); // the plugin's own keys ship in the jar
     }
+
+    /** The Java overlay lays text out by width: a Korean name must measure as unifont's full-width glyphs. */
+    @Test
+    void wideGlyphs() {
+        assertEquals(24, Ui.width("피카츄"));
+        assertEquals(25.5, Ui.uniWidth("피카츄", true), 1e-9);
+    }
 }

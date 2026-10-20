@@ -168,6 +168,14 @@ final class Spawner {
         return e;
     }
 
+    /** Cobblemon's /checkspawn: every spawn of this position type that fits this block now, by bucket. */
+    Map<String, List<String>> fitting(Block at, String type, int lure, String rod) {
+        Map<String, List<String>> out = new java.util.TreeMap<>();
+        for (Dex.Spawn s : pl.dex.spawns)
+            if (s.type.equals(type) && fits(s, at, lure, rod)) out.computeIfAbsent(s.bucket, k -> new ArrayList<>()).add(s.species);
+        return out;
+    }
+
     /** PlayerLevelRangeInfluence: the party's highest level +-5 (at least up to 10), inside the spawn's range. */
     int level(Player p, int min, int max) {
         int top = pl.store.get(p.getUniqueId()).party.stream().mapToInt(m -> m.level).max().orElse(0);
@@ -341,7 +349,7 @@ final class Spawner {
         int sky = at.getLightFromSky(), light = at.getLightLevel();
         if (c.minSkyLight != null && sky < c.minSkyLight || c.maxSkyLight != null && sky > c.maxSkyLight) return false;
         if (c.minLight != null && light < c.minLight || c.maxLight != null && light > c.maxLight) return false;
-        if (c.canSeeSky != null && c.canSeeSky != (w.getHighestBlockYAt(at.getX(), at.getZ()) < at.getY())) return false;
+        if (c.canSeeSky != null && c.canSeeSky != (w.getHighestBlockYAt(at.getX(), at.getZ()) <= at.getY())) return false; // water is its own top block
         if (c.isSlimeChunk != null && c.isSlimeChunk != at.getChunk().isSlimeChunk()) return false;
         if (c.moonPhase != null && !Rules.moonPhase(c.moonPhase, (int) (w.getFullTime() / 24000 % 8))) return false;
         if (c.neededBaseBlocks != null && c.neededBaseBlocks.stream().noneMatch(id -> isBlock(id, at.getRelative(0, -1, 0)))) return false;

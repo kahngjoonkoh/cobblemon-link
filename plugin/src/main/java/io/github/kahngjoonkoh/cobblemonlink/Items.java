@@ -35,6 +35,9 @@ final class Items {
     }
 
     final Map<String, Def> defs;
+    /** Kinds used on a party Pokémon (the rest behave as plain items). */
+    static final java.util.Set<String> USABLE = java.util.Set.of("potion", "revive", "cure", "ether", "elixir", "x_stat",
+            "dire_hit", "guard_spec", "candy", "ev", "mint", "evolution", "held");
     /** Cobblemon's TMs (tms.json): move -> its type and the TM Machine's ingredients ([id or #tag, count]). */
     Map<String, Tm> tms = Map.of();
 
@@ -207,7 +210,7 @@ final class Items {
         }
         String id = id(stack);
         Def d = id == null ? null : defs.get(id);
-        if (d == null || d.kind.equals("ball") || d.kind.equals("rod") || d.kind.equals("machine") || d.kind.equals("fossil")) return false;
+        if (d == null || !USABLE.contains(d.kind)) return false; // materials, balls, rods, machines, fossils: vanilla handling
         Battle b = pl.battles.get(p.getUniqueId());
         List<Mon> party = pl.store.get(p.getUniqueId()).party;
         if (party.isEmpty()) return true;

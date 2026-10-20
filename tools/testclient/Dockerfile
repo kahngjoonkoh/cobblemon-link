@@ -12,4 +12,4 @@ COPY xkey.py snap.py join.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/join.sh
 # SDL finds no GLX visual in this Xvfb; over EGL it works
 ENV DISPLAY=:99 LIBGL_ALWAYS_SOFTWARE=1 SDL_VIDEO_FORCE_EGL=1
-CMD ["sh", "-c", "mkdir -p /fb && exec Xvfb :99 -screen 0 1280x720x24 -fbdir /fb"]
+CMD ["sh", "-c", "mkdir -p /fb && exec Xvfb $DISPLAY -screen 0 1280x720x24 -fbdir /fb"]

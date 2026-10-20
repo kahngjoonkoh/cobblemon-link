@@ -2,7 +2,8 @@
 import sys, time
 from Xlib import X, XK, display
 from Xlib.ext import xtest
-d = display.Display(':99')
+import os
+d = display.Display(os.environ.get('DISPLAY', ':99'))
 def tap(sym, shift=False):
     kc = d.keysym_to_keycode(XK.string_to_keysym(sym))
     if shift: xtest.fake_input(d, X.KeyPress, d.keysym_to_keycode(XK.XK_Shift_L))

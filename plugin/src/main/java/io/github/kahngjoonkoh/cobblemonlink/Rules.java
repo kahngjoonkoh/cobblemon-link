@@ -104,6 +104,7 @@ final class Rules {
     static boolean moonPhase(Object range, int phase) {
         if (range instanceof java.util.List<?> l) return l.stream().anyMatch(r -> moonPhase(r, phase));
         String r = range instanceof Number n ? String.valueOf(n.intValue()) : String.valueOf(range);
+        if (r.contains(",")) return java.util.Arrays.stream(r.split(",")).anyMatch(x -> moonPhase(x.trim(), phase)); // "0,4"
         int dash = r.indexOf('-');
         if (dash < 0) return Integer.parseInt(r.trim()) == phase;
         return phase >= Integer.parseInt(r.substring(0, dash).trim()) && phase <= Integer.parseInt(r.substring(dash + 1).trim());

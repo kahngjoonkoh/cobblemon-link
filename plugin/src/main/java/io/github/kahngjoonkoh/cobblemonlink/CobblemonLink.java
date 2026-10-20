@@ -361,6 +361,15 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         if (e.getHand() == EquipmentSlot.HAND && !throwing) startBattle(e.getPlayer(), e.getRightClicked()); // else the ball flies
     }
 
+    /** A Pokémon's or machine's pig carrier leaves nothing behind (no porkchops when /kill clears them). */
+    @EventHandler
+    public void onCarrierDeath(org.bukkit.event.entity.EntityDeathEvent e) {
+        if (spawner.isWild(e.getEntity()) || spawner.isCompanion(e.getEntity())) {
+            e.getDrops().clear();
+            e.setDroppedExp(0);
+        }
+    }
+
     /** Hitting a wild Pokémon also starts a battle: on Bedrock touch screens a tap is an attack. */
     @EventHandler(ignoreCancelled = true)
     public void onDamage(EntityDamageEvent e) {
@@ -412,7 +421,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                 e.getPlayer().getInventory().getItemInMainHand().subtract();
             return;
         }
-        // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon
+        // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon (not on a crafting
+        // table, chest or other block that opens)
+        if (clicked != null && clicked.getType().isInteractable() && !e.getPlayer().isSneaking()) return;
         if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && items != null
                 && items.use(e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand())) e.setCancelled(true);
     }
@@ -503,7 +514,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onFish(org.bukkit.event.player.PlayerFishEvent e) {
         if (e.getState() != org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH || items == null) return;
-        ItemStack rodItem = e.getHand() == null ? null : e.getPlayer().getInventory().getItem(e.getHand());
+        var inv = e.getPlayer().getInventory(); // getHand() is often null on a catch: the rod is whichever hand holds one
+        ItemStack rodItem = e.getHand() != null ? inv.getItem(e.getHand())
+                : inv.getItemInMainHand().getType() == Material.FISHING_ROD ? inv.getItemInMainHand() : inv.getItemInOffHand();
         String rod = items.id(rodItem);
         if (rod == null || !rod.endsWith("_rod") || ThreadLocalRandom.current().nextInt(100) >= 85) return;
         Entity mon = spawner.fish(e.getPlayer(), e.getHook().getLocation(), rodItem.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.LURE), rod);

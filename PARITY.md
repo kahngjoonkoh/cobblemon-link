@@ -135,7 +135,8 @@ Counts: see [the summary at the end](#summary).
 | `/stopbattle` | `/stopbattle <player>` | ✅ | ✅ |
 | `/pokemonedit`, `/levelup`, `/teach`, `/held_item`, `/friendship`, `/takepokemon`, `/pctake` | All, for a named player (`/pokemonedit` takes level, shiny, nature, ability, gender, nickname, held_item, friendship) | ✅ | ✅ |
 | `/pokebox`, `/boxcount`, `/renamebox`, `/clearparty`, `/clearpc`, `/pcsearch` | `/pokebox`, `/pokeboxall`, `/boxcount`, `/clearparty`, `/clearpc`; box names from the PC screen; no `/pcsearch` | 🟡 | 🟡 |
-| `/givetm`, marks, NPC commands | — | ⬜ | ⬜ |
+| `/givetm`, marks, NPC commands | `/pokeitem tm:<move>` gives a TM; no marks or NPCs | 🟡 | 🟡 |
+| `/checkspawn` | `/checkspawn <player> [position type]`: what can spawn there now, by bucket | ✅ | ✅ |
 | (`/give` of Cobblemon items) | `/pokeitem <item> [amount]` (admin) | ✅ | ✅ |
 
 ## Summary
