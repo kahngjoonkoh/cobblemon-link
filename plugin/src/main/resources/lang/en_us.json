@@ -109,5 +109,6 @@
  "cobblemonlink.pot.unlit": "The campfire under the pot isn't lit.",
  "cobblemonlink.pot.cook": "Cook",
  "cobblemonlink.pot.seasoning": "Seasonings go in the right column",
- "cobblemonlink.herd.spawned": "A herd led by %1$s."
+ "cobblemonlink.herd.spawned": "A herd led by %1$s.",
+ "cobblemonlink.dialogue.next": "Next"
 }

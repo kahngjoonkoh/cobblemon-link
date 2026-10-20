@@ -116,7 +116,8 @@ final class Dex {
     private final Map<String, Species> merged = new java.util.concurrent.ConcurrentHashMap<>();
     List<Spawn> spawns;
     Map<String, List<String>> fossils = Map.of(); // species -> the fossils it's revived from
-    Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle
+    Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle or talk
+    Map<String, Map<String, Object>> dialogues = Map.of(); // Cobblemon's dialogues (Dialogues.java)
     Map<String, Mark> marks = Map.of();             // Cobblemon's marks with a chance on wild Pokémon
     Map<String, List<Bait>> baits = Map.of();       // Cobblemon's bait (spawn_bait_effects): item -> effects
     List<Cosmetic> cosmetics = List.of();

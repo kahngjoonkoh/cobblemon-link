@@ -109,7 +109,7 @@ final class AdminCommands {
             return fits.isEmpty() ? "Nothing fits here." : fits.entrySet().stream()
                     .map(e -> e.getKey() + ": " + String.join(", ", new java.util.TreeSet<>(e.getValue()))).collect(java.util.stream.Collectors.joining("\n"));
         });
-        add("pokemonedit", "/pokemonedit <player> <slot> <key=value...> (level, shiny, nature, ability, gender, nickname, held_item, friendship)", (s, a) -> {
+        add("pokemonedit", "/pokemonedit <player> <slot> <key=value...> (level, shiny, nature, ability, gender, nickname, held_item, friendship, hp)", (s, a) -> {
             Mon m = mon(a);
             for (int i = 2; i < a.length; i++) {
                 String[] kv = a[i].split("=", 2);
@@ -123,6 +123,7 @@ final class AdminCommands {
                     case "nickname" -> m.nickname = v;
                     case "held_item" -> m.held = v.equals("none") ? null : v;
                     case "friendship" -> m.friendship = Math.clamp(Integer.parseInt(v), 0, 255);
+                    case "hp" -> m.hp = Math.clamp(Integer.parseInt(v), 0, m.maxHp(pl.dex));
                     default -> { return "Unknown property " + kv[0] + "."; }
                 }
             }

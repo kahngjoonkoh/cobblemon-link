@@ -1,0 +1,6 @@
+text system "§r§e.PaperBed joined the game" 
+text system "§r§aProfessor Sacchi is here with 0 Pokémon." 
+form "Professor Sacchi" | Hello! You can call me Professor Sacchi, or just 'the professor' as many do! | Next
+form "Professor Sacchi" | Would you like me to heal your Pokémon? | Yes ; No
+text system "§r§aYour Pokémon are fully healed." 
+form "Professor Sacchi" | Your Pokémon appear to be in top shape! / See you next time! | Next

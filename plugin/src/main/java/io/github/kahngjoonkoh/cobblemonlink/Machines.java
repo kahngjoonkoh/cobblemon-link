@@ -240,6 +240,13 @@ final class Machines {
         }
     }
 
+    /** A machine of this type within r blocks (Cobblemon's find_nearby_block, for dialogues). */
+    boolean near(Location at, String type, int r) {
+        for (Machine m : machines.values())
+            if (m.type.equals(type) && m.world.equals(at.getWorld().getName()) && m.at(at.getWorld()).distance(at) <= r) return true;
+        return false;
+    }
+
     void removeAll() {
         for (Machine m : machines.values()) {
             if (m.display != null) m.display.remove();

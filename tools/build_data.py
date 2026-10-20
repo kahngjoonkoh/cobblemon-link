@@ -209,13 +209,15 @@ def npcs(res, dex):
             d.update(load('npc_presets', pr))
         d.update(json.load(open(f)))
         party = d.get('party') or {}
-        if party.get('type') != 'pool':
-            continue  # ponytail: only pool parties (Cobblemon's own NPCs use these); simple/script ones later
+        dialogue = (d.get('interaction') or {}).get('dialogue', '').split(':')[-1] or None
+        if party.get('type') != 'pool' and not dialogue:
+            continue  # ponytail: pool parties and dialogues (Cobblemon's own NPCs use these); simple/script parties later
         lv = lambda e: [int(x) for x in str(e.get('npcLevels') or e.get('level') or '5').split('-')][:2]
         pool = [{'species': e['pokemon'].split()[0], 'weight': e.get('weight', 1), 'times': e.get('selectableTimes', 1),
-                 'levels': (lv(e) * 2)[:2]} for e in party['pool'] if e['pokemon'].split()[0] in dex]
+                 'levels': (lv(e) * 2)[:2]} for e in party.get('pool', []) if e['pokemon'].split()[0] in dex]
         out[os.path.basename(f)[:-5]] = {'name': (d.get('names') or [os.path.basename(f)[:-5]])[0], 'skill': d.get('skill', 0),
-                                         'min': party.get('minPokemon', 1), 'max': party.get('maxPokemon', 6), 'pool': pool}
+                                         'min': party.get('minPokemon', 1), 'max': party.get('maxPokemon', 6), 'pool': pool,
+                                         **({'dialogue': dialogue} if dialogue else {})}
     return out
 
 
@@ -266,7 +268,9 @@ def main(a):
     fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
                for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
-               'npcs': npcs(res, dex), 'marks': marks(res), 'baits': baits(res), 'cosmetics': cosmetic_items(res)},
+               'npcs': npcs(res, dex), 'dialogues': {os.path.basename(f)[:-5]: json.load(open(f))
+                                                     for f in glob.glob(f'{res}/data/cobblemon/dialogues/*.json')},
+               'marks': marks(res), 'baits': baits(res), 'cosmetics': cosmetic_items(res)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')

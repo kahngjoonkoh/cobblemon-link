@@ -23,7 +23,7 @@ import org.bukkit.persistence.PersistentDataType;
 final class Npcs {
     /** One NPC class: name, skill (0-5), party size, Cobblemon's pool party. */
     static final class Npc {
-        String name;
+        String name, dialogue; // dialogue: what right-clicking it opens (else a battle)
         int skill, min = 1, max = 6;
         List<Entry> pool = List.of();
     }
@@ -68,22 +68,30 @@ final class Npcs {
         if (n == null) throw new IllegalArgumentException("Unknown NPC. Known: " + String.join(", ", pl.dex.npcs.keySet()));
         List<Mon> team = party(pl.dex, n, new Random());
         at.getWorld().spawn(at, Mannequin.class, m -> {
-            m.customName(Component.text(n.name));
+            m.customName(Component.text(pl.lang.getOr("en_us", n.name, n.name)));
             m.setCustomNameVisible(true);
-            m.setDescription(Component.text("Trainer", NamedTextColor.GRAY));
+            m.setDescription(n.pool.isEmpty() ? Component.empty() : Component.text("Trainer", NamedTextColor.GRAY));
             m.setInvulnerable(true);
             m.setImmovable(true);
             m.setPersistent(true);
             m.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);
             m.getPersistentDataContainer().set(partyKey, PersistentDataType.STRING, Store.GSON.toJson(team));
         });
-        return n.name + " is here with " + team.size() + " Pokémon.";
+        return pl.lang.getOr("en_us", n.name, n.name) + " is here with " + team.size() + " Pokémon.";
     }
 
-    /** Right-click: a battle against the NPC's party, healed as it was spawned. */
+    /** Right-click: the NPC's dialogue, or straight into a battle when it has none. */
     void challenge(Player p, Entity npc) {
         Npc n = pl.dex.npcs.get(npc.getPersistentDataContainer().get(key, PersistentDataType.STRING));
         if (n == null || pl.battles.containsKey(p.getUniqueId())) return;
+        if (n.dialogue != null && pl.dex.dialogues.containsKey(n.dialogue)) pl.dialogues.start(p, npc, n, n.dialogue);
+        else battle(p, npc);
+    }
+
+    /** A battle against the NPC's party, healed as it was spawned. */
+    void battle(Player p, Entity npc) {
+        Npc n = pl.dex.npcs.get(npc.getPersistentDataContainer().get(key, PersistentDataType.STRING));
+        if (n == null || n.pool.isEmpty() || pl.battles.containsKey(p.getUniqueId())) return;
         if (pl.inBattle(npc)) {
             p.sendMessage(Component.text(pl.t(p, "cobblemonlink.battle.busy"), NamedTextColor.RED));
             return;
@@ -92,7 +100,7 @@ final class Npcs {
         List<Mon> team = Store.GSON.fromJson(npc.getPersistentDataContainer().get(partyKey, PersistentDataType.STRING),
                 new TypeToken<List<Mon>>() {}.getType());
         pl.companions.recallAll(p);
-        Battle b = Battle.trainer(pl, p, npc, n.name, team, n.skill);
+        Battle b = Battle.trainer(pl, p, npc, pl.lang.getOr(CobblemonLink.loc(p), n.name, n.name), team, n.skill);
         pl.battles.put(p.getUniqueId(), b);
         if (!b.start()) pl.battles.remove(p.getUniqueId());
     }

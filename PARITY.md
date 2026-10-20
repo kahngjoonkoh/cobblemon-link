@@ -39,7 +39,7 @@ Counts: see [the summary at the end](#summary).
 | Singles vs wild | ✓ | ✓ | ✅ | ✅ |
 | Doubles, triples, multi, royal | ✓ | — | ⬜ | ⬜ |
 | PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; `/spectate <player>` (64 blocks) shows the battle's HP bars and log | ✅ | ✅ |
-| NPC trainers (`StrongBattleAI`) | ✓ | `/spawnnpc <npc>` places Cobblemon's battling NPC classes (their pool parties) as player-shaped Mannequins; right-click to battle; the sim's TrainerAI picks the strongest move at the NPC's skill; NPC battle music, Forfeit, no Catch ([NPC](docs/evidence/m12-java-npc-trainer.png), [battle](docs/evidence/m12-java-npc-battle.png), [Korean](docs/evidence/m12-java-npc-battle-korean.png), [Bedrock bot](docs/evidence/m12-bedrock-npc-battle-bot.log)); default skin, no dialogues or switching strategy | 🟡 | 🟡 |
+| NPC trainers (`StrongBattleAI`) | ✓ | `/spawnnpc <npc>` places Cobblemon's battling NPC classes (their pool parties) as player-shaped Mannequins; right-click to talk (their dialogue) or battle; the sim's TrainerAI picks the strongest move at the NPC's skill; NPC battle music, Forfeit, no Catch ([NPC](docs/evidence/m12-java-npc-trainer.png), [battle](docs/evidence/m12-java-npc-battle.png), [Korean](docs/evidence/m12-java-npc-battle-korean.png), [Bedrock bot](docs/evidence/m12-bedrock-npc-battle-bot.log)); default skin, no dialogues or switching strategy | 🟡 | 🟡 |
 | Fleeing | Walk 32 blocks away | Run, or walk 24 blocks away | 🟡 | 🟡 |
 | Battle UI (fight / switch / bag / run, tiles, log) | Mod screen | Cobblemon's tile art (Java), Cobblemon-styled forms (Bedrock), HP bars | 🟡 | 🟡 |
 | Your Pokémon in the world during battle | ✓ | Sent out beside you from a 3D ball | ✅ | ✅ |
@@ -101,7 +101,7 @@ Counts: see [the summary at the end](#summary).
 |---|---|---|---|---|
 | Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
 | Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; bait in the other hand (see Influences) | ✅ | ✅ |
-| NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
+| NPCs and dialogues | ✓ | Cobblemon's dialogues run with a small MoLang interpreter (Molang.java: variables, ternaries, the queries its dialogues use): pages, options, page jumps, battles, healing and callback dialogues; `/spawnnpc sacchi` heals your party at a nearby Healing Machine; Java gets a vanilla dialog, Bedrock a form ([Java](docs/evidence/m21-java-dialogue-sacchi.png), [healed](docs/evidence/m21-java-dialogue-healed.png), [Bedrock](docs/evidence/m21-bedrock-dialogue-bot.log)); no faces, gibber sounds or timed pages | 🟡 | 🟡 |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries; [evidence](docs/evidence/m11-java-ev-berries.png)), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 38 | 4 | 1 |
-| Bedrock | 52 | 38 | 4 | 1 |
+| Java | 52 | 39 | 3 | 1 |
+| Bedrock | 52 | 39 | 3 | 1 |
 
 ## Suggested order
 

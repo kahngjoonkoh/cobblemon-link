@@ -16,7 +16,7 @@ for p in assets/cobblemon/bedrock/pokemon assets/cobblemon/textures/pokemon asse
          data/cobblemon/bag_items data/cobblemon/mechanics data/cobblemon/recipe data/cobblemon/tags/item \
          assets/cobblemon/sounds assets/cobblemon/blockstates assets/cobblemon/models/block assets/cobblemon/textures/block data/cobblemon/fossils data/cobblemon/tms \
          data/cobblemon/npcs data/cobblemon/npc_presets data/cobblemon/marks \
-         data/cobblemon/spawn_bait_effects data/cobblemon/moveset_builders data/cobblemon/cosmetic_items; do
+         data/cobblemon/spawn_bait_effects data/cobblemon/moveset_builders data/cobblemon/cosmetic_items data/cobblemon/dialogues; do
   echo "fetching $p"
   curl -sfL "$api?sha=$sha&path=$base/$p" | tar xz -C "$dest" --strip-components=5
 done

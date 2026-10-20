@@ -79,6 +79,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Lang lang = Lang.load(null);
     Machines machines;
     Npcs npcs;
+    Dialogues dialogues;
     private final Map<java.util.UUID, Integer> entityClick = new java.util.HashMap<>(); // tick of each player's last entity right-click
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
@@ -112,6 +113,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         evolutions = new Evolutions(this);
         machines = new Machines(this, dex.fossils);
         npcs = new Npcs(this);
+        dialogues = new Dialogues(this);
         try {
             getLogger().info(Recipes.register(this, getDataFolder().toPath().resolve("recipes.json")) + " of Cobblemon's recipes");
         } catch (IOException e) {
