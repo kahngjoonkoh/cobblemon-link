@@ -70,7 +70,7 @@ Counts: see [the summary at the end](#summary).
 |---|---|---|---|---|
 | Species, stats, types, catch rate, EXP groups | ✓ | From Cobblemon's species files | ✅ | ✅ |
 | Level-up moves, the 5th-move prompt | ✓ | ✓ | ✅ | ✅ |
-| Benched moves, relearning | ✓ | — | ⬜ | ⬜ |
+| Benched moves, relearning | ✓ | Moves skipped or replaced go to the bench; Summary → Moves → Relearn swaps one back ([learn](docs/evidence/m10-java-learn-prompt.png), [relearned](docs/evidence/m10-java-relearn-feint.png)) | ✅ | ✅ |
 | TMs, TM Machine, Type Gems | 334 TMs | All 334 TMs (type art), taught to Pokémon whose TM learnset has them; the TM Machine block makes them from a Blank TM and Cobblemon's ingredients; gems from amethyst clusters; no unlocking | 🟡 | 🟡 |
 | Egg and tutor moves | ✓ | — | ⬜ | ⬜ |
 | Natures, mints | ✓ | Random nature; 21 mints change the effective nature | ✅ | ✅ |
@@ -141,12 +141,12 @@ Counts: see [the summary at the end](#summary).
 
 ## Summary
 
-94 rows; Java and Bedrock are level.
+95 rows; Java and Bedrock are level.
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 44 | 30 | 19 | 1 |
-| Bedrock | 44 | 30 | 19 | 1 |
+| Java | 48 | 30 | 16 | 1 |
+| Bedrock | 48 | 30 | 16 | 1 |
 
 ## Suggested order
 

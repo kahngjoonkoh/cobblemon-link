@@ -91,5 +91,6 @@
  "cobblemonlink.ui.not_seen": "아직 보지 못했다.",
  "cobblemonlink.spectate.start": "%1$s의 배틀을 관전한다. /spectate 를 다시 입력하면 그만둔다.",
  "cobblemonlink.spectate.stop": "관전을 그만두었다.",
- "cobblemonlink.spectate.none": "64블록 안에 관전할 배틀이 없다."
+ "cobblemonlink.spectate.none": "64블록 안에 관전할 배틀이 없다.",
+ "cobblemonlink.ui.relearn": "기술 떠올리기"
 }

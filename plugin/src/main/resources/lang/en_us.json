@@ -91,5 +91,6 @@
  "cobblemonlink.ui.not_seen": "Not seen yet.",
  "cobblemonlink.spectate.start": "You are watching %1$s's battle. /spectate again to stop.",
  "cobblemonlink.spectate.stop": "You stopped watching.",
- "cobblemonlink.spectate.none": "There's no battle to watch within 64 blocks."
+ "cobblemonlink.spectate.none": "There's no battle to watch within 64 blocks.",
+ "cobblemonlink.ui.relearn": "Relearn"
 }

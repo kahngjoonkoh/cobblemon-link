@@ -61,4 +61,17 @@ class MonTest {
         assertNull(m.evolution);
         assertEquals(10 + (Rules.maxHp(39, m.ivs[0], 0, 16) - before), m.hp);
     }
+
+    /** Cobblemon's benched moves: a forgotten move can be swapped back in, the one it replaces goes to the bench. */
+    @Test
+    void benchedMoves() {
+        Mon m = new Mon();
+        m.moves = new java.util.ArrayList<>(List.of("tackle", "growl"));
+        m.bench("vinewhip");
+        m.bench("tackle"); // known: not benched
+        assertEquals(List.of("vinewhip"), m.benched);
+        m.relearn("vinewhip", 0);
+        assertEquals(List.of("vinewhip", "growl"), m.moves);
+        assertEquals(List.of("tackle"), m.benched);
+    }
 }

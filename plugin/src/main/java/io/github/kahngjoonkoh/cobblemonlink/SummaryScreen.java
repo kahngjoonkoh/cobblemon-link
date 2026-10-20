@@ -68,7 +68,9 @@ final class SummaryScreen {
             pl.store.save(p.getUniqueId());
             open(pl, p, 0, tab);
         }));
-        o.add(new Battle.Opt(battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC"), "none", () -> {
+        if (tab == MOVES) o.add(new Battle.Opt(battling || m.benched == null || m.benched.isEmpty() ? "" : Ui.tr(p, "cobblemonlink.ui.relearn", "Relearn"),
+                "none", () -> relearn(pl, p, m, i)));
+        else o.add(new Battle.Opt(battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC"), "none", () -> {
             if (d.toPc(m)) {
                 pl.companions.recall(p, m.id);
                 d.party.remove(m);
@@ -138,6 +140,32 @@ final class SummaryScreen {
                         .inputs(List.of(io.papermc.paper.registry.data.dialog.input.DialogInput.text("name", Component.text(pl.dex.name(m.species)))
                                 .initial(current).maxLength(12).build())).build())
                 .type(DialogType.confirmation(ok, cancel))));
+    }
+
+    /**
+     * Cobblemon's benched moves: a chest row of them to pick, then a row of the four known ones to swap it with
+     * (both clients draw a chest). The swapped-out move goes to the bench.
+     */
+    static void relearn(CobblemonLink pl, Player p, Mon m, int i) {
+        String loc = CobblemonLink.loc(p);
+        Menu menu = new Menu(27, Ui.tr(p, "cobblemonlink.ui.relearn", "Relearn"));
+        for (int k = 0; k < m.benched.size() && k < 9; k++) {
+            String mv = m.benched.get(k);
+            menu.set(k, Menu.icon(org.bukkit.Material.PAPER, pl.dex.label("move", mv, loc), List.of()), e -> {
+                Menu swap = new Menu(9, pl.dex.label("move", mv, loc) + " ⇄");
+                for (int j = 0; j < 4; j++) {
+                    int jj = j;
+                    String cur = j < m.moves.size() ? pl.dex.label("move", m.moves.get(j), loc) : "—";
+                    swap.set(j + 2, Menu.icon(org.bukkit.Material.BOOK, cur, List.of()), x -> {
+                        m.relearn(mv, jj);
+                        pl.store.save(p.getUniqueId());
+                        open(pl, p, i, MOVES);
+                    });
+                }
+                p.openInventory(swap.getInventory());
+            });
+        }
+        p.openInventory(menu.getInventory());
     }
 
     /** Up to 8 rows of [label, value, image] for the tab. */
@@ -242,7 +270,9 @@ final class SummaryScreen {
         if (tab != MOVES) picked.remove(p.getUniqueId());
         Integer pick = picked.get(p.getUniqueId());
         String[] actions = {battling ? "" : out ? Ui.tr(p, "cobblemonlink.ui.recall", "Recall") : Ui.tr(p, "cobblemonlink.ui.send_out", "Send out"),
-                battling || i == 0 ? "" : Ui.tr(p, "cobblemonlink.ui.lead", "Lead"), battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC")};
+                battling || i == 0 ? "" : Ui.tr(p, "cobblemonlink.ui.lead", "Lead"),
+                tab == MOVES ? (battling || m.benched == null || m.benched.isEmpty() ? "" : Ui.tr(p, "cobblemonlink.ui.relearn", "Relearn"))
+                        : battling || d.party.size() <= 1 ? "" : Ui.tr(p, "cobblemonlink.ui.to_pc", "To PC")};
         Menu menu = new Menu(45, title(pl, p, d, m, i, tab, pick, actions, m.evolution != null && !battling, null));
         for (int c = 0; c < 3; c++) menu.on(PokedexScreen.raw(c, 5), e -> pl.pc.open(p)); // Open PC, where the party's title was
         for (int t = 0; t < TABS.length; t++) {
@@ -271,7 +301,7 @@ final class SummaryScreen {
             }
         Runnable[] act = {() -> { pl.companions.toggle(p, m); open(pl, p, i, tab); },
                 () -> { d.party.addFirst(d.party.remove(i)); pl.store.save(p.getUniqueId()); open(pl, p, 0, tab); },
-                () -> {
+                tab == MOVES ? () -> relearn(pl, p, m, i) : () -> {
                     if (d.toPc(m)) {
                         pl.companions.recall(p, m.id);
                         d.party.remove(m);

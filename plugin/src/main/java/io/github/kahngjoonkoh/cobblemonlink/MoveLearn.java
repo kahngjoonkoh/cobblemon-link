@@ -43,6 +43,7 @@ final class MoveLearn {
         String name = m.name(pl.dex), label = pl.dex.label("move", move);
         Runnable skip = () -> {
             m.learnable.remove(move);
+            m.bench(move); // Cobblemon benches it: the Summary's Relearn swaps it in later
             pl.store.save(p.getUniqueId());
             p.sendMessage(Component.text(name + " did not learn " + label + ".", NamedTextColor.AQUA));
             next(pl, p);
@@ -52,7 +53,7 @@ final class MoveLearn {
             int kk = k;
             String old = pl.dex.label("move", m.moves.get(k));
             o.add(new Battle.Opt(old, "none", () -> {
-                m.moves.set(kk, move);
+                m.bench(m.moves.set(kk, move));
                 m.learnable.remove(move);
                 pl.store.save(p.getUniqueId());
                 p.sendMessage(Component.text("1, 2, and... Poof! " + name + " forgot " + old + ". And... " + name

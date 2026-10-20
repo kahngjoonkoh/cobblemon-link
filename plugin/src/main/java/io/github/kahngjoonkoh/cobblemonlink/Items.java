@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -258,7 +259,10 @@ final class Items {
             if (d.kind.equals("x_stat") || d.kind.equals("dire_hit") || d.kind.equals("guard_spec")) m.addFriendship(pl.dex, 1);
         } else {
             String msg = applyOutside(pl.dex, d, m, move, p);
-            if (msg != null && d.kind.equals("candy")) pl.evolutions.update(m, p, x -> {});
+            if (msg != null && d.kind.equals("candy")) {
+                pl.evolutions.update(m, p, x -> {});
+                Bukkit.getScheduler().runTask(pl, () -> MoveLearn.next(pl, p)); // a 5th move asks which to forget
+            }
             if (msg == null) {
                 p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.invalid"), NamedTextColor.RED));
                 return;

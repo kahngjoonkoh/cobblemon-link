@@ -35,7 +35,23 @@ final class Mon {
     List<Integer> ppMax; // max PP per move, as the last battle reported it (Ether, Elixir)
     String mint;         // a mint's nature: Cobblemon's effective nature for stats and battles
     String held;         // held item id (Cobblemon's), or null
-    boolean fished;      // reeled in with a Poké Rod (Cobblemon's "fished" aspect: the Lure Ball)
+    boolean fished;
+    List<String> benched = new ArrayList<>(); // Cobblemon's benched moves: known before, can be swapped back in
+
+    /** Puts a move on the bench (once). */
+    void bench(String move) {
+        if (benched == null) benched = new ArrayList<>();
+        if (move != null && !benched.contains(move) && !moves.contains(move)) benched.add(move);
+    }
+
+    /** Swaps a benched move into slot k; the move there goes to the bench. */
+    void relearn(String move, int k) {
+        if (benched == null || !benched.remove(move)) return;
+        if (k < moves.size()) bench(moves.set(k, move));
+        else moves.add(move);
+        pp = null;
+        ppMax = null;
+    }      // reeled in with a Poké Rod (Cobblemon's "fished" aspect: the Lure Ball)
 
     static int shinyRate = 8192; // Cobblemon's shinyRate (config.yml)
 
