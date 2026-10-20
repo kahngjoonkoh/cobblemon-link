@@ -102,5 +102,7 @@
  "cobblemonlink.battle.throw_ball": "상대에게 몬스터볼을 던져 잡으세요.",
  "cobblemonlink.battle.wild": "야생 %1$s",
  "cobblemonlink.team.received": "%1$s님이 멀티 배틀 팀을 맺고 싶어 합니다",
- "cobblemonlink.dex.region": "도감"
+ "cobblemonlink.dex.region": "도감",
+ "cobblemonlink.format.multi": "멀티, 2 대 2",
+ "cobblemonlink.battle.target": "어느 포켓몬에게 쓸까요?"
 }

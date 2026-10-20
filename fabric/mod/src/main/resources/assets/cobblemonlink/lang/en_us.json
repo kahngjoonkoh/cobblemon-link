@@ -102,5 +102,7 @@
  "cobblemonlink.battle.throw_ball": "Throw a Poké Ball at your opponent to capture it.",
  "cobblemonlink.battle.wild": "Wild %1$s",
  "cobblemonlink.team.received": "%1$s wants to team up for multi battles",
- "cobblemonlink.dex.region": "Pokédex"
+ "cobblemonlink.dex.region": "Pokédex",
+ "cobblemonlink.format.multi": "multi, 2 vs 2",
+ "cobblemonlink.battle.target": "Use it on which Pokémon?"
 }

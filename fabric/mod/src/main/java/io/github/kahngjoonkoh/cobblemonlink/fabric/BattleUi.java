@@ -327,10 +327,37 @@ public final class BattleUi {
             String type = template == null ? "normal" : template.getElementalType().getName().toLowerCase(java.util.Locale.ROOT);
             String name = template == null ? mv.getMove() : Lang.resolve(player, template.getDisplayName()).getString();
             opts.add(new Forms.Opt(name + "\n          " + mv.getPp() + "/" + mv.getMaxpp(), "move_" + (TYPES.contains(type) ? type : "normal"),
-                    mv.getDisabled() ? this::openFight : () -> respond(new MoveActionResponse(mv.getId(), target(a, mv), null))));
+                    mv.getDisabled() ? this::openFight : () -> pickTarget(a, mv)));
         }
         opts.add(new Forms.Opt(" ", "back", this::openMenu));
         form(2, opts);
+    }
+
+    /**
+     * The move's target: the only one, or (doubles, triples, multi) the player's pick from Cobblemon's list for it;
+     * none when the move has no single target (Showdown picks).
+     */
+    private void pickTarget(BattleActor a, InBattleMove mv) {
+        var targets = a == null || a.getActivePokemon().isEmpty() ? null : mv.getTargets(a.getActivePokemon().getFirst());
+        if (targets == null || targets.size() <= 1) {
+            respond(new MoveActionResponse(mv.getId(), target(a, mv), null));
+            return;
+        }
+        List<Forms.Opt> opts = new ArrayList<>();
+        for (var t : targets) {
+            String n = t instanceof com.cobblemon.mod.common.battles.ActiveBattlePokemon ap && ap.getBattlePokemon() != null
+                    ? seen(ap.getBattlePokemon().getEffectedPokemon()) : t.getPNX();
+            opts.add(new Forms.Opt(n, "none", () -> respond(new MoveActionResponse(mv.getId(), t.getPNX(), null))));
+        }
+        String title = Lang.t(player, "cobblemonlink.battle.target");
+        if (Clients.bedrock(player)) {
+            Forms.send(player, title, "", opts, i -> { if (i >= 0 && i < opts.size()) opts.get(i).action().run(); else openFight(); });
+            return;
+        }
+        Chest c = new Chest(1, title);
+        for (int i = 0; i < Math.min(9, opts.size()); i++)
+            c.set(i, Chest.icon(net.minecraft.world.item.Items.TARGET, opts.get(i).text(), List.of()), opts.get(i).action());
+        c.open(player);
     }
 
     /** As Cobblemon's client: the target when the move has exactly one, else none (Showdown picks). */

@@ -54,6 +54,8 @@ final class Social {
         if (lead != null) {
             cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.singles") + ")", Items.IRON_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_SINGLES())));
             cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.doubles") + ")", Items.GOLDEN_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_DOUBLES())));
+            cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.multi") + ")", Items.NETHERITE_SWORD,
+                    () -> challenge(p, target, BattleFormat.Companion.getGEN_9_MULTI())));
             cs.add(new Choice(Lang.t(p, "cobblemon.ui.interact.battle") + " (" + Lang.t(p, "cobblemonlink.format.triples") + ")", Items.DIAMOND_SWORD, () -> challenge(p, target, BattleFormat.Companion.getGEN_9_TRIPLES())));
         }
         if (com.cobblemon.mod.common.battles.BattleRegistry.getBattleByParticipatingPlayer(target) != null)
@@ -70,7 +72,7 @@ final class Social {
             Chest c = new Chest(1, title);
             for (int i = 0; i < cs.size(); i++) {
                 Runnable r = cs.get(i).run;
-                c.set(2 * i, Chest.icon(cs.get(i).icon, cs.get(i).name, List.of()), () -> { p.closeContainer(); r.run(); });
+                c.set(i, Chest.icon(cs.get(i).icon, cs.get(i).name, List.of()), () -> { p.closeContainer(); r.run(); });
             }
             c.open(p);
         }
@@ -91,17 +93,21 @@ final class Social {
     static void packet(ServerPlayer p, CustomPacketPayload payload) {
         if (payload instanceof BattleChallengeNotificationPacket n) p.server.execute(() -> {
             ServerPlayer from = p.server.getPlayerList().getPlayer(n.getSenderID());
+            // a multi battle's challenge comes from a team: one of its players
+            if (from == null && n.getChallengerIDs() != null)
+                for (var id : n.getChallengerIDs()) if (from == null) from = p.server.getPlayerList().getPlayer(id);
             if (from == null) return;
+            ServerPlayer sender = from;
             String type = n.getBattleFormat().getBattleType().getName();
-            ask(p, Lang.t(p, "cobblemonlink.challenge.received", from.getScoreboardName(), type), () -> {
+            ask(p, sender, Lang.t(p, "cobblemonlink.challenge.received", sender.getScoreboardName(), type), () -> {
                 Pokemon lead = lead(p);
-                if (lead != null) ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(from.getId(), n.getChallengeID(), lead.getUuid(), true), p.server, p);
-            }, () -> ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(from.getId(), n.getChallengeID(), p.getUUID(), false), p.server, p));
+                if (lead != null) ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(sender.getId(), n.getChallengeID(), lead.getUuid(), true), p.server, p);
+            }, () -> ChallengeResponseHandler.INSTANCE.handle(new BattleChallengeResponsePacket(sender.getId(), n.getChallengeID(), p.getUUID(), false), p.server, p));
         });
         else if (payload instanceof com.cobblemon.mod.common.net.messages.client.battle.TeamRequestNotificationPacket n) p.server.execute(() -> {
             ServerPlayer from = p.server.getPlayerList().getPlayer(n.getSenderID());
             if (from == null) return;
-            ask(p, Lang.t(p, "cobblemonlink.team.received", from.getScoreboardName()),
+            ask(p, from, Lang.t(p, "cobblemonlink.team.received", from.getScoreboardName()),
                     () -> com.cobblemon.mod.common.net.serverhandling.battle.TeamRequestResponseHandler.INSTANCE.handle(
                             new com.cobblemon.mod.common.net.messages.server.battle.BattleTeamResponsePacket(from.getId(), n.getRequestID(), true), p.server, p),
                     () -> com.cobblemon.mod.common.net.serverhandling.battle.TeamRequestResponseHandler.INSTANCE.handle(
@@ -109,7 +115,7 @@ final class Social {
         });
         else if (payload instanceof TradeOfferNotificationPacket n) p.server.execute(() -> {
             ServerPlayer from = p.server.getPlayerList().getPlayer(n.getSenderID());
-            ask(p, Lang.t(p, "cobblemonlink.trade.received", from == null ? "?" : from.getScoreboardName()),
+            ask(p, from, Lang.t(p, "cobblemonlink.trade.received", from == null ? "?" : from.getScoreboardName()),
                     () -> AcceptTradeRequestHandler.INSTANCE.handle(new AcceptTradeRequestPacket(n.getRequestID()), p.server, p), () -> {});
         });
         else if (payload instanceof TradeStartedPacket || payload instanceof TradeUpdatedPacket || payload instanceof TradeAcceptanceChangedPacket)
@@ -127,7 +133,17 @@ final class Social {
         });
     }
 
-    private static void ask(ServerPlayer p, String question, Runnable yes, Runnable no) {
+    /** Turn p to face who asked: Cobblemon only lets you answer someone you're looking at. */
+    private static Runnable facing(ServerPlayer p, ServerPlayer from, Runnable then) {
+        return () -> {
+            if (from != null && !from.hasDisconnected())
+                p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, from.getEyePosition());
+            then.run();
+        };
+    }
+
+    private static void ask(ServerPlayer p, ServerPlayer from, String question, Runnable yesAnswer, Runnable noAnswer) {
+        Runnable yes = facing(p, from, yesAnswer), no = facing(p, from, noAnswer);
         if (Clients.bedrock(p)) {
             Forms.send(p, question, "", List.of(new Forms.Opt(Lang.t(p, "cobblemon.ui.interact.accept"), "none", yes), new Forms.Opt(Lang.t(p, "cobblemon.ui.interact.decline"), "none", no)),
                     i -> (i == 0 ? yes : no).run());

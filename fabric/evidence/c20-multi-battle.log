@@ -1,0 +1,22 @@
+# 2 vs 2 multi battle: Bedrock bots 1+2 teamed, vanilla Java (PocJava) + Bedrock bot 3 teamed; PocJava challenges (Battle (multi)); bots 1 and 2 accept; all four in Cobblemon's battle; moves with more than one target ask which
+== Bedrock bot 1
+text system "§r§eYou accepted §r§b.SmokeBed2§r§e's invite to team up."
+text system "§r§bPocJava§r§e challenged your team to a Multi Battle!"
+form PocJava challenges you to a multi battle |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+form Battle§r§l§1 | .SmokeBed2 sent out Squirtle! / PocJava sent out Charmeleon! / Go! Bulbasaur! / It is now turn 1 | Fight<textures/cobblemonlink
+form Battle§r§l§2 | .SmokeBed2 sent out Squirtle! / PocJava sent out Charmeleon! / Go! Bulbasaur! / It is now turn 1 | Vine Whip           21/25<te
+form Use it on which Pokémon? |  | Squirtle<textures/cobblemonlink/none> ; Charmeleon<textures/cobblemonlink/none> ; Squirtle<textures/cobblemonlink/
+== Bedrock bot 2
+text system "§r§bPocJava§r§e challenged your team to a Multi Battle!"
+form PocJava challenges you to a multi battle |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+text system "§r§cThat request has already expired!"
+form Battle§r§l§1 | Go! Squirtle! / PocJava sent out Charmeleon! / .SmokeBed sent out Bulbasaur! / It is now turn 1 | Fight<textures/cobblemonlink/
+form Battle§r§l§2 | Go! Squirtle! / PocJava sent out Charmeleon! / .SmokeBed sent out Bulbasaur! / It is now turn 1 | Rapid Spin           40/40<te
+form Use it on which Pokémon? |  | Bulbasaur<textures/cobblemonlink/none> ; Charmeleon<textures/cobblemonlink/none> ; Squirtle<textures/cobblemonlink
+== Bedrock bot 3
+text system "§r§eInvited §r§bPocJava§r§e to team up for Multi Battles."
+text system "§r§bPocJava§r§e accepted your invite to team up!"
+text system "§r§eYou challenged §r§b.SmokeBed§r§e's team to a Multi Battle."
+form Battle§r§l§1 | .SmokeBed2 sent out Squirtle! / PocJava sent out Charmeleon! / .SmokeBed sent out Bulbasaur! / It is now turn 1 | Fight<texture
+form Battle§r§l§2 | .SmokeBed2 sent out Squirtle! / PocJava sent out Charmeleon! / .SmokeBed sent out Bulbasaur! / It is now turn 1 | Rapid Spin   
+form Use it on which Pokémon? |  | Bulbasaur<textures/cobblemonlink/none> ; Squirtle<textures/cobblemonlink/none> ; Charmeleon<textures/cobblemonlink

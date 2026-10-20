@@ -25,7 +25,7 @@ c.on('add_entity', p => {
       setTimeout(() => { console.log('using', target); c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use_on_entity', actions: [],
         transaction_data: { entity_runtime_id: target, action_type: 'interact', hotbar_slot: 0, held_item: { network_id: 0 },
           player_pos: pos, click_pos: { x: 0, y: 0.5, z: 0 } } } }) }, 2000)
-    }, 3000)
+    }, +(process.env.TAP_DELAY || 3000)) // TAP_DELAY: ms before using the target
   }
 })
 c.on('container_open', p => console.log('container_open', p.window_id, p.window_type, JSON.stringify(p.coordinates)))
