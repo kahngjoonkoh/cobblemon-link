@@ -95,6 +95,23 @@ public class SendMixin {
             if (c.payload().type().id().getNamespace().equals("cobblemon")) return new ClientboundBundlePacket(List.of());
         }
         // Cobblemon's Poké Rod bobber is a vanilla fishing hook underneath: shown as one, with its line to the player
+        // someone rides a Pokémon: vanilla Java gets an invisible armor stand under the Pokémon's id to sit on (the
+        // model is drawn apart), so its client rides it and sends its steering (Mixins.rideInput)
+        if (packet instanceof ClientboundSetPassengersPacket sp && Clients.java(h)
+                && h.player.level().getEntity(sp.getVehicle()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe) {
+            if (sp.getPassengers().length == 0)
+                return new ClientboundBundlePacket(List.of(sp, new ClientboundRemoveEntitiesPacket(pe.getId())));
+            var stand = new ClientboundAddEntityPacket(pe.getId(), pe.getUUID(), pe.getX(), pe.getY(), pe.getZ(), 0, pe.getYRot(),
+                    net.minecraft.world.entity.EntityType.ARMOR_STAND, 0, net.minecraft.world.phys.Vec3.ZERO, pe.getYRot());
+            var look = new ClientboundSetEntityDataPacket(pe.getId(), List.of(
+                    net.minecraft.network.syncher.SynchedEntityData.DataValue.create(new net.minecraft.network.syncher.EntityDataAccessor<>(0, net.minecraft.network.syncher.EntityDataSerializers.BYTE), (byte) 0x20),
+                    net.minecraft.network.syncher.SynchedEntityData.DataValue.create(new net.minecraft.network.syncher.EntityDataAccessor<>(15, net.minecraft.network.syncher.EntityDataSerializers.BYTE), (byte) 0x08)));
+            // the stand scaled to the Pokémon's height, so the rider sits on top (an armor stand is 1.975 tall)
+            var scale = new net.minecraft.world.entity.ai.attributes.AttributeInstance(net.minecraft.world.entity.ai.attributes.Attributes.SCALE, a -> {});
+            scale.setBaseValue(Math.max(0.0625, pe.getBbHeight() * 0.9 / 1.975));
+            var size = new ClientboundUpdateAttributesPacket(pe.getId(), List.of(scale));
+            return new ClientboundBundlePacket(List.of(stand, look, size, sp));
+        }
         // a Poké Rod's bobber as Minecraft's: the client keeps a hook only when its data is the angler's entity id
         if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.projectile.FishingHook hook)
             return new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),

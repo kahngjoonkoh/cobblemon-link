@@ -26,4 +26,10 @@ public final class Mixins {
     public static boolean moddedMenu(net.minecraft.world.inventory.MenuType<?> t) { return Menus.modded(t); }
 
     public static boolean playerClicked(ServerPlayer p, ServerPlayer target) { return Social.interact(p, target); }
+
+    /** Steering from a client without the mod, as Cobblemon's client would send it (x strafe, y up/down, z forward). */
+    public static void rideInput(ServerPlayer p, float xxa, float zza, boolean jump, boolean sneak) {
+        if (!Clients.bridged(p.connection) || !(p.getVehicle() instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity)) return;
+        ((com.cobblemon.mod.common.duck.PlayerDuck) p).setDriverInput(new org.joml.Vector3f(Math.signum(xxa), jump ? 1 : sneak ? -1 : 0, Math.signum(zza)));
+    }
 }
