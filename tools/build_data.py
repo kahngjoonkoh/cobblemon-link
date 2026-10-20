@@ -52,6 +52,8 @@ def fields(d):
             out['evos'] = evos
     if 'evYield' in d:  # Gen 8 EV gain for defeating it
         out['evYield'] = {STATS[k]: v for k, v in d['evYield'].items() if v}
+    if 'hitbox' in d:  # Cobblemon's alpha size: from the larger hitbox side times baseScale
+        out['size'] = round(max(d['hitbox'].get('width', 1), d['hitbox'].get('height', 1)) * d.get('baseScale', 1), 3)
     if d.get('shoulderMountable'):
         out['shoulder'] = True  # Companions.shoulder
     if 'ultra_beast' in d.get('labels', []):

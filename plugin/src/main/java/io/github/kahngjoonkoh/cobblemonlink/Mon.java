@@ -42,7 +42,18 @@ final class Mon {
         return mark == null ? n : Ui.lang.get(loc, "cobblemon.mark." + mark + ".title", n);
     }
 
-    boolean alpha; // Cobblemon's alpha: drawn 1.5x
+    boolean alpha; // Cobblemon's alpha: drawn bigger (drawScale)
+    float scale;   // Cobblemon's scaleModifier: 0.95-1.05 from birth (0: from before sizes, 1)
+
+    /**
+     * Cobblemon's Pokemon.scale: an alpha by its size (1.1 + 0.8 x 0.5^size, the small ones grow most), else its
+     * scaleModifier, and 0.9 at level 1 growing to full size at level 9 (babyPokemonSizeMultiplier / LevelDuration).
+     */
+    float drawScale(Dex dex) {
+        if (alpha) return (float) (1.1 + 0.8 * Math.pow(0.5, Math.clamp(dex.of(this).size, 0.25, 5)));
+        float baby = level <= 1 ? 0.9f : level >= 9 ? 1 : 0.9f + 0.1f * (level - 1) / 8f;
+        return baby * (scale == 0 ? 1 : scale);
+    }
     String mark;  // Cobblemon's mark (mark_time_dawn...): its title is the Pokémon's ("Pikachu the Peckish")
     List<String> benched = new ArrayList<>(); // Cobblemon's benched moves: known before, can be swapped back in
 
@@ -93,10 +104,12 @@ final class Mon {
                 : s.maleRatio < 0 ? "" : r.nextDouble() < s.maleRatio ? "M" : "F";
         for (int i = 0; i < 6; i++) m.ivs[i] = r.nextInt(32);
         m.friendship = s.baseFriendship;
+        m.scale = Math.round(r.nextFloat(0.95f, 1.05f) * 1000) / 1000f; // pokemonIntrinsicSizeMin/Max
         for (String p : props) if (p.startsWith("held_item=")) m.held = p.substring(p.indexOf(':') + 1); // cobblemon:water_gem
         for (String p : props) if (p.startsWith("mark=")) m.mark = p.substring(5); // e.g. /pokespawn rattata 5 mark=mark_rare
         if (props.contains("alpha=true")) { // Cobblemon's alphas: big, perfect in three stats, the Alpha Mark
             m.alpha = true;
+            m.scale = 1;
             m.mark = "mark_alpha";
             for (int i = 0, set = 0; set < 3 && i < 30; i++) { int k = r.nextInt(6); if (m.ivs[k] != 31) { m.ivs[k] = 31; set++; } }
         }

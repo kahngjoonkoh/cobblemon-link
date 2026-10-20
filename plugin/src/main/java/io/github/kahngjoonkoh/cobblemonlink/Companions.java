@@ -43,7 +43,7 @@ final class Companions {
             pl.panel.say(p, m.name(pl.dex) + " has fainted.", true); // with the party panel, when it is shown
             return;
         }
-        Entity mon = pl.spawner.companion(spot(p), m.model(pl.dex), p);
+        Entity mon = pl.spawner.companion(spot(p), m.model(pl.dex), m.drawScale(pl.dex), p);
         pl.balls.sendOut(p, mon);
         mine.put(m.id, mon);
     }

@@ -246,8 +246,9 @@ final class Spawner {
             e.setSilent(true);
             e.getPersistentDataContainer().set(pl.wildKey, PersistentDataType.STRING, Store.GSON.toJson(mon));
         });
-        model(pig, mon.model(pl.dex), mon.alpha ? 1.5f : 1);
-        if (mon.alpha) pig.getAttribute(org.bukkit.attribute.Attribute.SCALE).setBaseValue(1.5); // and its hitbox
+        float scale = mon.drawScale(pl.dex);
+        model(pig, mon.model(pl.dex), scale);
+        if (scale != 1) pig.getAttribute(org.bukkit.attribute.Attribute.SCALE).setBaseValue(scale); // and its hitbox
         // Cobblemon's wild Pokémon don't follow food or breed like pigs (Paper keeps float, wander and look goals)
         var goals = Bukkit.getMobGoals();
         goals.removeGoal(pig, VanillaGoal.TEMPT);
@@ -258,7 +259,7 @@ final class Spawner {
     }
 
     /** A party Pokémon out in the world (Companions): unhurtable, not wild, no AI of its own (Companions moves it). */
-    Entity companion(Location loc, String model, Player owner) {
+    Entity companion(Location loc, String model, float scale, Player owner) {
         Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
             e.setPersistent(false);
             e.setSilent(true);
@@ -267,12 +268,12 @@ final class Spawner {
             e.getPersistentDataContainer().set(pl.companionKey, PersistentDataType.STRING, owner.getUniqueId().toString());
         });
         Bukkit.getMobGoals().removeAllGoals(pig);
-        model(pig, model);
+        model(pig, model, scale);
         return pig;
     }
 
     /** A pastured Pokémon: wanders like a wild one (pig goals), but can't be hurt or battled. */
-    Entity roamer(Location loc, String model) {
+    Entity roamer(Location loc, String model, float scale) {
         Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
             e.setPersistent(false);
             e.setSilent(true);
@@ -283,14 +284,14 @@ final class Spawner {
         goals.removeGoal(pig, VanillaGoal.TEMPT);
         goals.removeGoal(pig, VanillaGoal.BREED);
         goals.removeGoal(pig, VanillaGoal.FOLLOW_PARENT);
-        model(pig, model);
+        model(pig, model, scale);
         return pig;
     }
 
     boolean isCompanion(Entity e) { return e.getPersistentDataContainer().has(pl.companionKey); }
 
     /** The player's own Pokémon in a battle: same carrier, but still, unhurtable and not wild. */
-    Entity sendOut(Location loc, String model) {
+    Entity sendOut(Location loc, String model, float scale) {
         Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
             e.setPersistent(false);
             e.setSilent(true);
@@ -298,7 +299,7 @@ final class Spawner {
             e.setAware(false);
         });
         face(pig, loc.clone().add(loc.getDirection()));
-        model(pig, model);
+        model(pig, model, scale);
         return pig;
     }
 

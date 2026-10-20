@@ -22,6 +22,7 @@ final class Dex {
         int catchRate, baseExp, baseFriendship = 50;
         double weight;     // hectograms
         boolean ultraBeast, shoulder; // shoulder: Cobblemon's shoulderMountable
+        double size = 1;              // max(hitbox width, height) x baseScale (Mon.drawScale)
         Map<String, Integer> evYield = Map.of(); // EVs for defeating it (Gen 8), stat -> amount
         List<String> tmMoves = List.of(), eggMoves = List.of(), tutorMoves = List.of();
         String expGroup, desc; // desc: the first Pokédex entry
@@ -155,6 +156,7 @@ final class Dex {
             x.weight = s.weight;
             x.ultraBeast = s.ultraBeast;
             x.shoulder = s.shoulder;
+            x.size = s.size;
             x.evYield = f.evYield != null ? f.evYield : s.evYield;
             x.tmMoves = s.tmMoves;
             x.eggMoves = s.eggMoves;

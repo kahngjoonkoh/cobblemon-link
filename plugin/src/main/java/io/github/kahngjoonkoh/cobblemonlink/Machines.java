@@ -384,7 +384,7 @@ final class Machines {
         m.roaming.forEach(Entity::remove);
         m.roaming.clear();
         for (Mon mon : m.pastured) {
-            Entity e = pl.spawner.roamer(m.at(w).add(Math.random() * 4 - 2, 0, Math.random() * 4 - 2), mon.model(pl.dex));
+            Entity e = pl.spawner.roamer(m.at(w).add(Math.random() * 4 - 2, 0, Math.random() * 4 - 2), mon.model(pl.dex), mon.drawScale(pl.dex));
             m.roaming.add(e);
         }
     }

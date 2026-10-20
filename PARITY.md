@@ -25,7 +25,7 @@ Counts: see [the summary at the end](#summary).
 | Caps, distances, despawn | 1 per chunk, 8 per pass, 16–64 blocks; aging despawner | Same | ✅ | ✅ |
 | Shinies | 1/8192, shiny textures | Same | ✅ | ✅ |
 | Regional forms, features, gender | ✓ | Spawn properties and species features | ✅ | ✅ |
-| Herds, alphas (1.8.0) | ✓ | Cobblemon's 1,260 herd spawns (`spawn_pool_world/herds`): a leader, then followers around it up to the herd's size, each no more than its maxTimes; alphas are drawn 1.5x on both clients (GeyserModelEngine sends the tracker's scale), get three perfect IVs, their held item and the Alpha Mark ([herd](docs/evidence/m16-java-herd.png), [alpha beside a normal one](docs/evidence/m16-java-alpha-vs-normal.png)); `/spawnherd <leader>` for admins | ✅ | ✅ |
+| Herds, alphas (1.8.0) | ✓ | Cobblemon's 1,260 herd spawns (`spawn_pool_world/herds`): a leader, then followers around it up to the herd's size, each no more than its maxTimes; alphas are drawn bigger (Cobblemon's formula) on both clients (GeyserModelEngine sends the tracker's scale), get three perfect IVs, their held item and the Alpha Mark ([herd](docs/evidence/m16-java-herd.png), [alpha beside a normal one](docs/evidence/m16-java-alpha-vs-normal.png)); `/spawnherd <leader>` for admins | ✅ | ✅ |
 | Influences (Sweet Incense, Poké Snacks, Saccharine log, bait) | ✓ | — | ⬜ | ⬜ |
 | Wild model and animations | ✓ | Cobblemon's models: BetterModel (Java), GeyserModelEngine (Bedrock) | ✅ | ✅ |
 
@@ -91,7 +91,7 @@ Counts: see [the summary at the end](#summary).
 | Shoulder mounting | ✓ | Shift + right-click your sent-out Pokémon (Cobblemon's 94 shoulderMountable species) to put it on a shoulder, left then right; Shift + right-click with an empty hand to let it down ([evidence](docs/evidence/m14-java-shoulder.png)); no shoulder pose or shoulder effects; Bedrock gets the same carrier moves but wasn't checked on a client | 🟡 | 🟡 |
 | Pasture | ✓ | The Pasture block: party Pokémon put out roam around it, taken back from its chest menu (up to 16) | 🟡 | 🟡 |
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
-| Size variation | ✓ | — | ⬜ | ⬜ |
+| Size variation | ✓ | Cobblemon's Pokemon.scale: each Pokémon is born 0.95-1.05x, the young grow from 0.9x at level 1 to full size at level 9, alphas by Cobblemon's formula; wild, sent out, in battle and in the pasture, on both clients (the tracker's scale) ([alpha, adult, level 1](docs/evidence/m17-java-sizes.png)) | ✅ | ✅ |
 | Marks (1.7+) | 168 | Wild Pokémon roll Cobblemon's chance marks as the main games do (Rare, Personality, Uncommon, time of day, weather, Fishing, Revival); the title shows when it appears ("A wild Rattata the Peckish", [evidence](docs/evidence/m13-java-marked-wild.png)) and in the Summary ([Summary](docs/evidence/m13-java-marked-summary.png)); no ribbons, mark icons or choosing the shown mark | 🟡 | 🟡 |
 | Cosmetic items | 30 | — | ⬜ | ⬜ |
 
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 49 | 36 | 9 | 1 |
-| Bedrock | 49 | 36 | 9 | 1 |
+| Java | 50 | 36 | 8 | 1 |
+| Bedrock | 50 | 36 | 8 | 1 |
 
 ## Suggested order
 

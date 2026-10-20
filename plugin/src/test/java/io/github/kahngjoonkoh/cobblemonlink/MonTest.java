@@ -77,4 +77,19 @@ class MonTest {
         m.relearn(dex, "firefang", 1); // level 16: not yet
         assertEquals("ember", m.moves.get(1));
     }
+
+    /** Cobblemon's sizes: 0.9 at level 1 growing to 1 at level 9, the intrinsic 0.95-1.05, alphas by their size. */
+    @Test
+    void sizes() {
+        Dex dex = dex();
+        Mon m = Mon.create(dex, "charmander", 1);
+        assertTrue(m.scale >= 0.95f && m.scale <= 1.05f);
+        m.scale = 1;
+        assertEquals(0.9f, m.drawScale(dex), 1e-6);
+        m.level = 9;
+        assertEquals(1f, m.drawScale(dex), 1e-6);
+        m.alpha = true;
+        dex.of(m).size = 1;
+        assertEquals(1.5f, m.drawScale(dex), 1e-6); // 1.1 + 0.8 x 0.5
+    }
 }
