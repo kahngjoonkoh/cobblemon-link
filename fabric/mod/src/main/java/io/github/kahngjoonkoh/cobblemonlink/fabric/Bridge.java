@@ -34,6 +34,7 @@ public class Bridge implements ModInitializer {
         Lang.load();
         PayloadTypeRegistry.playS2C().register(GeyserUtilsPayload.TYPE, GeyserUtilsPayload.CODEC);
         Models.register(Path.of("config/cobblemonlink/models"));
+        Ui.register(Path.of("config/cobblemonlink/ui"));
         Mons.register();
         Battles.register();
         PartyHud.register();

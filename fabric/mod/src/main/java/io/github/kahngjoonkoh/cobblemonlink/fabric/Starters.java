@@ -35,8 +35,9 @@ public final class Starters {
             if (s.getTickCount() % 40 != 0) return;
             for (ServerPlayer p : s.getPlayerList().getPlayers())
                 if (Clients.bridged(p.connection) && !Cobblemon.INSTANCE.getPlayerDataManager().getGenericData(p).getStarterSelected())
-                    p.connection.send(new ClientboundSetActionBarTextPacket(Component.literal("Check out the starters! Type /starter")
-                            .withStyle(net.minecraft.ChatFormatting.RED)));
+                    p.connection.send(new ClientboundSetActionBarTextPacket(Ui.loaded && Clients.java(p) && Config.vanillaJava().screenArt()
+                            ? Ui.starterToast() // Cobblemon's toast art, top right
+                            : Component.literal("Check out the starters! Type /starter").withStyle(net.minecraft.ChatFormatting.RED)));
         });
     }
 
