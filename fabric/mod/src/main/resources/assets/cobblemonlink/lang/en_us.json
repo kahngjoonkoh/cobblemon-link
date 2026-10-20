@@ -101,5 +101,6 @@
  "cobblemonlink.battle.choose_shift": "You need to choose an action. Double-tap Shift.",
  "cobblemonlink.battle.throw_ball": "Throw a Poké Ball at your opponent to capture it.",
  "cobblemonlink.battle.wild": "Wild %1$s",
- "cobblemonlink.team.received": "%1$s wants to team up for multi battles"
+ "cobblemonlink.team.received": "%1$s wants to team up for multi battles",
+ "cobblemonlink.dex.region": "Pokédex"
 }

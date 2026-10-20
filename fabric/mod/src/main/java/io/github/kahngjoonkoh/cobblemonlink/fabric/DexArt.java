@@ -53,10 +53,10 @@ final class DexArt {
     static void open(ServerPlayer p) { show(p, VIEWS.computeIfAbsent(p.getUUID(), k -> new View())); }
 
     static void show(ServerPlayer p, View v) {
-        List<Species> all = Dex.order().stream().filter(s -> v.filter == 0 || (v.filter == 1 ? seen(p, s) : caught(p, s))).toList();
+        List<Species> all = Dex.order(p).stream().filter(s -> v.filter == 0 || (v.filter == 1 ? seen(p, s) : caught(p, s))).toList();
         int pages = Math.max(1, (all.size() + PER - 1) / PER);
         v.page = Math.floorMod(v.page, pages);
-        if (v.sel == null) v.sel = Dex.order().getFirst();
+        if (v.sel == null || !Dex.order(p).contains(v.sel)) v.sel = Dex.order(p).getFirst();
         Chest m = new Chest(5, title(p, v, all, pages)).hideInventory();
         for (int i = 0; i < PER; i++) {
             int k = v.page * PER + i;
@@ -70,6 +70,7 @@ final class DexArt {
                 show(p, v);
             });
         }
+        m.on(Art.raw(2, 8), b -> Dex.chooseRegion(p, () -> { v.page = 0; v.sel = null; show(p, v); })); // the next regional dex
         m.on(Art.raw(0, 8), b -> { v.page--; show(p, v); });
         m.on(Art.raw(8, 8), b -> { v.page++; show(p, v); });
         m.on(Art.raw(1, 8), b -> {
@@ -91,12 +92,12 @@ final class DexArt {
     private static Component title(ServerPlayer p, View v, List<Species> all, int pages) {
         Ui.Title t = new Ui.Title();
         int seenCount = 0, caughtCount = 0;
-        for (Species s : Dex.order()) {
+        for (Species s : Dex.order(p)) {
             if (seen(p, s)) seenCount++;
             if (caught(p, s)) caughtCount++;
         }
         Art.glyph(t, 0, 0, BASE, 7);
-        Art.text(t, "pc_label", 19, 12, Art.fit("pc_label", Art.plain(Lang.t(p, "cobblemon.ui.pokedex.region.national")), 60), false);
+        Art.text(t, "pc_label", 19, 12, Art.fit("pc_label", Art.plain(Dex.regionName(p, Dex.region(p))), 60), false);
         Art.text(t, "pc_bold", 125, 13, String.format("%04d", seenCount), false);
         Art.text(t, "pc_bold", 155, 13, String.format("%04d", caughtCount), false);
         for (int i = 0; i < PER && v.page * PER + i < all.size(); i++) {

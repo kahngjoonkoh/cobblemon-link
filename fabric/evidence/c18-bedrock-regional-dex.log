@@ -1,0 +1,6 @@
+# Bedrock bot: /dex, tap the page counter -> Cobblemon's Pokédexes as a dropdown -> Kanto: the Pokédex again with Kanto's 151 (7 pages) instead of the national 36
+form Bulbasaur§r§l§8 | Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up t
+form Pokédex |  | 
+custom [["National","Kanto","Johto","Hoenn","Sinnoh","Unova","Kalos","Alola","Galar","Hisui","Paldea"]]
+form Bulbasaur§r§l§8 | Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up t
+ 1/7<textures/cobblemonlink/none> 

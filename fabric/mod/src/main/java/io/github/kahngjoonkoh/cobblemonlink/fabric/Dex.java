@@ -24,11 +24,58 @@ public final class Dex {
     private Dex() {}
 
     static void register() {
-        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
-                net.minecraft.commands.Commands.literal("pokedex").executes(c -> {
-                    open(c.getSource().getPlayerOrException(), 0, null);
-                    return 1;
-                })));
+        // "/dex": Cobblemon's own /pokedex is an operator command, which keeps ours from non-operators
+        for (String name : new String[]{"pokedex", "dex"})
+            net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
+                    net.minecraft.commands.Commands.literal(name).executes(c -> {
+                        open(c.getSource().getPlayerOrException(), 0, null);
+                        return 1;
+                    })));
+    }
+
+    /** Each player's chosen Pokédex (Cobblemon's regional dexes); national when none. */
+    private static final java.util.Map<java.util.UUID, net.minecraft.resources.ResourceLocation> REGION = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Cobblemon's dexes in their order, and their names in p's language. */
+    static List<net.minecraft.resources.ResourceLocation> regions() {
+        return com.cobblemon.mod.common.api.pokedex.Dexes.INSTANCE.getDexEntryMap().keySet().stream().filter(k -> !k.getPath().equals("unknown")).toList();
+    }
+
+    static net.minecraft.resources.ResourceLocation region(ServerPlayer p) {
+        return REGION.getOrDefault(p.getUUID(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("cobblemon", "national"));
+    }
+
+    static String regionName(ServerPlayer p, net.minecraft.resources.ResourceLocation id) {
+        return Lang.t(p, "cobblemon.ui.pokedex.region." + id.getPath());
+    }
+
+    /** The species in p's chosen dex, in its order. */
+    static List<Species> order(ServerPlayer p) {
+        var id = REGION.get(p.getUUID());
+        var def = id == null ? null : com.cobblemon.mod.common.api.pokedex.Dexes.INSTANCE.getDexEntryMap().get(id);
+        if (def == null || id.getPath().equals("national")) return order();
+        List<Species> out = new ArrayList<>();
+        for (var e : def.getEntries()) {
+            Species sp = PokemonSpecies.getByIdentifier(e.getSpeciesId());
+            if (sp != null && !out.contains(sp)) out.add(sp);
+        }
+        return out.isEmpty() ? order() : out;
+    }
+
+    /** Pick a dex: a dropdown on Bedrock (then the Pokédex again), the next one on Java. */
+    static void chooseRegion(ServerPlayer p, Runnable then) {
+        var all = regions();
+        var cur = REGION.getOrDefault(p.getUUID(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("cobblemon", "national"));
+        if (Clients.bedrock(p)) {
+            Forms.choice(p, Lang.t(p, "cobblemonlink.dex.region"), Lang.t(p, "cobblemonlink.dex.region"),
+                    all.stream().map(r -> regionName(p, r)).toList(), Math.max(0, all.indexOf(cur)), i -> {
+                        if (i >= 0) REGION.put(p.getUUID(), all.get(i));
+                        then.run();
+                    });
+            return;
+        }
+        REGION.put(p.getUUID(), all.get((all.indexOf(cur) + 1) % all.size()));
+        then.run();
     }
 
     static List<Species> order() {
@@ -55,7 +102,7 @@ public final class Dex {
             com.cobblemon.mod.common.net.serverhandling.pokedex.scanner.FinishScanningHandler.INSTANCE.handle(
                     new com.cobblemon.mod.common.net.messages.server.pokedex.scanner.FinishScanningPacket(pe.getId(), 1), p.server, p);
             Species sp = pe.getPokemon().getSpecies();
-            open(p, Math.max(0, order().indexOf(sp)) / PAGE, sp);
+            open(p, Math.max(0, order(p).indexOf(sp)) / PAGE, sp);
             return true;
         });
     }
@@ -67,7 +114,7 @@ public final class Dex {
     }
 
     static void bedrock(ServerPlayer p, int page, Species chosen) {
-        List<Species> all = order();
+        List<Species> all = order(p);
         int pages = Math.max(1, (all.size() + PAGE - 1) / PAGE), pg = Math.floorMod(page, pages);
         List<Species> here = all.subList(pg * PAGE, Math.min(all.size(), pg * PAGE + PAGE));
         Species sel = chosen != null ? chosen : here.getFirst();
@@ -83,7 +130,8 @@ public final class Dex {
         List<Forms.Opt> o = new ArrayList<>();
         o.add(new Forms.Opt("<", "none", () -> bedrock(p, pg - 1, null)));
         o.add(new Forms.Opt(">", "none", () -> bedrock(p, pg + 1, null)));
-        o.add(new Forms.Opt((pg + 1) + "/" + pages, "none", stay));
+        // the page counter picks the dex (Cobblemon's regional Pokédexes)
+        o.add(new Forms.Opt((pg + 1) + "/" + pages, "none", () -> chooseRegion(p, () -> bedrock(p, 0, null))));
         o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d", sel.getNationalPokedexNumber()), seen ? picture(sel) : "pokedex/unknown", stay));
         List<String> types = new ArrayList<>();
         sel.getTypes().forEach(t -> types.add(t.getName().toLowerCase(Locale.ROOT)));

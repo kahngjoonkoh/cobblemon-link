@@ -217,7 +217,7 @@ public final class JavaScreens {
 
     /** 45 a page (unseen: "???"), arrows on the last row. */
     static void dex(ServerPlayer p, int page) {
-        List<Species> all = Dex.order();
+        List<Species> all = Dex.order(p);
         int per = 45, pages = (all.size() + per - 1) / per, pg = Math.floorMod(page, pages);
         int seen = 0, caught = 0;
         for (Species s : all) {

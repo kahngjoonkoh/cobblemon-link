@@ -41,12 +41,17 @@ if (process.env.USE_ITEM) setTimeout(() => {
 const prefer = (process.env.PREFER || '').split(',').filter(Boolean) // PREFER_ONCE: each label is used once
 c.on('modal_form_request', p => {
   const f = JSON.parse(p.data)
-  console.log('form', f.title, '|', (f.content || '').replace(/\n/g, ' / '), '|', (f.buttons || []).map(b => b.text.replace(/\n/g, ' ') + '<' + (b.image && b.image.data) + '>').join(' ; '))
+  console.log('form', f.title, '|', (typeof f.content === 'string' ? f.content : '').replace(/\n/g, ' / '), '|', (f.buttons || []).map(b => b.text.replace(/\n/g, ' ') + '<' + (b.image && b.image.data) + '>').join(' ; '))
   let a = answers[Math.min(n++, answers.length - 1)]
   // PREFER: button labels in order of preference (the first that a form has wins), e.g. for a trade
   for (const want of prefer) {
     const i = (f.buttons || []).findIndex(b => b.text.includes(want))
     if (i >= 0) { a = i; if (process.env.PREFER_ONCE) prefer.splice(prefer.indexOf(want), 1); break }
+  }
+  // a custom form (dropdowns, text fields): every element answered with a (a dropdown index, or DROPDOWN env)
+  if (f.type === 'custom_form') {
+    console.log('custom', JSON.stringify((f.content || []).map(e => e.options || e.text)))
+    a = (f.content || []).map(e => e.type === 'dropdown' ? +(process.env.DROPDOWN || a) : e.type === 'input' ? (process.env.TEXT || 'bot') : null)
   }
   setTimeout(() => c.queue('modal_form_response', { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
 })
