@@ -111,7 +111,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Wild spawning everywhere (water, caves, fishing pools, herds, alphas) | ➖ | ➖ | Cobblemon's own spawner |
 | Shiny Pokémon (shiny looks) | ✅ | ✅ | the `__shiny` looks; ⬜ the shiny sparkle particles |
 | Pokémon cries and other Cobblemon sounds | ✅ | ✅ | `Sounds`: cries and the Poké Ball's sounds played by the server by name; server sounds sent by name; Bedrock pack from `tools/bedrock_sounds.py` (2,152 sounds, 20 MB) — `c2-bedrock-sounds-bot.log` |
-| Cobblemon's particles (Snowstorm: moves, evolutions, healing) | ⬜ | ⬜ | client-side Bedrock particle files; could map to vanilla particles |
+| Cobblemon's particles (Snowstorm: moves, evolutions, healing) | 🟡 | 🟡 | `Particles`: the effects the server sends (move keyframes, Poké Balls, pastures, MoLang `particle` calls) become the nearest Minecraft particle by name (`ParticlesTest`, `c16-bedrock-particles.log`). ⬜ effects Cobblemon's client starts itself (shiny sparkle, evolution sequence) and the real Snowstorm look |
 | Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
 | Evolution | ✅ | ✅ | Summary's Evolve (`c9-java-held-item-evolution.log`); ⬜ Cobblemon's evolution animation |

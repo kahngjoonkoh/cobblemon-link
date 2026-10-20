@@ -1,0 +1,2 @@
+# rcon: bedrockparticle cobblemon:evo_sparkleburst .SmokeBed (x3): the Bedrock bot gets Minecraft particles (END_ROD burst; Geyser's add_particle level events)
+levelevent add_particle_dragons_breath  (x many, first 10 shown in the session)

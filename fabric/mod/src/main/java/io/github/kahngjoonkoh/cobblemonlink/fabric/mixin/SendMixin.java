@@ -91,6 +91,8 @@ public class SendMixin {
                 var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(pa.getEntityId());
                 if (holder != null) for (String n : pa.getAnimation()) if (holder.play(n)) break;
             }
+            var particles = io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.particles(h.player, c.payload());
+            if (particles != null) return particles;
             io.github.kahngjoonkoh.cobblemonlink.fabric.Battles.packet(h.player, c.payload());
             io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.callbacks(h.player, c.payload());
             if (c.payload() instanceof com.cobblemon.mod.common.net.messages.client.storage.pc.OpenPCPacket)

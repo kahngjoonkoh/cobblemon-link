@@ -56,4 +56,6 @@ public final class Mixins {
         DEFERRED.add(id);
         return true;
     }
+
+    public static net.minecraft.network.protocol.Packet<?> particles(ServerPlayer p, CustomPacketPayload payload) { return Particles.of(p, payload); }
 }
