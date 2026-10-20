@@ -18,7 +18,7 @@ import net.minecraft.world.item.Items;
  * Cobblemon's dialogues (NPCs, scripted conversations) for players without the mod: each page with its speaker, lines
  * and choices (or a text box, or Continue), answered through Cobblemon's own dialogue handlers. Bedrock: a form;
  * vanilla Java: a chest (the lines on a book, a choice per item).
- * ponytail: Java can't type a text answer in a chest, so a text input page sends an empty answer.
+ * A text answer on Java is typed on a sign (Signs).
  */
 final class Dialogues {
     /** What Cobblemon's dialogue box sends to go on to the next page. */
@@ -58,7 +58,11 @@ final class Dialogues {
                     Forms.input(p, title, String.join("\n", lines), "", t -> { if (t == null) escape.run(); else answer(p, in, t); });
                     return;
                 }
-                opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.dialogue.continue"), "none", () -> answer(p, in, "")));
+                // Java: a sign to type on (placed only on the player's client, the real block put back after)
+                p.closeContainer();
+                if (!lines.isEmpty()) p.sendSystemMessage(net.minecraft.network.chat.Component.literal(title.isEmpty() ? String.join(" ", lines) : title + ": " + String.join(" ", lines)));
+                Signs.ask(p, t -> { if (t.isEmpty()) escape.run(); else answer(p, in, t); }); // nothing written: leave
+                return;
             }
             default -> opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.dialogue.continue"), "none", () -> answer(p, in, SKIP)));
         }
