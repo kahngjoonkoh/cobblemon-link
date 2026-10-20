@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 sha=$(cat COBBLEMON_COMMIT)
 src=$(mktemp -d); trap 'rm -rf "$src"' EXIT
 tools/fetch_cobblemon.sh "$sha" "$src"
-rm -rf assets/showdown assets/items.json assets/items-pack.zip assets/items.mcpack assets/geyser-items.json assets/java assets/bedrock assets/species.tsv assets/gamedata.json assets/datapack assets/ui-pack.zip assets/bedrock-ui.mcpack assets/geyser-mappings.json assets/portraits assets/cards assets/cards_full assets/tiles assets/bodies
+rm -rf assets/showdown assets/items.json assets/recipes.json assets/items-pack.zip assets/items.mcpack assets/geyser-items.json assets/java assets/bedrock assets/species.tsv assets/gamedata.json assets/datapack assets/ui-pack.zip assets/bedrock-ui.mcpack assets/geyser-mappings.json assets/portraits assets/cards assets/cards_full assets/tiles assets/bodies
 python3 tools/build_all.py "$src" assets
 python3 tools/build_data.py "$src" assets
 # the battle engine: Cobblemon's own Showdown build and its bag item effects (sim/server.js loads them from here)

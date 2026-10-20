@@ -35,6 +35,7 @@ final class Mon {
     List<Integer> ppMax; // max PP per move, as the last battle reported it (Ether, Elixir)
     String mint;         // a mint's nature: Cobblemon's effective nature for stats and battles
     String held;         // held item id (Cobblemon's), or null
+    boolean fished;      // reeled in with a Poké Rod (Cobblemon's "fished" aspect: the Lure Ball)
 
     static int shinyRate = 8192; // Cobblemon's shinyRate (config.yml)
 

@@ -11,12 +11,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 import looks
 
 STATS = {'hp': 'hp', 'attack': 'atk', 'defence': 'def', 'special_attack': 'spa', 'special_defence': 'spd', 'speed': 'spe'}
-# spawn conditions Spawner.java checks, as Cobblemon writes them; entries needing anything else (Poké Snacks, fishing
-# lures and rods) are skipped
+# spawn conditions Spawner.java checks, as Cobblemon writes them; entries needing anything else (Poké Snacks, bait) are
+# skipped
 KNOWN_CONDITIONS = {'biomes', 'minSkyLight', 'maxSkyLight', 'canSeeSky', 'timeRange', 'minY', 'maxY', 'isRaining',
                     'isThundering', 'moonPhase', 'minLight', 'maxLight', 'structures', 'neededNearbyBlocks',
-                    'neededBaseBlocks', 'isSlimeChunk', 'minX', 'maxX'}
-POSITIONS = {'grounded', 'submerged', 'surface', 'seafloor'}  # fishing waits for Poké Rods
+                    'neededBaseBlocks', 'isSlimeChunk', 'minX', 'maxX', 'minLureLevel', 'maxLureLevel', 'rodType'}
+POSITIONS = {'grounded', 'submerged', 'surface', 'seafloor', 'fishing'}  # fishing: Poké Rods (Fishing.java)
 PACK_FORMAT = 121  # Minecraft 26.3 data pack format
 
 

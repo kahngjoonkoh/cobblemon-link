@@ -25,6 +25,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Input;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -74,6 +75,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Companions companions;
     Items items;
     Evolutions evolutions;
+    final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
     private final List<ResourcePackInfo> packs = new ArrayList<>(); // sent to Java players on join
@@ -96,6 +98,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             getLogger().warning("items.json unreadable: " + e);
         }
         evolutions = new Evolutions(this);
+        try {
+            getLogger().info(Recipes.register(this, getDataFolder().toPath().resolve("recipes.json")) + " of Cobblemon's recipes");
+        } catch (IOException e) {
+            getLogger().warning("recipes.json unreadable: " + e);
+        }
         pc = new PcScreen(this);
         panel = new PartyPanel(this);
         balls = new PokeBalls(this);
@@ -429,6 +436,44 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         });
     }
 
+    private static final String[] APRICORNS = {"red", "yellow", "green", "blue", "pink", "black", "white"};
+    private static final String[] MINT_LEAVES = {"red", "blue", "cyan", "pink", "green", "white"};
+
+    /**
+     * Where the recipes' materials come from without Cobblemon's blocks: apricorns from leaves (its apricorn trees),
+     * mint leaves and medicinal leeks from grass (its mint and leek plants), berries from sweet berry bushes.
+     * ponytail: drop chances stand in for Cobblemon's world-generated plants and trees.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onBreak(org.bukkit.event.block.BlockBreakEvent e) {
+        if (items == null || e.getPlayer().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
+        var r = ThreadLocalRandom.current();
+        Material t = e.getBlock().getType();
+        String id = null;
+        if (Tag.LEAVES.isTagged(t) && r.nextInt(40) == 0) id = APRICORNS[r.nextInt(APRICORNS.length)] + "_apricorn";
+        else if ((t == Material.SHORT_GRASS || t == Material.TALL_GRASS) && r.nextInt(60) == 0)
+            id = r.nextInt(4) == 0 ? "medicinal_leek" : MINT_LEAVES[r.nextInt(MINT_LEAVES.length)] + "_mint_leaf";
+        else if (t == Material.SWEET_BERRY_BUSH && r.nextInt(8) == 0) {
+            var berries = items.defs.keySet().stream().filter(k -> k.endsWith("_berry")).sorted().toList();
+            id = berries.isEmpty() ? null : berries.get(r.nextInt(berries.size()));
+        }
+        ItemStack drop = id == null ? null : items.create(id, 1);
+        if (drop != null) e.getBlock().getWorld().dropItemNaturally(e.getBlock().getLocation(), drop);
+    }
+
+    /** Cobblemon's Poké Rods: a bite is a Pokémon 85% of the time (pokemonSpawnChance), else the vanilla catch. */
+    @EventHandler(ignoreCancelled = true)
+    public void onFish(org.bukkit.event.player.PlayerFishEvent e) {
+        if (e.getState() != org.bukkit.event.player.PlayerFishEvent.State.CAUGHT_FISH || items == null) return;
+        ItemStack rodItem = e.getHand() == null ? null : e.getPlayer().getInventory().getItem(e.getHand());
+        String rod = items.id(rodItem);
+        if (rod == null || !rod.endsWith("_rod") || ThreadLocalRandom.current().nextInt(100) >= 85) return;
+        Entity mon = spawner.fish(e.getPlayer(), e.getHook().getLocation(), rodItem.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.LURE), rod);
+        if (mon == null) return;
+        if (e.getCaught() != null) e.getCaught().remove(); // a Pokémon instead of the fish
+        e.setExpToDrop(ThreadLocalRandom.current().nextInt(1, 7));
+    }
+
     /** ponytail: beds heal (any time you lie down); a Pokémon Center block is the upgrade. */
     @EventHandler
     public void onBed(PlayerBedEnterEvent e) {
@@ -445,6 +490,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     /** The PC hides the player's own items from their screen (PcScreen.hideInventory): show them again. */
     @EventHandler
     public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (e.getInventory().getHolder() instanceof Menu m && m.onClose != null) m.onClose.run();
         if (e.getInventory().getHolder() instanceof Menu && e.getPlayer() instanceof Player p)
             Bukkit.getScheduler().runTask(this, () -> { if (!(p.getOpenInventory().getTopInventory().getHolder() instanceof Menu)) p.updateInventory(); });
     }
@@ -668,6 +714,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             if (b == null) p.sendMessage(Component.text("You are not in a battle.", NamedTextColor.RED));
             else b.reveal();
         });
+        playerCommand("trade", "/trade <player>: offer a Pokémon trade; /trade accept <player>", null, (p, a) -> trades.command(p, a));
         playerCommand("pokeheal", "Heal your party (admin)", "cobblemonlink.admin", (p, a) -> heal(p));
         playerCommand("pokegive", "/pokegive <species> [level] [properties...] (admin)", "cobblemonlink.admin", (p, a) -> {
             if (a.length < 1 || dex.get(a[0]) == null) {

@@ -148,6 +148,26 @@ final class Spawner {
         }
     }
 
+    /**
+     * A Poké Rod's catch (Cobblemon's fishing spawns at the bobber): one rarity bucket, the spawns that fit the water
+     * there and the rod; the Pokémon is "fished" (Lure Ball) and, under 90 kg, lobbed toward the player. Null: no bite.
+     */
+    Entity fish(Player p, Location hook, int lure, String rod) {
+        String bucket = bucket();
+        List<Dex.Spawn> fits = new ArrayList<>();
+        for (Dex.Spawn s : pl.dex.spawns) if (s.type.equals("fishing") && bucket.equals(s.bucket) && fits(s, hook.getBlock(), lure, rod)) fits.add(s);
+        if (fits.isEmpty()) return null;
+        double roll = ThreadLocalRandom.current().nextDouble(fits.stream().mapToDouble(s -> s.weight).sum());
+        Dex.Spawn pick = fits.getLast();
+        for (Dex.Spawn s : fits) if ((roll -= s.weight) <= 0) { pick = s; break; }
+        Mon m = Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props);
+        m.fished = true;
+        Entity e = spawn(hook, m);
+        if (pl.dex.of(m).weight < 900) // Cobblemon's lobPokemonTowardsTarget
+            e.setVelocity(p.getLocation().toVector().subtract(hook.toVector()).multiply(0.12).setY(0.6));
+        return e;
+    }
+
     /** PlayerLevelRangeInfluence: the party's highest level +-5 (at least up to 10), inside the spawn's range. */
     int level(Player p, int min, int max) {
         int top = pl.store.get(p.getUniqueId()).party.stream().mapToInt(m -> m.level).max().orElse(0);
@@ -285,13 +305,18 @@ final class Spawner {
         return solidBelow ? "grounded" : waterBelow ? "surface" : null;
     }
 
-    private boolean fits(Dex.Spawn s, Block at) {
-        return check(s.cond, at) && (s.anti == null || !check(s.anti, at));
+    private boolean fits(Dex.Spawn s, Block at) { return fits(s, at, -1, null); }
+
+    /** lure / rod: the Poké Rod's Lure level and id when fishing (-1 / null otherwise). */
+    private boolean fits(Dex.Spawn s, Block at, int lure, String rod) {
+        return check(s.cond, at, lure, rod) && (s.anti == null || !check(s.anti, at, lure, rod));
     }
 
     /** Every condition c sets holds at this block (Cobblemon's SpawningCondition.fits). */
-    private boolean check(Dex.Cond c, Block at) {
+    private boolean check(Dex.Cond c, Block at, int lure, String rod) {
         World w = at.getWorld();
+        if (c.minLureLevel != null && lure < c.minLureLevel || c.maxLureLevel != null && lure > c.maxLureLevel) return false;
+        if (c.rodType != null && !c.rodType.equals("cobblemon:" + rod)) return false;
         if (c.timeRange != null && !Evolutions.inTime(c.timeRange, w.getTime() % 24000)) return false; // Cobblemon's TimeRanges
         if (c.isRaining != null && c.isRaining != w.hasStorm()) return false;
         if (c.isThundering != null && c.isThundering != w.isThundering()) return false;

@@ -1,0 +1,113 @@
+package io.github.kahngjoonkoh.cobblemonlink;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import io.papermc.paper.potion.PotionMix;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
+import org.bukkit.inventory.BlastingRecipe;
+import org.bukkit.inventory.FurnaceRecipe;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Recipe;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.inventory.SmithingTransformRecipe;
+
+/**
+ * Cobblemon's crafting, furnace, smithing and brewing-stand recipes (recipes.json, tools/build_items.py), registered
+ * with Cobblemon's items as exact-item ingredients and results. A recipe naming something this server lacks is skipped.
+ */
+final class Recipes {
+    static final class Def {
+        String id, type, result;
+        int count = 1, time = 200;
+        float xp;
+        List<String> pattern;
+        Map<String, List<String>> key;
+        List<List<String>> ingredients;
+        List<String> ingredient, base, addition, template, input, bottle;
+    }
+
+    static int register(CobblemonLink pl, Path file) throws IOException {
+        if (!Files.exists(file)) return 0;
+        List<Def> defs;
+        try (Reader r = Files.newBufferedReader(file)) {
+            defs = new Gson().fromJson(r, new TypeToken<List<Def>>() {}.getType());
+        }
+        int n = 0;
+        for (Def d : defs) {
+            try {
+                if (add(pl, d)) n++;
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                pl.getLogger().fine("recipe " + d.id + " skipped: " + e.getMessage());
+            }
+        }
+        return n;
+    }
+
+    private static boolean add(CobblemonLink pl, Def d) {
+        NamespacedKey key = new NamespacedKey(pl, "cobblemon_" + d.id);
+        ItemStack result = stack(pl, d.result, d.count);
+        if (result == null) return false;
+        Recipe r = switch (d.type) {
+            case "shaped" -> {
+                ShapedRecipe s = new ShapedRecipe(key, result).shape(d.pattern.toArray(String[]::new));
+                for (var e : d.key.entrySet()) s.setIngredient(e.getKey().charAt(0), choice(pl, e.getValue()));
+                yield s;
+            }
+            case "shapeless" -> {
+                ShapelessRecipe s = new ShapelessRecipe(key, result);
+                for (List<String> i : d.ingredients) s.addIngredient(choice(pl, i));
+                yield s;
+            }
+            case "smelting" -> new FurnaceRecipe(key, result, choice(pl, d.ingredient), d.xp, d.time);
+            case "blasting" -> new BlastingRecipe(key, result, choice(pl, d.ingredient), d.xp, d.time);
+            case "smithing" -> new SmithingTransformRecipe(key, result, choice(pl, d.template), choice(pl, d.base), choice(pl, d.addition));
+            case "brewing" -> {
+                Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, result, choice(pl, d.bottle), choice(pl, d.input)));
+                yield null;
+            }
+            default -> throw new IllegalArgumentException(d.type);
+        };
+        if (r != null) Bukkit.addRecipe(r);
+        return true;
+    }
+
+    /** "cobblemon:x" -> Cobblemon's item; "minecraft:x" -> the vanilla item. */
+    private static ItemStack stack(CobblemonLink pl, String id, int count) {
+        if (id.startsWith("cobblemon:")) return pl.items.create(id.substring(10), count);
+        Material m = Material.matchMaterial(id);
+        return m == null || !m.isItem() ? null : new ItemStack(m, count);
+    }
+
+    /** Vanilla items and tags as a material choice; any Cobblemon item makes it an exact choice of stacks. */
+    private static RecipeChoice choice(CobblemonLink pl, List<String> ids) {
+        List<Material> mats = new ArrayList<>();
+        List<ItemStack> exact = new ArrayList<>();
+        for (String id : ids) {
+            if (id.startsWith("#")) {
+                Tag<Material> tag = Bukkit.getTag(Tag.REGISTRY_ITEMS, NamespacedKey.fromString(id.substring(1)), Material.class);
+                if (tag == null) throw new IllegalArgumentException("no tag " + id);
+                mats.addAll(tag.getValues());
+            } else {
+                ItemStack s = stack(pl, id, 1);
+                if (s == null) throw new IllegalArgumentException("no item " + id);
+                if (id.startsWith("cobblemon:")) exact.add(s);
+                else mats.add(s.getType());
+            }
+        }
+        if (exact.isEmpty()) return new RecipeChoice.MaterialChoice(mats);
+        mats.forEach(m -> exact.add(new ItemStack(m)));
+        return new RecipeChoice.ExactChoice(exact);
+    }
+}

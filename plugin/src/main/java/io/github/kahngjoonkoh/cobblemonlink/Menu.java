@@ -30,6 +30,7 @@ final class Menu implements InventoryHolder {
 
     private final Inventory inv;
     private final Map<Integer, Consumer<InventoryClickEvent>> actions = new HashMap<>();
+    Runnable onClose; // the player closed it (not when another menu replaces it in code: set it to null first)
 
     Menu(int size, String title) { this(size, Component.text(title)); }
 

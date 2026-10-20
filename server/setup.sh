@@ -39,7 +39,7 @@ for f in ../plugin/cobblemon-link.jar ../plugin/build/libs/cobblemon-link-*.jar;
 rm -f "$D"/plugins/cobblemon-link*.jar
 cp "$jar" "$D/plugins/cobblemon-link.jar"
 mkdir -p "$D/plugins/CobblemonLink"
-cp ../assets/gamedata.json ../assets/items.json "$D/plugins/CobblemonLink/"
+cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json "$D/plugins/CobblemonLink/"
 # Java battle-menu art; the pack server serves it next to BetterModel's build.zip
 cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
 rm -f "$D"/plugins/BetterModel/cobblemon-link-pics-*.zip  # the Pokémon pictures, a pack a region

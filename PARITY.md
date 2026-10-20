@@ -61,7 +61,7 @@ Counts: see [the summary at the end](#summary).
 | Out-of-battle throw | Direct capture at ×0.5; a sleeping Pokémon wakes on a miss | ×0.5; it stays | ✅ | ✅ |
 | Ball in battle | A miss uses your turn | Same (a forced pass) | ✅ | ✅ |
 | Ball types (Great, Ultra, Quick, Dusk, Net, Heal… and ancient balls) | 48 | All 48 with `PokeBalls.kt`'s modifiers and effects; in flight they use the Poké Ball's 3D model; the Lure Ball has no fishing to boost | 🟡 | 🟡 |
-| Apricorn trees and ball crafting | ✓ | Poké Ball recipe only | ⬜ | ⬜ |
+| Apricorn trees and ball crafting | ✓ | Cobblemon's ball recipes; apricorns drop from leaves instead of growing on apricorn trees | 🟡 | 🟡 |
 | Can't catch owned or busy Pokémon | ✓ | ✓ | ✅ | ✅ |
 
 ## Pokémon data and progression
@@ -99,20 +99,21 @@ Counts: see [the summary at the end](#summary).
 
 | Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
 |---|---|---|---|---|
-| Trading | ✓ | — | ⬜ | ⬜ |
-| Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | — | ⬜ | ⬜ |
+| Trading | ✓ | `/trade <player>`, a chest of both parties: offer, ready, swap; trade evolutions on arrival; party only (no PC) | 🟡 | 🟡 |
+| Fishing (Poké Rods, bait, Lure) | 48 rods, 603 spawn entries | All 48 rods (cast model on Java); 600 fishing spawns with Lure level and rod type; 85% Pokémon per bite, lobbed in under 90 kg; Lure Ball; no bait | 🟡 | 🟡 |
 | NPCs and dialogues | ✓ | — | ⬜ | ⬜ |
 | Pokémon interactions (feeding, items on Pokémon) | 167 | — | ⬜ | ⬜ |
 | Cries and emotes | ✓ | — | ⬜ | ⬜ |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | — | ⬜ | ⬜ |
-| Berries and berry trees | 70 | — | ⬜ | ⬜ |
-| Apricorns | ✓ | — | ⬜ | ⬜ |
+| Berries and berry trees | 70 | Held berries work in battle; berries drop from sweet berry bushes; no berry trees, mulch or out-of-battle berry effects | 🟡 | 🟡 |
+| Apricorns | ✓ | The 7 apricorns, from leaves | 🟡 | 🟡 |
 | Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | — | ⬜ | ⬜ |
 | Medicine (potions, revives, status cures, ethers) | ✓ | All of them, in and out of battle, with Cobblemon's art | ✅ | ✅ |
 | Vitamins, EXP candies, Rare Candy | ✓ | Vitamins (+10 EVs), feathers (+1), EXP candies, Rare Candy | ✅ | ✅ |
 | Evolution stones and ores | ✓ | The items work; no ores or other ways to find them yet (`/pokeitem`) | 🟡 | 🟡 |
 | Held items | ~80 | Given by right-click (the old one comes back); no taking without a swap | 🟡 | 🟡 |
 | Display Case, Gilded Chests, Pokédex items | ✓ | — | ⬜ | ⬜ |
+| Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 347 of them (every one whose ingredients are items: balls, medicine, held items, mints, rods); mint leaves and leeks drop from grass | 🟡 | 🟡 |
 | Structures (ruins, shipwrecks, habitats, villages) | ✓ | — | ⬜ | ⬜ |
 
 ## Commands
@@ -133,12 +134,12 @@ Counts: see [the summary at the end](#summary).
 
 ## Summary
 
-92 rows; Java and Bedrock are level.
+93 rows; Java and Bedrock are level.
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 41 | 18 | 32 | 1 |
-| Bedrock | 41 | 18 | 32 | 1 |
+| Java | 41 | 24 | 27 | 1 |
+| Bedrock | 41 | 24 | 27 | 1 |
 
 ## Suggested order
 

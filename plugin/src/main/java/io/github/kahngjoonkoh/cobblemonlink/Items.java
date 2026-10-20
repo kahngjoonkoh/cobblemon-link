@@ -56,13 +56,13 @@ final class Items {
         Def d = defs.get(id);
         if (d == null) return null;
         boolean ball = d.kind.equals("ball");
-        ItemStack it = new ItemStack(ball ? Material.SNOWBALL : Material.PAPER, amount); // build_items.py maps these
+        ItemStack it = new ItemStack(ball ? Material.SNOWBALL : d.kind.equals("rod") ? Material.FISHING_ROD : Material.PAPER, amount); // build_items.py maps these
         it.editMeta(m -> {
             m.customName(Component.text(d.name).decoration(TextDecoration.ITALIC, false));
             m.setItemModel(new NamespacedKey("cobblemon", id));
             m.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);
             if (ball) m.getPersistentDataContainer().set(pl.ballKey, PersistentDataType.BYTE, (byte) 1);
-            if (!ball) m.setMaxStackSize(64);
+            if (!ball && !d.kind.equals("rod")) m.setMaxStackSize(64);
         });
         return it;
     }
@@ -97,7 +97,7 @@ final class Items {
                 int top = t.active().stream().mapToInt(m -> m.level).max().orElse(1), l = t.wild().level;
                 yield top > l * 4 ? 4 : top > l * 2 ? 3 : top > l ? 2 : 1;
             }
-            case "lure_ball" -> 1; // ponytail: no fishing yet, so nothing is "fished"
+            case "lure_ball" -> t.wild().fished ? 4 : 1;
             case "heavy_ball" -> s.weight >= 3000 ? 4 : s.weight >= 2000 ? 2.5 : s.weight >= 1000 ? 1.5 : 1;
             case "love_ball" -> {
                 String g = t.wild().gender;
@@ -144,7 +144,7 @@ final class Items {
     boolean use(Player p, ItemStack stack) {
         String id = id(stack);
         Def d = id == null ? null : defs.get(id);
-        if (d == null || d.kind.equals("ball") || d.kind.equals("evolution") && pl.evolutions == null) return false;
+        if (d == null || d.kind.equals("ball") || d.kind.equals("rod")) return false;
         Battle b = pl.battles.get(p.getUniqueId());
         List<Mon> party = pl.store.get(p.getUniqueId()).party;
         if (party.isEmpty()) return true;

@@ -81,7 +81,8 @@ final class Dex {
     /** One of Cobblemon's spawning conditions; a null field isn't checked. */
     static final class Cond {
         List<String> biomes, structures, neededNearbyBlocks, neededBaseBlocks;
-        Integer minSkyLight, maxSkyLight, minY, maxY, minLight, maxLight, minX, maxX;
+        Integer minSkyLight, maxSkyLight, minY, maxY, minLight, maxLight, minX, maxX, minLureLevel, maxLureLevel;
+        String rodType; // "cobblemon:love_rod"
         Boolean canSeeSky, isRaining, isThundering, isSlimeChunk;
         String timeRange;
         Object moonPhase; // "1-3", 0, or a list of either

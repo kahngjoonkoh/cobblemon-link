@@ -4,6 +4,7 @@ usage: build_items.py COBBLEMON_RESOURCES OUT_DIR
   OUT_DIR/items.json         id -> {name, kind, ...}: Items.java gives and uses them
   OUT_DIR/items-pack.zip     Java: assets/cobblemon/items/<id>.json with Cobblemon's own item models and textures
   OUT_DIR/items.mcpack       Bedrock: the icons
+  OUT_DIR/recipes.json       Cobblemon's recipes the plugin can register (Recipes.java)
   OUT_DIR/geyser-items.json  Geyser custom mappings: a Java item with item_model cobblemon:<id> -> cobblemonlink:<id>
 The Poké Ball itself stays in the UI packs (build_ui.py, build_bedrock_ui.py), which also give it its 3D model.
 """
@@ -76,6 +77,8 @@ def table(res):
     items.update(KINDS)
     items.update({f'{n}_mint': {'kind': 'mint', 'nature': n} for n in NATURES if os.path.exists(
         f'{res}/assets/cobblemon/models/item/{n}_mint.json')})
+    for f in glob.glob(f'{res}/assets/cobblemon/models/item/*_rod.json'):  # Poké Rods (fishing rods with a ball)
+        items[os.path.basename(f)[:-5]] = {'kind': 'rod'}
     for i in evolution_items(res):
         items.setdefault(i, {'kind': 'evolution'})
     # held items: anything else Showdown knows (Leftovers, Choice Band, berries, gems...); fossils wait for their machine
@@ -85,11 +88,83 @@ def table(res):
         i = os.path.basename(f)[:-5]
         if i.replace('_', '') in sd and 'fossil' not in i:
             items.setdefault(i, {'kind': 'held'})
+    global RECIPES
+    RECIPES = recipes(res, items)
     out = {}
     for i, d in sorted(items.items()):
         if not os.path.exists(f'{res}/assets/cobblemon/models/item/{i}.json'):
             continue
         out[i] = {'name': lang.get(f'item.cobblemon.{i}', lang.get(f'block.cobblemon.{i}', i)), **d}
+    return out
+
+
+RECIPE_TYPES = {'minecraft:crafting_shaped': 'shaped', 'minecraft:crafting_shapeless': 'shapeless',
+                'minecraft:smelting': 'smelting', 'minecraft:blasting': 'blasting',
+                'minecraft:smithing_transform': 'smithing', 'cobblemon:brewing_stand': 'brewing'}
+
+
+def recipes(res, items):
+    """Cobblemon's crafting, furnace, smithing and brewing recipes whose ingredients are vanilla or Cobblemon items
+    with a model; their Cobblemon ingredients join the table as materials. The plugin registers them (Recipes)."""
+    def tag(t, seen=()):  # a Cobblemon item tag, flattened (vanilla and c: entries stay as they are)
+        path = f'{res}/data/cobblemon/tags/item/{t[11:]}.json'
+        if not os.path.exists(path) or t in seen:
+            return [None]
+        vals = [v if isinstance(v, str) else v.get('id') for v in json.load(open(path))['values']]
+        return [i for v in vals for i in (tag(v, seen + (t,)) if str(v).startswith('#cobblemon:') else ids(v))]
+
+    def common(t):  # Fabric/NeoForge "c:" tags the recipes use, as the vanilla item (Paper has no c: tags)
+        t = t[2:]  # less "c:"
+        kind, _, what = t.partition('/')
+        special = {'gems/amethyst': 'amethyst_shard', 'gems/lapis': 'lapis_lazuli', 'dusts/redstone': 'redstone',
+                   'strings': 'string', 'leathers': 'leather', 'feathers': 'feather', 'slime_balls': 'slime_ball',
+                   'crops/wheat': 'wheat', 'chests/wooden': 'chest', 'drinks/milk': 'milk_bucket',
+                   'fertilizers': 'bone_meal', 'chains': 'iron_chain'}
+        if t in special:
+            return 'minecraft:' + special[t]
+        suffix = {'ingots': '_ingot', 'nuggets': '_nugget', 'gems': '', 'dyes': '_dye'}.get(kind)
+        return None if suffix is None or not what else f'minecraft:{what}{suffix}'
+
+    def ids(x):
+        if isinstance(x, list):
+            return [i for y in x for i in ids(y)]
+        if isinstance(x, dict):
+            x = x.get('item') or x.get('id') or ('#' + x['tag'] if 'tag' in x else None)
+        if isinstance(x, str) and x.startswith(('#c:', 'c:')):
+            return [common(x.lstrip('#'))]
+        if isinstance(x, str) and x.startswith('#cobblemon:'):
+            return tag(x)
+        return [x] if isinstance(x, str) else [None]
+
+    def has_model(i):  # an item, not a block (blocks would need placing) or a boat/sign/door
+        path = f'{res}/assets/cobblemon/models/item/{i}.json'
+        if not os.path.exists(path) or re.search(r'(boat|sign|door|fence|button|pressure_plate|_block|tm_machine|display_case)$', i):
+            return False
+        return not json.load(open(path)).get('parent', '').startswith('cobblemon:block')
+    out = []
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/recipe/*.json') + glob.glob(f'{res}/data/cobblemon/recipe/brewing_stand/*.json')):
+        d = json.load(open(f))
+        kind = RECIPE_TYPES.get(d.get('type'))
+        r = d.get('result')
+        rid, count = (r.get('id') or r.get('item'), r.get('count', 1)) if isinstance(r, dict) else (r, 1)
+        if not kind or not isinstance(rid, str):
+            continue
+        parts = {'key': d.get('key', {}), 'ingredients': d.get('ingredients', []),
+                 **{k: d[k] for k in ('ingredient', 'base', 'addition', 'template', 'input', 'bottle') if k in d}}
+        used = [i for v in parts.values() for i in (ids(list(v.values())) if isinstance(v, dict) else ids(v))] + [rid]
+        if any(i is None or i.startswith('#c:') or i.startswith('#cobblemon') or not i.startswith(('minecraft:', '#minecraft:', 'cobblemon:'))
+               or i.startswith('cobblemon:') and not has_model(i[10:]) for i in used):
+            continue
+        for i in used:
+            if i.startswith('cobblemon:') and i[10:] != 'poke_ball':
+                items.setdefault(i[10:], {'kind': 'material'})
+        norm = lambda v: [x for x in ids(v)]
+        out.append({'id': os.path.basename(f)[:-5], 'type': kind, 'result': rid, 'count': count,
+                    **({'pattern': d['pattern']} if 'pattern' in d else {}),
+                    **({'key': {k: norm(v) for k, v in d['key'].items()}} if 'key' in d else {}),
+                    **({'ingredients': [norm(v) for v in d['ingredients']]} if 'ingredients' in d else {}),
+                    **{k: norm(d[k]) for k in ('ingredient', 'base', 'addition', 'template', 'input', 'bottle') if k in d},
+                    **({'time': d['cookingtime']} if 'cookingtime' in d else {}), **({'xp': d['experience']} if 'experience' in d else {})})
     return out
 
 
@@ -134,6 +209,9 @@ def build(res, out):
             # in flight (a thrown item renders as "ground"): Cobblemon's 3D ball, like the Poké Ball's
             d = {'type': 'minecraft:select', 'property': 'minecraft:display_context',
                  'cases': [{'when': 'ground', 'model': model(f'cobblemon:item/{i}_model')}], 'fallback': d}
+        if items[i]['kind'] == 'rod' and model_files(res, f'item/{i}_cast', java):  # the line out: Cobblemon's cast model
+            d = {'type': 'minecraft:condition', 'property': 'minecraft:fishing_rod/cast',
+                 'on_true': model(f'cobblemon:item/{i}_cast'), 'on_false': d}
         java[f'assets/cobblemon/items/{i}.json'] = json.dumps({'model': d}).encode()
         if icons[i]:
             buf = io.BytesIO()
@@ -158,13 +236,14 @@ def build(res, out):
 
     mapping = lambda i: {'type': 'definition', 'model': f'cobblemon:{i}', 'bedrock_identifier': f'cobblemonlink:{i}',
                          'display_name': items[i]['name'], 'bedrock_options': {'icon': f'cobblemonlink:{i}'}}
-    base = lambda i: 'minecraft:snowball' if items[i]['kind'] == 'ball' else 'minecraft:paper'  # Items.java's materials
+    base = lambda i: {'ball': 'minecraft:snowball', 'rod': 'minecraft:fishing_rod'}.get(items[i]['kind'], 'minecraft:paper')  # Items.java's materials
     maps = {}
     for i in items:
         if icons[i]:
             maps.setdefault(base(i), []).append(mapping(i))
     json.dump({'format_version': 2, 'items': maps}, open(f'{out}/geyser-items.json', 'w'), indent=1)
     json.dump(items, open(f'{out}/items.json', 'w'), indent=1, ensure_ascii=False)
+    json.dump(RECIPES, open(f'{out}/recipes.json', 'w'), indent=1)
     return items
 
 
