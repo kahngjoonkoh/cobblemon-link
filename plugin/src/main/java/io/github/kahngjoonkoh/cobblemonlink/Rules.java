@@ -99,4 +99,14 @@ final class Rules {
         if (a <= b) return new int[] {a, b};
         return min > hi ? new int[] {min, (int) (min + width / 4F)} : new int[] {(int) (min + 3 * width / 4F), max};
     }
+
+    /** Cobblemon's MoonPhaseRange: "1-3", 4, or a list of those (0 is a full moon). */
+    static boolean moonPhase(Object range, int phase) {
+        if (range instanceof java.util.List<?> l) return l.stream().anyMatch(r -> moonPhase(r, phase));
+        String r = range instanceof Number n ? String.valueOf(n.intValue()) : String.valueOf(range);
+        int dash = r.indexOf('-');
+        if (dash < 0) return Integer.parseInt(r.trim()) == phase;
+        return phase >= Integer.parseInt(r.substring(0, dash).trim()) && phase <= Integer.parseInt(r.substring(dash + 1).trim());
+    }
+
 }

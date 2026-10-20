@@ -13,13 +13,13 @@ Counts: see [the summary at the end](#summary).
 
 | Feature | Cobblemon 1.8.2 | cobblemon-link | Java | Bedrock |
 |---|---|---|---|---|
-| Spawn data | 3,044 entries in `spawn_pool_world`, 874 species | Cobblemon's own files, filtered to the conditions below | 🟡 | 🟡 |
-| Grounded spawns | 2,007 entries | Surface only: entries needing `canSeeSky: false` (caves) are skipped | 🟡 | 🟡 |
-| Water spawns (submerged, surface, seafloor) | 434 entries | — | ⬜ | ⬜ |
+| Spawn data | 3,044 entries in `spawn_pool_world`, 874 species | Cobblemon's own files: 1,844 entries, 662 species (all but fishing and Poké Snack ones, and species without a model) | 🟡 | 🟡 |
+| Grounded spawns | 2,007 entries | Anywhere in the zone, caves included | ✅ | ✅ |
+| Water spawns (submerged, surface, seafloor) | 434 entries | All three; the pig carrier swims rather than dives | 🟡 | 🟡 |
 | Biomes and biome tags | ✓ | Cobblemon's biome tags as a datapack | ✅ | ✅ |
 | Time of day, rain, Y level, sky light | ✓ | Checked | ✅ | ✅ |
-| Moon phase, thunder, block light, slime chunks | ✓ | — | ⬜ | ⬜ |
-| Structures, nearby / base blocks | ✓ | — | ⬜ | ⬜ |
+| Moon phase, thunder, block light, slime chunks | ✓ | Checked | ✅ | ✅ |
+| Structures, nearby / base blocks | ✓ | Checked (structure bounding boxes, block tags), and anticonditions of every kind | ✅ | ✅ |
 | Rarity buckets | common 94.05, uncommon 5, rare 0.5, ultra-rare 0.2 | Same | ✅ | ✅ |
 | Spawn level from the party | Highest level ±5 inside the spawn's range | Same (`Rules.levelRange`) | ✅ | ✅ |
 | Caps, distances, despawn | 1 per chunk, 8 per pass, 16–64 blocks; aging despawner | Same | ✅ | ✅ |
@@ -137,8 +137,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 38 | 18 | 35 | 1 |
-| Bedrock | 38 | 18 | 35 | 1 |
+| Java | 41 | 18 | 32 | 1 |
+| Bedrock | 41 | 18 | 32 | 1 |
 
 ## Suggested order
 

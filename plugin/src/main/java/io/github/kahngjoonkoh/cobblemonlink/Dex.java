@@ -71,13 +71,20 @@ final class Dex {
     }
 
     static final class Spawn {
-        String species, bucket, timeRange;
+        String species, bucket, type = "grounded"; // type: Cobblemon's spawnablePositionType (grounded, submerged, surface, seafloor)
         double weight;
         int[] level;
-        List<String> biomes, antiBiomes;
-        Integer minSkyLight, maxSkyLight, minY, maxY;
-        Boolean canSeeSky, isRaining;
+        Cond cond = new Cond(), anti;               // Cobblemon's condition and anticondition, as written
         List<String> props = List.of(); // Cobblemon spawn properties: alolan, flower=white, region_bias=hisui
+    }
+
+    /** One of Cobblemon's spawning conditions; a null field isn't checked. */
+    static final class Cond {
+        List<String> biomes, structures, neededNearbyBlocks, neededBaseBlocks;
+        Integer minSkyLight, maxSkyLight, minY, maxY, minLight, maxLight, minX, maxX;
+        Boolean canSeeSky, isRaining, isThundering, isSlimeChunk;
+        String timeRange;
+        Object moonPhase; // "1-3", 0, or a list of either
     }
 
     Map<String, Species> species;

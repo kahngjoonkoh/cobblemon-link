@@ -11,8 +11,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 import looks
 
 STATS = {'hp': 'hp', 'attack': 'atk', 'defence': 'def', 'special_attack': 'spa', 'special_defence': 'spd', 'speed': 'spe'}
-# spawn conditions the plugin checks; entries needing anything else (structures, snacks, fishing...) are skipped
-KNOWN_CONDITIONS = {'biomes', 'minSkyLight', 'maxSkyLight', 'canSeeSky', 'timeRange', 'minY', 'maxY', 'isRaining'}
+# spawn conditions Spawner.java checks, as Cobblemon writes them; entries needing anything else (Poké Snacks, fishing
+# lures and rods) are skipped
+KNOWN_CONDITIONS = {'biomes', 'minSkyLight', 'maxSkyLight', 'canSeeSky', 'timeRange', 'minY', 'maxY', 'isRaining',
+                    'isThundering', 'moonPhase', 'minLight', 'maxLight', 'structures', 'neededNearbyBlocks',
+                    'neededBaseBlocks', 'isSlimeChunk', 'minX', 'maxX'}
+POSITIONS = {'grounded', 'submerged', 'surface', 'seafloor'}  # fishing waits for Poké Rods
 PACK_FORMAT = 121  # Minecraft 26.3 data pack format
 
 
@@ -118,15 +122,14 @@ def spawns(res, dex):
             words = (s.get('pokemon') or '').split()
             sid = words[0] if words else ''
             cond, anti = s.get('condition', {}), s.get('anticondition', {})
-            if (s.get('type') != 'pokemon' or s.get('spawnablePositionType') != 'grounded' or sid not in dex
-                    or set(cond) - KNOWN_CONDITIONS or set(anti) - {'biomes'} or not cond.get('biomes')):
+            if (s.get('type') != 'pokemon' or s.get('spawnablePositionType') not in POSITIONS or sid not in dex
+                    or set(cond) - KNOWN_CONDITIONS or set(anti) - KNOWN_CONDITIONS):
                 continue
             lo, _, hi = str(s.get('level', '5-30')).partition('-')
             props = [w for w in words[1:] if w != sid]  # form/feature properties: alolan, flower=white, region_bias=hisui
             out.append({'species': sid, 'bucket': s['bucket'], 'weight': s['weight'], **({'props': props} if props else {}),
-                        'level': [int(lo), int(hi or lo)], 'biomes': cond['biomes'],
-                        'antiBiomes': anti.get('biomes', []),
-                        **{k: cond[k] for k in KNOWN_CONDITIONS - {'biomes'} if k in cond}})
+                        'level': [int(lo), int(hi or lo)], 'type': s['spawnablePositionType'], 'cond': cond,
+                        **({'anti': anti} if anti else {})})
     return out
 
 
@@ -181,7 +184,7 @@ def main(a):
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
-    print(len(dex), 'species,', len(sp), 'grounded spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
+    print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
 
 
 def demo():
@@ -205,7 +208,8 @@ def demo():
         assert b['abilities'] == ['overgrow'] and b['moves'] == [[1, 'tackle'], [3, 'vinewhip']]
         assert b['evolutions'] == [[16, 'ivysaur']] and b['baseStats']['spa'] == 1
         sp = spawns(t, dex)
-        assert len(sp) == 1 and sp[0]['level'] == [3, 9] and sp[0]['timeRange'] == 'day'  # structure entry skipped
+        assert len(sp) == 2 and sp[0]['level'] == [3, 9] and sp[0]['cond']['timeRange'] == 'day'
+        assert sp[1]['cond']['structures'] == ['y'] and sp[0]['type'] == 'grounded'
 
 
 if __name__ == '__main__':

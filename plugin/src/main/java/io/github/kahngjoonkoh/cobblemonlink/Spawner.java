@@ -39,7 +39,8 @@ import org.bukkit.persistence.PersistentDataType;
  * rarity bucket per pass; levels from the party (PlayerLevelRangeInfluence); CobblemonAgingDespawner despawning.
  * A wild Pokémon is a silent pig (for vanilla wander AI and a hitbox) wearing the BetterModel model;
  * GeyserModelEngine shows the same model to Bedrock players.
- * ponytail: grounded surface spawns only; water, flying, cave and structure spawns need other carriers/checks.
+ * Spawn spots are Cobblemon's grounded, submerged, surface and seafloor positions anywhere in the zone (caves too).
+ * ponytail: the pig carrier swims rather than dives; fishing spawns wait for Poké Rods.
  */
 final class Spawner {
     private final CobblemonLink pl;
@@ -119,13 +120,13 @@ final class Spawner {
                 .filter(e -> !e.equals(p)).map(Entity::getLocation).toList());
         List<Block> spots = new ArrayList<>();
         for (int x = bx; x < bx + diameter; x++)
-            for (int z = bz; z < bz + diameter; z++) {
-                Block ground = w.getHighestBlockAt(x, z);
-                if (ground.getY() < by - 1 || ground.getY() >= by + height - 1 || !ground.getType().isSolid()) continue;
-                Block spot = ground.getRelative(0, 1, 0);
-                Location l = spot.getLocation().add(0.5, 0, 0.5);
-                if (others.stream().noneMatch(o -> o.distance(l) < spacing)) spots.add(spot);
-            }
+            for (int z = bz; z < bz + diameter; z++)
+                for (int y = by; y < by + height; y++) {
+                    Block spot = w.getBlockAt(x, y, z);
+                    if (position(spot) == null) continue;
+                    Location l = spot.getLocation().add(0.5, 0, 0.5);
+                    if (others.stream().noneMatch(o -> o.distance(l) < spacing)) spots.add(spot);
+                }
         String bucket = bucket();
         java.util.Collections.shuffle(spots);
         int left = c.getInt("spawning.max-per-pass");
@@ -133,13 +134,15 @@ final class Spawner {
             if (left == 0) break;
             Location l = spot.getLocation().add(0.5, 0, 0.5);
             if (others.stream().anyMatch(o -> o.distance(l) < spacing)) continue;   // SpawnDetail.onSelection
+            String type = position(spot);
             List<Dex.Spawn> fits = new ArrayList<>();
-            for (Dex.Spawn s : pl.dex.spawns) if (bucket.equals(s.bucket) && fits(s, spot)) fits.add(s);
+            for (Dex.Spawn s : pl.dex.spawns) if (bucket.equals(s.bucket) && s.type.equals(type) && fits(s, spot)) fits.add(s);
             if (fits.isEmpty()) continue;
             double wsum = fits.stream().mapToDouble(s -> s.weight).sum(), roll = rnd.nextDouble(wsum);
             Dex.Spawn pick = fits.getLast();
             for (Dex.Spawn s : fits) if ((roll -= s.weight) <= 0) { pick = s; break; }
-            spawn(l, Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props));
+            Entity e = spawn(l, Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props));
+            if (type.equals("submerged") || type.equals("seafloor")) Bukkit.getMobGoals().removeGoal((Mob) e, VanillaGoal.FLOAT); // stays down
             others.add(l);
             left--;
         }
@@ -269,18 +272,81 @@ final class Spawner {
         if (e instanceof Mob m) m.setAware(!frozen);
     }
 
-    private boolean fits(Dex.Spawn s, Block at) {
-        World w = at.getWorld();
-        if (s.timeRange != null && !Evolutions.inTime(s.timeRange, w.getTime() % 24000)) return false; // Cobblemon's TimeRanges
-        if (s.isRaining != null && s.isRaining != w.hasStorm()) return false;
-        if (s.minY != null && at.getY() < s.minY || s.maxY != null && at.getY() > s.maxY) return false;
-        int sky = at.getLightFromSky();
-        if (s.minSkyLight != null && sky < s.minSkyLight || s.maxSkyLight != null && sky > s.maxSkyLight) return false;
-        if (Boolean.FALSE.equals(s.canSeeSky)) return false; // surface spawner: we only ever see sky
-        Key biome = biomes.getKey(at.getBiome());
-        if (biome == null) return false;
-        return s.biomes.stream().anyMatch(b -> inBiome(b, biome)) && s.antiBiomes.stream().noneMatch(b -> inBiome(b, biome));
+    /**
+     * Cobblemon's spawnable position for this block, or null: grounded (on a solid block, 2 blocks of room), submerged
+     * (2 blocks of water), surface (air over water) or seafloor (water over a solid block).
+     */
+    static String position(Block b) {
+        Block below = b.getRelative(0, -1, 0), above = b.getRelative(0, 1, 0);
+        boolean water = b.getType() == org.bukkit.Material.WATER, waterBelow = below.getType() == org.bukkit.Material.WATER;
+        boolean solidBelow = below.getType().isSolid();
+        if (water) return solidBelow ? "seafloor" : above.getType() == org.bukkit.Material.WATER ? "submerged" : null;
+        if (!b.isPassable() || b.isLiquid() || !above.isPassable() || above.isLiquid()) return null;
+        return solidBelow ? "grounded" : waterBelow ? "surface" : null;
     }
+
+    private boolean fits(Dex.Spawn s, Block at) {
+        return check(s.cond, at) && (s.anti == null || !check(s.anti, at));
+    }
+
+    /** Every condition c sets holds at this block (Cobblemon's SpawningCondition.fits). */
+    private boolean check(Dex.Cond c, Block at) {
+        World w = at.getWorld();
+        if (c.timeRange != null && !Evolutions.inTime(c.timeRange, w.getTime() % 24000)) return false; // Cobblemon's TimeRanges
+        if (c.isRaining != null && c.isRaining != w.hasStorm()) return false;
+        if (c.isThundering != null && c.isThundering != w.isThundering()) return false;
+        if (c.minY != null && at.getY() < c.minY || c.maxY != null && at.getY() > c.maxY) return false;
+        if (c.minX != null && at.getX() < c.minX || c.maxX != null && at.getX() > c.maxX) return false;
+        int sky = at.getLightFromSky(), light = at.getLightLevel();
+        if (c.minSkyLight != null && sky < c.minSkyLight || c.maxSkyLight != null && sky > c.maxSkyLight) return false;
+        if (c.minLight != null && light < c.minLight || c.maxLight != null && light > c.maxLight) return false;
+        if (c.canSeeSky != null && c.canSeeSky != (w.getHighestBlockYAt(at.getX(), at.getZ()) < at.getY())) return false;
+        if (c.isSlimeChunk != null && c.isSlimeChunk != at.getChunk().isSlimeChunk()) return false;
+        if (c.moonPhase != null && !Rules.moonPhase(c.moonPhase, (int) (w.getFullTime() / 24000 % 8))) return false;
+        if (c.neededBaseBlocks != null && c.neededBaseBlocks.stream().noneMatch(id -> isBlock(id, at.getRelative(0, -1, 0)))) return false;
+        if (c.neededNearbyBlocks != null && !nearby(c.neededNearbyBlocks, at)) return false;
+        if (c.structures != null && !inStructure(c.structures, at)) return false;
+        if (c.biomes != null) {
+            Key biome = biomes.getKey(at.getBiome());
+            if (biome == null || c.biomes.stream().noneMatch(b -> inBiome(b, biome))) return false;
+        }
+        return true;
+    }
+
+    /** A block id ("minecraft:water") or a block tag ("#minecraft:logs", "#c:sand"). */
+    private static boolean isBlock(String id, Block b) {
+        if (!id.startsWith("#")) return b.getType().getKey().toString().equals(id);
+        var tag = Bukkit.getTag(org.bukkit.Tag.REGISTRY_BLOCKS, org.bukkit.NamespacedKey.fromString(id.substring(1)), org.bukkit.Material.class);
+        return tag != null && tag.isTagged(b.getType());
+    }
+
+    /** Cobblemon's nearby blocks: 4 blocks around, 2 up and down (maxNearbyBlocks*Range). */
+    private static boolean nearby(List<String> ids, Block at) {
+        for (int dx = -4; dx <= 4; dx++)
+            for (int dy = -2; dy <= 2; dy++)
+                for (int dz = -4; dz <= 4; dz++) {
+                    Block b = at.getRelative(dx, dy, dz);
+                    for (String id : ids) if (isBlock(id, b)) return true;
+                }
+        return false;
+    }
+
+    /** Inside one of these structures (ids or "#tags"): a generated structure whose box holds the block. */
+    private boolean inStructure(List<String> ids, Block at) {
+        for (var g : at.getWorld().getStructures(at.getX() >> 4, at.getZ() >> 4)) {
+            if (!g.getBoundingBox().contains(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5)) continue;
+            Key key = structures.getKey(g.getStructure());
+            if (key == null) continue;
+            for (String id : ids) {
+                if (!id.startsWith("#")) { if (Key.key(id).equals(key)) return true; continue; }
+                TagKey<org.bukkit.generator.structure.Structure> tag = TagKey.create(RegistryKey.STRUCTURE, Key.key(id.substring(1)));
+                if (structures.hasTag(tag) && structures.getTag(tag).contains(TypedKey.create(RegistryKey.STRUCTURE, key))) return true;
+            }
+        }
+        return false;
+    }
+
+    private final Registry<org.bukkit.generator.structure.Structure> structures = RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE);
 
     /** Is this location's biome in id (a biome or a "#tag")? */
     boolean inBiome(String id, org.bukkit.Location at) {
