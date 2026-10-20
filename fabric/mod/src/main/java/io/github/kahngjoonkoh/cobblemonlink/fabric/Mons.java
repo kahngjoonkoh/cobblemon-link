@@ -37,12 +37,15 @@ public final class Mons {
                 if (h == null || !(h.entity() instanceof PokemonEntity p) || p.isRemoved()) { CHANGING.remove(e.getKey()); continue; }
                 int t = e.getValue() + 1;
                 CHANGING.put(e.getKey(), t);
+                // Cobblemon's evo_buildup (light gathering in its colour), evo_sparkle, then evo_sparkleburst with the flash
                 if (t % 4 == 0) burst(p, net.minecraft.core.particles.ParticleTypes.ENCHANT, 12, 0.6f);
+                if (t % 3 == 0) burst(p, Particles.dust("evo_buildup"), 6, 0.05f);
                 if (t % 10 == 0) burst(p, net.minecraft.core.particles.ParticleTypes.END_ROD, 4, 0.2f);
                 if (t < SCENE) continue;
                 CHANGING.remove(e.getKey());
                 HOLDERS.remove(e.getKey()).destroy();
                 burst(p, net.minecraft.core.particles.ParticleTypes.FLASH, 1, 0);
+                burst(p, Particles.dust("evo_sparkleburst"), 30, 0.3f);
                 redraw(p);
             }
             for (var e : new java.util.ArrayList<>(CAMERAS.entrySet()))
