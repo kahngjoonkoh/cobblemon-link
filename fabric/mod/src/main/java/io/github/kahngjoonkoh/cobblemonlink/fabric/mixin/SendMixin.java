@@ -66,6 +66,7 @@ public class SendMixin {
                 var holder = io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(pa.getEntityId());
                 if (holder != null) for (String n : pa.getAnimation()) if (holder.play(n)) break;
             }
+            io.github.kahngjoonkoh.cobblemonlink.fabric.Battles.packet(h.player, c.payload());
             // the rest of Cobblemon's messages mean nothing to a client without it
             if (c.payload().type().id().getNamespace().equals("cobblemon")) return new ClientboundBundlePacket(List.of());
         }
