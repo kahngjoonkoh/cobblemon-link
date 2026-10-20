@@ -99,7 +99,7 @@ final class Social {
                     () -> AcceptTradeRequestHandler.INSTANCE.handle(new AcceptTradeRequestPacket(n.getRequestID()), p.server, p), () -> {});
         });
         else if (payload instanceof TradeStartedPacket || payload instanceof TradeUpdatedPacket || payload instanceof TradeAcceptanceChangedPacket)
-            p.server.execute(() -> trade(p));
+            p.server.execute(() -> trade(p, false));
         // both accepted: Cobblemon's client plays its animation, then asks to go ahead
         else if (payload instanceof TradeProcessStartedPacket) p.server.execute(() -> {
             ActiveTrade t = TradeManager.INSTANCE.getActiveTrade(p.getUUID());
@@ -108,6 +108,7 @@ final class Social {
             if (theirs != null) PerformTradeHandler.INSTANCE.handle(new PerformTradePacket(theirs.getUuid()), p.server, p);
         });
         else if (payload instanceof TradeCompletedPacket || payload instanceof TradeCancelledPacket) p.server.execute(() -> {
+            SHOWN.remove(p.getUUID());
             if (!Clients.bedrock(p)) p.closeContainer();
         });
     }
@@ -124,31 +125,40 @@ final class Social {
         c.open(p);
     }
 
-    /** The trade screen, as Cobblemon has the trade now. */
-    static void trade(ServerPlayer p) {
+    /** The trade as last shown to each player: Cobblemon re-sends updates that change nothing (a re-offer). */
+    private static final java.util.Map<java.util.UUID, String> SHOWN = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** The trade screen, as Cobblemon has the trade now (again only if it changed, unless asked). */
+    static void trade(ServerPlayer p, boolean always) {
         ActiveTrade t = TradeManager.INSTANCE.getActiveTrade(p.getUUID());
         if (t == null) return;
         var me = t.getTradeParticipant(p.getUUID());
         var them = t.getOppositePlayer(me);
         var mine = t.getOffer(me);
         var theirs = t.getOpposingOffer(me);
+        String key = (mine.getPokemon() == null ? "-" : mine.getPokemon().getUuid()) + "/" + mine.getAccepted() + "/"
+                + (theirs.getPokemon() == null ? "-" : theirs.getPokemon().getUuid()) + "/" + theirs.getAccepted();
+        if (!always && key.equals(SHOWN.put(p.getUUID(), key))) return;
+        SHOWN.put(p.getUUID(), key);
         String name = Lang.resolve(p, them.getName()).getString();
+        // Cobblemon marks an offer accepted when the other side accepts it: my acceptance is on their offer
+        boolean iAccepted = theirs.getAccepted(), theyAccepted = mine.getAccepted();
         String acc = "  (" + Lang.t(p, "cobblemonlink.trade.accepted") + ")";
-        String status = Lang.t(p, "cobblemonlink.trade.you_offer", describe(p, mine.getPokemon())) + (mine.getAccepted() ? acc : "")
-                + "\n" + Lang.t(p, "cobblemonlink.trade.they_offer", name, describe(p, theirs.getPokemon())) + (theirs.getAccepted() ? acc : "");
+        String status = Lang.t(p, "cobblemonlink.trade.you_offer", describe(p, mine.getPokemon())) + (iAccepted ? acc : "")
+                + "\n" + Lang.t(p, "cobblemonlink.trade.they_offer", name, describe(p, theirs.getPokemon())) + (theyAccepted ? acc : "");
         List<Forms.Opt> opts = new ArrayList<>();
         opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.trade.offer"), "none", () -> offer(p)));
         if (mine.getPokemon() != null && theirs.getPokemon() != null)
-            opts.add(new Forms.Opt(Lang.t(p, mine.getAccepted() ? "cobblemonlink.trade.unaccept" : "cobblemonlink.trade.accept"), "none", () ->
-                    ChangeTradeAcceptanceHandler.INSTANCE.handle(new ChangeTradeAcceptancePacket(theirs.getPokemon().getUuid(), !mine.getAccepted()), p.server, p)));
+            opts.add(new Forms.Opt(Lang.t(p, iAccepted ? "cobblemonlink.trade.unaccept" : "cobblemonlink.trade.accept"), "none", () ->
+                    ChangeTradeAcceptanceHandler.INSTANCE.handle(new ChangeTradeAcceptancePacket(theirs.getPokemon().getUuid(), !iAccepted), p.server, p)));
         opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.trade.cancel"), "none", () -> CancelTradeHandler.INSTANCE.handle(new CancelTradePacket(), p.server, p)));
         if (Clients.bedrock(p)) {
             Forms.send(p, Lang.t(p, "cobblemonlink.trade.title", name), status, opts, i -> { if (i >= 0) opts.get(i).action().run(); });
             return;
         }
         Chest c = new Chest(3, Lang.t(p, "cobblemonlink.trade.title", name));
-        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.you_offer", "-"), List.of()) : JavaScreens.mon(mine.getPokemon(), mine.getAccepted() ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
-        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.they_offer", name, "-"), List.of()) : JavaScreens.mon(theirs.getPokemon(), theirs.getAccepted() ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
+        c.set(10, mine.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.you_offer", "-"), List.of()) : JavaScreens.mon(mine.getPokemon(), iAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
+        c.set(16, theirs.getPokemon() == null ? Chest.icon(Items.LIGHT_GRAY_STAINED_GLASS_PANE, Lang.t(p, "cobblemonlink.trade.they_offer", name, "-"), List.of()) : JavaScreens.mon(theirs.getPokemon(), theyAccepted ? Lang.t(p, "cobblemonlink.trade.accepted") : ""), null);
         net.minecraft.world.item.Item[] icons = {Items.CHEST, Items.LIME_WOOL, Items.BARRIER};
         for (int i = 0; i < opts.size(); i++) {
             Forms.Opt o = opts.get(i);
@@ -174,7 +184,7 @@ final class Social {
                     () -> UpdateTradeOfferHandler.INSTANCE.handle(new UpdateTradeOfferPacket(new kotlin.Pair<>(m.getUuid(), new PartyPosition(s))), p.server, p)));
         }
         if (Clients.bedrock(p)) {
-            Forms.send(p, Lang.t(p, "cobblemonlink.trade.offer"), "", opts, i -> { if (i >= 0) opts.get(i).action().run(); else trade(p); });
+            Forms.send(p, Lang.t(p, "cobblemonlink.trade.offer"), "", opts, i -> { if (i >= 0) opts.get(i).action().run(); else trade(p, true); });
             return;
         }
         Chest c = new Chest(1, Lang.t(p, "cobblemonlink.trade.offer"));

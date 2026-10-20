@@ -39,7 +39,12 @@ if (process.env.USE_ITEM) setTimeout(() => {
 c.on('modal_form_request', p => {
   const f = JSON.parse(p.data)
   console.log('form', f.title, '|', (f.content || '').replace(/\n/g, ' / '), '|', (f.buttons || []).map(b => b.text.replace(/\n/g, ' ') + '<' + (b.image && b.image.data) + '>').join(' ; '))
-  const a = answers[Math.min(n++, answers.length - 1)]
+  let a = answers[Math.min(n++, answers.length - 1)]
+  // PREFER: button labels in order of preference (the first that a form has wins), e.g. for a trade
+  for (const want of (process.env.PREFER || '').split(',').filter(Boolean)) {
+    const i = (f.buttons || []).findIndex(b => b.text.includes(want))
+    if (i >= 0) { a = i; break }
+  }
   setTimeout(() => c.queue('modal_form_response', { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
 })
 c.on('set_entity_data', p => p.properties && (p.properties.ints || []).length && console.log('props', p.runtime_entity_id, JSON.stringify(p.properties.ints)))
