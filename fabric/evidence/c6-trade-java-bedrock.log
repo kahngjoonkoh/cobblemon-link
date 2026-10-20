@@ -1,0 +1,19 @@
+# Trade, vanilla Java (PocJava, chests) <-> Bedrock (bot, forms): Java offers the trade, both offer, both accept; Cobblemon swaps Pikachu and Charmander
+text system "§r§bPocJava§r§e requested to trade Pokémon with you!"
+form PocJava wants to trade |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+form Trade with PocJava | You offer: - / PocJava offers: - | Offer a Pokémon<textures/cobblemonlink/none> ; Cancel the trade<textures/cobblemonlink/none>
+form Offer a Pokémon |  | Charmander Lv. 20<textures/cobblemonlink/body/charmander>
+form Trade with PocJava | You offer: Charmander Lv. 20 / PocJava offers: - | Offer a Pokémon<textures/cobblemonlink/none> ; Cancel the trade<textures/cobblemonlink/none>
+form Offer a Pokémon |  | Charmander Lv. 20<textures/cobblemonlink/body/charmander>
+form Trade with PocJava | You offer: Charmander Lv. 20 / PocJava offers: Pikachu Lv. 12 | Offer a Pokémon<textures/cobblemonlink/none> ; Accept the trade<textures/cobblemonlink/none> ; Cancel the trade<textures/cobblemo
+form Trade with PocJava | You offer: Charmander Lv. 20  (accepted) / PocJava offers: Pikachu Lv. 12 | Offer a Pokémon<textures/cobblemonlink/none> ; Take back acceptance<textures/cobblemonlink/none> ; Cancel the trade<t
+form Offer a Pokémon |  | Charmander Lv. 20<textures/cobblemonlink/body/charmander>
+form Trade with PocJava | You offer: Charmander Lv. 20 / PocJava offers: Pikachu Lv. 12 | Offer a Pokémon<textures/cobblemonlink/none> ; Accept the trade<textures/cobblemonlink/none> ; Cancel the trade<textures/cobblemo
+form Trade with PocJava | You offer: Charmander Lv. 20 / PocJava offers: Pikachu Lv. 12  (accepted) | Offer a Pokémon<textures/cobblemonlink/none> ; Accept the trade<textures/cobblemonlink/none> ; Cancel the trade<textu
+form Trade with PocJava | You offer: Charmander Lv. 20  (accepted) / PocJava offers: Pikachu Lv. 12  (accepted) | Offer a Pokémon<textures/cobblemonlink/none> ; Take back acceptance<textures/cobblemonlink/none> ; Cancel
+text system "§r.PocBedrock has made the advancement §a[Take Good Care!]"
+text system "§rPocJava has made the advancement §a[Take Good Care!]"
+form Offer a Pokémon |  | Pikachu Lv. 12<textures/cobblemonlink/body/pikachu__female>
+[14:56:21] [Render thread] [INFO] [System] [CHAT] Requested to trade with .PocBedrock.
+[14:56:42] [Render thread] [INFO] [System] [CHAT] .PocBedrock has made the advancement [Take Good Care!]
+[14:56:42] [Render thread] [INFO] [System] [CHAT] PocJava has made the advancement [Take Good Care!]

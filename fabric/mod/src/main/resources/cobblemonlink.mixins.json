@@ -1,0 +1,2 @@
+{ "required": true, "package": "io.github.kahngjoonkoh.cobblemonlink.fabric.mixin", "compatibilityLevel": "JAVA_21",
+  "mixins": ["SendMixin", "PackMixin", "InteractMixin", "SwingMixin", "BlockMixin", "ClickMixin", "RideMixin", "SwapMixin", "SignMixin"], "injectors": { "defaultRequire": 1 } }

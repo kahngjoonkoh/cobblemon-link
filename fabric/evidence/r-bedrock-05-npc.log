@@ -1,0 +1,5 @@
+# Bedrock bot taps Professor Sacchi (modelengine:npc_sacchi): dialogue forms
+add_entity modelengine:npc_sacchi 5n
+using 5n
+form Professor Sacchi | Hello! You can call me Professor Sacchi, or just 'the professor' as many do! | Continue<textures/cobblemonlink/none>
+form Professor Sacchi | I would offer to heal your Pokémon, but I can't seem to find my healing machine... / I'm sorry about that! | Continue<textures/cobblemonlink/none>

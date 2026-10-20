@@ -1,0 +1,3 @@
+# Bedrock bot casts a Poké Rod: the bobber reaches it as Minecraft's fishing hook
+using item in slot 0 1094
+add_entity minecraft:fishing_hook 12n

@@ -1,0 +1,7 @@
+packs offered: 2
+start_game: in the world at {"x":0,"y":69,"z":0}
+slot 0 "§rPoké Ball"
+add_entity minecraft:villager_v2 {"x":5.674882411956787,"y":-59.125,"z":1.786577820777893}
+slot 1 "§rGreat Ball"
+text system "§rInvalid Pokémon name" []
+still connected after 55 s; packets: {"network_settings":1,"server_to_client_handshake":1,"play_status":2,"resource_packs_info":1,"jigsaw_structure_data":1,"vox

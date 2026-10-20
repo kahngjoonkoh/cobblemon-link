@@ -1,0 +1,5 @@
+# PvP: PocJava (vanilla Java) right-clicks the Bedrock bot → Battle (singles); the bot accepts the challenge form; both in Cobblemon's battle
+text system "§r§bPocJava§r§e challenged you to a Single Battle!"
+form PocJava challenges you to a singles battle |  | Accept<textures/cobblemonlink/none> ; Decline<textures/cobblemonlink/none>
+form Battle§r§l§1 | PocJava sent out Charmander! / Go! Pikachu! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run
+form Battle§r§l§2 | PocJava sent out Charmander! / Go! Pikachu! / It is now turn 1 | Electro Ball           9/10<textures/cobblemonlink/move_electric> ; Double Team           15/15<textures/cobblemonlink/move_normal> 

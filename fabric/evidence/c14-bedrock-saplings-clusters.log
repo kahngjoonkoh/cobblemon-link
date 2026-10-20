@@ -1,0 +1,5 @@
+# Bedrock bot near a red apricorn sapling, a potted one, a fire gem cluster, a tumblestone cluster and a large budding tumblestone
+      1 add_entity modelengine:clb_large_budding_tumblestone
+      1 add_entity modelengine:clb_potted_red_apricorn_sapling
+      1 add_entity modelengine:clb_red_apricorn_sapling
+      1 add_entity modelengine:clb_tumblestone_cluster

@@ -1,0 +1,6 @@
+# Bedrock bot near the oran berry bushes (ages 0-5), a red apricorn and a red mint: Cobblemon's plant models as GeyserModelEngine models
+      3 add_entity modelengine:clb_oran_mature
+      1 add_entity modelengine:clb_oran_sprout
+      1 add_entity modelengine:clb_oran_young
+      1 add_entity modelengine:clb_red_apricorn
+      1 add_entity modelengine:clb_red_mint_stage_5

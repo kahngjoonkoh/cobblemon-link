@@ -1,0 +1,13 @@
+# tap heal
+using 7n
+text jukebox_popup "§f§r§aYour Pokémon party is being healed!"
+text jukebox_popup "§f§r§aYour Pokémon party has been healed!"
+# tap pasture
+add_entity modelengine:clb_pasture_bottom 7n
+using 7n
+form Pasture  0/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Recall All<textures/cobblemonlink/none>
+# tap pot
+using 6n
+container_content first -649,0,0,0,-649,0,-649,-649,-649,-649,0,0,0,-649,0,-649,0,-649,-649,0,0,0,-649,0,-649,601,-649
+container_open first container {"x":47,"y":-58,"z":40}
+container_content first -649,0,0,0,-649,0,-649,-649,-649,-649,0,0,0,-649,0,-649,0,-649,-649,0,0,0,-649,0,-649,601,-649

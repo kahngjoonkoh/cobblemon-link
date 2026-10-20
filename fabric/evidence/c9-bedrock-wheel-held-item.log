@@ -1,0 +1,6 @@
+# Bedrock bot: /party -> Send out; sneak + tap its Bulbasaur -> the wheel -> Change held item, with an Oran Berry in hand
+form Bulbasaur§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_m
+form Bulbasaur§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_m
+using 24n
+form Bulbasaur |  | Shoulder<textures/cobblemonlink/none> ; Ride<textures/cobblemonlink/none> ; Change held item<texture
+  rcon: Bulbasaur Pokemon.HeldItem -> {count: 1, id: "cobblemon:oran_berry"}

@@ -1,0 +1,5 @@
+# vanilla Java: a dialogue page asking for text (test datapack cltest:ask) opens a sign editor shown only to the player;
+# typing 'ash' + Done answers Cobblemon's text input and the dialogue moves on:
+  show <id1> TEXT ['What is your name?']
+  answer <id1> TEXT 'ash'
+  show <id2> NONE ['Nice to meet you!']

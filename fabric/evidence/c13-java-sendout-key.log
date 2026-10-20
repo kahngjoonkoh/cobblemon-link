@@ -1,0 +1,3 @@
+# vanilla Java: Sneak + F (swap hands) = Cobblemon's send-out key
+  after the 1st press: execute if entity <Charmeleon> -> Test passed, count: 1
+  after the 2nd press: -> Test failed (recalled)

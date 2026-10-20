@@ -1,0 +1,8 @@
+# Bedrock bot 2 taps bot 1 (in a wild battle) -> Spectate: HP bar and the battle log in the action bar
+using 4n
+form .SmokeBed |  | Spectate<textures/cobblemonlink/none> ; Trade<textures/cobblemonlink/none>
+bossbar §rArcanine  Lv.40   126/126 HP 0
+title action_bar_message "§rIt is now turn 1"
+title action_bar_message "§r.SmokeBed's Arcanine used Flamethrower on Rattata!"
+title action_bar_message "§rRattata fainted!"
+title action_bar_message "§r.SmokeBed won!"

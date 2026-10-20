@@ -1,0 +1,5 @@
+# Bedrock bot with LanguageCode de_DE: Cobblemon's text in German (Weide, Alle Zurückrufen, Glumanda); our own keys fall back to en_us
+using 7n
+form Weide  0/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Alle Zurückrufen<textures/cobblemonlink/none>
+form Pasture a Pokémon | From your PC: | Glumanda  Lv. 10<textures/cobblemonlink/body/charmander>
+title set_title "§r|CLn1bL20~Glumanda~~~~mh18x02s00-~-~-~~~~~~~~~~~items/portra

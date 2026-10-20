@@ -1,0 +1,18 @@
+start_game
+add_entity modelengine:pidgey 6n
+hitting 6n
+add_entity modelengine:charmander 9n
+bossbar §rCharmander  Lv.20   47/47 HP 0
+bossbar §rWild Pidgey  Lv.3 0
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+using 6n
+form Battle§r§l§2 | Go! Charmander! / It is now turn 1 | Slash           19/20<textures/cobblemonlink/move_normal> ; Fire Fang           15/15<textures/cobblemonlink/move_fire> ; Dragon Breath           20/20<textures/cobblemonlink/move_dragon> ; Smokescreen           20/20<textures/cobblemonlink/move_normal> ;  <textures/cobblemonlink/back>
+done after 100 s
+[01:37:07] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle log: Go! Charmander!
+[01:37:08] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle: .PocBedrock to choose
+[01:37:08] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle log: It is now turn 1
+[01:37:08] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle: .PocBedrock to choose
+[01:37:11] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle: .PocBedrock chose MoveActionResponse(moveName=slash, targetPnx=p2a, gimmickID=null)
+[01:37:11] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle log: .PocBedrock's Charmander used Slash on Pidgey!
+[01:37:15] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle log: Pidgey fainted!
+[01:37:16] [Server thread/INFO]: [STDOUT]: [cobblemonlink] battle log: .PocBedrock won!

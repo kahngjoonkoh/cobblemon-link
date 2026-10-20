@@ -1,0 +1,4 @@
+# vanilla Java: Shift + right-click own Charmander -> the wheel (c9-java-interaction-wheel.png) -> Give held item with an Oran Berry in hand:
+  rcon: data get entity <Charmander> Pokemon.HeldItem -> {count: 1, id: "cobblemon:oran_berry"}
+# then /party (Summary art) -> Evolve (c9-java-summary-evolve.png):
+  rcon: data get entity <it> Pokemon.Species -> "cobblemon:charmeleon"

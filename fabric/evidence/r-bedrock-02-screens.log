@@ -1,0 +1,14 @@
+# /party
+container_content armor 0,0,0,0
+container_content offhand 0
+form Bulbasaur§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_moves> ; Stats<textures/cobblemonlink/summary/tab_stats> ; Send out<textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ; To PC<textures/cobblemonlink/none> ; Lv.10<texture
+# /pc
+# /dex
+# /pc
+text system "§r§cUnknown or incomplete command. See below for error"
+text system "§r§cpc§o<--[HERE]"
+# /dex
+form Bulbasaur§r§l§8 | Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively larger. | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; 1/36<textures/cobblemonlink/none> ; Dex No. 0001<textures/co
+# tap a PC block
+using 5n
+form §r§l§5 |  | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; Box 1<textures/cobblemonlink/none> ; Filter<textures/cobblemonlink/none> ;  <textures/cobblemonlink/pc/sort_options> ; <textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ;

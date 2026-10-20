@@ -1,0 +1,31 @@
+# fresh world: /starter form, answered 0 (Bulbasaur)
+start_game
+container_content armor 0,0,0,0
+container_content offhand 0
+command /starter
+form Bulbasaur§r§l§4 | Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively larger. | #0001<textures/cobblemonlink/card/bulbasaur> ; <textures/cobblemonlink/up> ; <textures/cobblemonlink/down> ; Kanto*<textures/c
+text system "§r.RegBed has made the advancement §a[The World of Cobblemon!]"
+done after 40 s
+# tap a wild Geodude: battle forms, Fight -> Vine Whip
+start_game
+container_content armor 0,0,0,0
+container_content offhand 0
+using 101n
+bossbar §rBulbasaur  Lv.10   29/29 HP 0
+bossbar §rWild Geodude  Lv.2 0
+form Battle§r§l§1 | Go! Bulbasaur! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Battle§r§l§2 | Go! Bulbasaur! / It is now turn 1 | Vine Whip           25/25<textures/cobblemonlink/move_grass> ; Leech Seed           10/10<textures/cobblemonlink/move_grass> ; Growth           20/20<textures/cobblemonlink/move_normal> ; Growl           40/40<textures/cobblemonlink/move_nor
+done after 70 s
+# tap a wild Caterpie, Catch, throw a Poke Ball
+start_game
+container_content armor 0,0,0,0
+container_content offhand 0
+using 79n
+bossbar §rBulbasaur  Lv.10   29/29 HP 0
+bossbar §rWild Caterpie  Lv.2 0
+form Battle§r§l§1 | Go! Bulbasaur! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§rThrow a Poké Ball at your opponent to capture it."
+using item in slot 0 1255
+text system "§r.RegBed has made the advancement §a[A New Friend!]"
+bossbar §rCaterpie  Lv.2 0
+done after 50 s

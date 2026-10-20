@@ -1,0 +1,3 @@
+# vanilla Java: right-click an apricorn chest boat (summoned at z=18), hold W 2 s
+  RootVehicle: "cobblemon:chest_boat"
+  boat Pos after: [5.5, -60.0, 22.37]

@@ -1,0 +1,24 @@
+plugins { id 'fabric-loom' version '1.9.2' }
+version = '0.1.0'
+repositories {
+    maven { url 'https://api.modrinth.com/maven' }
+    maven { url 'https://maven.nucleoid.xyz/' }
+    mavenCentral()
+}
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.1'
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.16.14'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.116.17+1.21.1'
+    modCompileOnly 'maven.modrinth:cobblemon:GJ2a1b8O'
+    modImplementation 'eu.pb4:polymer-bundled:0.9.19+1.21.1'
+    compileOnly 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0'
+    modCompileOnly files('libs/PolyMc-5.7.0-rev.a3eaae6+1.21.jar') // built from TheEpicBlock/PolyMc master (1.21)
+    // Floodgate-Fabric 2.2.4-b38 (the last 1.21.1 build) and its form library; the API needs no Minecraft classes
+    compileOnly files('libs/Floodgate-Fabric-2.2.4-b38.jar', 'libs/cumulus-1.1.2.jar', 'libs/common-2.2.1-SNAPSHOT-unshaded.jar')
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+java { toolchain.languageVersion = JavaLanguageVersion.of(21) }
+processResources { inputs.property 'version', version; filesMatching('fabric.mod.json') { expand version: version } }
+test { useJUnitPlatform() }

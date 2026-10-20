@@ -1,0 +1,3 @@
+mod client resource reloads (none from server/):
+[08:39:17] [Render thread] [INFO] Reloading ResourceManager: vanilla, fabric, cobblemon, ... (local mods only)
+[23:39:41] [Server thread/INFO]: [STDOUT]: [cobblemonlink] PocMod modded=true bedrock=false polymap=NOPPolyMap cobblemon channels=162

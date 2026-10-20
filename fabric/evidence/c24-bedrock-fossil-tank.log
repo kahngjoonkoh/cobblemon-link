@@ -1,0 +1,8 @@
+# Bedrock bot by a restoration tank reviving a skull fossil (TimeLeft 4000 -> stage 3, then the fetus): GME models
+add_entity modelengine:clb_fossil_analyzer 27n
+add_entity modelengine:clb_restoration_tank_lower 28n
+add_entity modelengine:fossil_cranidos_fetus 29n
+add_entity modelengine:clb_monitor 30n
+add_entity modelengine:clb_restoration_tank_upper 31n
+add_entity modelengine:clb_restoration_tank_lower 39n
+add_entity modelengine:fossil_embryo_stage3 40n

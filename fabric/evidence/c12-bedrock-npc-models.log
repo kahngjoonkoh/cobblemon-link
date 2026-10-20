@@ -1,0 +1,5 @@
+# Bedrock: NPCs as GeyserModelEngine models of Cobblemon's own NPC geometry and skins; tapping Sacchi's opens the dialogue
+using 45n
+form Professor Sacchi | Hello! You can call me Professor Sacchi, or just 'the professor' as many do! | Continue<textures/cobblemonlink/none>
+form Professor Sacchi | I would offer to heal your Pokémon, but I can't seem to find my healing machine... / I'm sorry about that! | Continue<textures/cobblemo
+(earlier run) add_entity modelengine:npc_trainer / modelengine:npc_sacchi

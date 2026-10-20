@@ -1,0 +1,5 @@
+# Bedrock: /dex, Pikachu, then tapping its picture cycles its looks (forms; the female look where Cobblemon has one)
+form Bulbasaur (♀)§r§l§8 | Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively 
+form Pikachu§r§l§8 | Catch it to read its Pokédex entry. | <<textures/cobblemonlink/none> ... Dex No. 0025<textures/cobblemonlink/body/pikachu> ; <textures/cobblemonl
+form Pikachu (♀)§r§l§8 | Catch it to read its Pokédex entry. | <<textures/cobblemonlink/none> ... Dex No. 0025<textures/cobblemonlink/body/pikachu__female> ; <textu
+form Pikachu§r§l§8 | Catch it to read its Pokédex entry. | <<textures/cobblemonlink/none> ... Dex No. 0025<textures/cobblemonlink/body/pikachu> ; <textures/cobblemonl

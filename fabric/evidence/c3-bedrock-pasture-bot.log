@@ -1,0 +1,11 @@
+# pasture: put Charmander out from the PC (answers 0,0)
+using 7n
+form Pasture  0/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Recall all mine<textures/cobblemonlink/none>
+form Pasture a Pokémon | From your PC: | Charmander  Lv. 10<textures/cobblemonlink/body/charmander>
+text system "§r.PocBedrock has made the advancement §a[Free Roam: Enabled]"
+form Pasture  1/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Charmander  Lv. 10<textures/cobblemonlink/body/charmander> ; Recall all mine<textures/cobblemonlink/none>
+# then recall it (answer 1)
+add_entity modelengine:charmander 13n
+using 7n
+form Pasture  1/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Charmander  Lv. 10<textures/cobblemonlink/body/charmander> ; Recall all mine<textures/cobblemonlink/none>
+form Pasture  0/16 | Tap a Pokémon to bring it back to your PC. | Pasture a Pokémon<textures/cobblemonlink/none> ; Recall all mine<textures/cobblemonlink/none>

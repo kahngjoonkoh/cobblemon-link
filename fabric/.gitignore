@@ -1,0 +1,6 @@
+mods-extra/*.jar
+mod/build/
+mod/.gradle/
+mod/libs/
+data/
+.env

@@ -1,0 +1,5 @@
+# Bedrock bot throws a Poké Ball at a wild Rattata: the 3D ball (GeyserModelEngine poke_ball) with its animation states, not PolyMc's snowball
+using 13n
+add_entity modelengine:poke_ball 16n
+props 16n [{"index":0,"value":64}]
+props 16n [{"index":0,"value":512}]

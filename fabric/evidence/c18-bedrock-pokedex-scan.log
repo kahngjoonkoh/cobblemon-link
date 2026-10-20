@@ -1,0 +1,4 @@
+# Bedrock bot holding a Pokédex taps a wild Pikachu: Cobblemon scans it (advancement), our Pokédex opens at its entry
+text system "§r.SmokeBed has made the advancement §a[Researcher Recruit]"
+using 23n
+form Pikachu§r§l§8 | Catch it to read its Pokédex entry. | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; 1/36<textures/cobblemonlink/none> ; Dex No. 0025<textures/cobblemonlink/body/pikachu> ; <textures/cobblemonlink/pc/type/electric> ;

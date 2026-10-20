@@ -1,0 +1,45 @@
+add_entity modelengine:pidgey 5n
+props 5n [{"index":0,"value":2}]
+props 5n [{"index":0,"value":8}]
+props 5n [{"index":0,"value":2}]
+hitting 5n
+add_entity modelengine:charmander 8n
+props 8n [{"index":0,"value":16}]
+props 8n [{"index":0,"value":1}]
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<texture
+props 8n [{"index":0,"value":3}]
+props 5n [{"index":0,"value":3}]
+props 5n [{"index":0,"value":2}]
+props 8n [{"index":0,"value":1}]
+form Battle§r§l§2 | Go! Charmander! / It is now turn 1 | Slash           17/20<textures/cobblemonlink/move_normal> ; Fire Fang           15/15<textures/cobblemonlink/move_fire> ; Dragon Breath     
+form Battle§r§l§1 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 2 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textu
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 2 | Slash           16/20<textures/cobblemonlink/move_norma
+form Battle§r§l§1 | Pidgey used Feather Dance on .PocBedrock's Charmander! / .PocBedrock's Charmander's Attack harshly fell. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 3 | Fi
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | Pidgey used Feather Dance on .PocBedrock's Charmander! / .PocBedrock's Charmander's Attack harshly fell. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 3 | Sl
+form Battle§r§l§1 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 4 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textu
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 4 | Slash           14/20<textures/cobblemonlink/move_norma
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§1 | It was a critical hit! / Pidgey used Whirlwind! / But it failed. / It is now turn 5 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Cat
+form Battle§r§l§2 | It was a critical hit! / Pidgey used Whirlwind! / But it failed. / It is now turn 5 | Slash           13/20<textures/cobblemonlink/move_normal> ; Fire Fang           15/15<textu
+form Battle§r§l§1 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 6 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textu
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | Pidgey used Agility! / Pidgey's Speed rose sharply. / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 6 | Slash           12/20<textures/cobblemonlink/move_norma
+form Battle§r§l§1 | It is now turn 6 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander flinched and couldn't move! / It is now turn 7 | Fight<textures/cobblemonlink/menu
+form Battle§r§l§2 | It is now turn 6 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander flinched and couldn't move! / It is now turn 7 | Slash           12/20<textures/co
+form Battle§r§l§1 | It is now turn 7 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 8 | Fight<textures/cobblemonlink/menu_fight
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | It is now turn 7 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 8 | Slash           11/20<textures/cobblemo
+form Battle§r§l§1 | It is now turn 8 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 9 | Fight<textures/cobblemonlink/menu_fight
+props 5n [{"index":0,"value":6}]
+props 5n [{"index":0,"value":2}]
+form Battle§r§l§2 | It is now turn 8 / Pidgey used Twister on .PocBedrock's Charmander! / .PocBedrock's Charmander used Slash on Pidgey! / It is now turn 9 | Slash           10/20<textures/cobblemo
+props 5n [{"index":0,"value":6}]

@@ -1,0 +1,4 @@
+# PocJava's Charmeleon is out; rcon pokeeditother PocJava 1 shiny=yes: Bedrock gets the evolution sound and the entity again with the new model
+add_entity modelengine:charmeleon 25n
+sound cobblemon:evolution.full
+add_entity modelengine:charmeleon__shiny 27n
