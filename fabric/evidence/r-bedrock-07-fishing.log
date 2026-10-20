@@ -1,0 +1,4 @@
+# fresh world, Bedrock bot casts a Poké Rod into a pool: the bobber as Minecraft's fishing hook
+text system "§r.RegBed has made the advancement §a[New Angles for Angling]"
+using item in slot 0 1094
+add_entity minecraft:fishing_hook 89n
