@@ -58,6 +58,8 @@ public class ModelHolder extends ElementHolder {
         pose(0);
     }
 
+    public Entity entity() { return entity; }
+
     /** Draw the model this far from the entity (x left, y up, z forward, blocks), e.g. on a shoulder. */
     public void offset(float x, float y, float z) { offset.set(x, y, z); }
 

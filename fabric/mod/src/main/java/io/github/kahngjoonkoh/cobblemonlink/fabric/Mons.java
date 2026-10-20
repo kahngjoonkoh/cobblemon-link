@@ -25,6 +25,37 @@ public final class Mons {
             ModelHolder h = HOLDERS.remove(e.getId());
             if (h != null) h.destroy(); // Cobblemon's removals don't always reach Polymer's attachment
         });
+        // a Pokémon that changed look (evolved, changed form or became shiny) is drawn again, with an evolution's
+        // sparkle and sound
+        int[] tick = {0};
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (++tick[0] % 20 != 0) return;
+            for (var e : new java.util.ArrayList<>(HOLDERS.entrySet())) {
+                if (!(e.getValue().entity() instanceof PokemonEntity p) || p.isRemoved()) continue;
+                String look = look(p);
+                if (look.equals(e.getValue().model().name()) || Models.get(look) == null) continue;
+                HOLDERS.remove(e.getKey()).destroy();
+                redraw(p);
+            }
+        });
+    }
+
+    /** Draw p again after its look changed: Java gets the new model, Bedrock the entity again with the new one. */
+    private static void redraw(PokemonEntity p) {
+        if (!(p.level() instanceof ServerLevel level)) return;
+        ModelHolder h = ensure(p);
+        if (h == null) return;
+        Sounds.play(p, "evolution.full");
+        for (var player : level.players()) {
+            if (player.distanceToSqr(p) > 64 * 64 || !Clients.bridged(player.connection)) continue;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket(net.minecraft.core.particles.ParticleTypes.END_ROD,
+                    false, p.getX(), p.getY() + p.getBbHeight() / 2, p.getZ(), p.getBbWidth() / 2, p.getBbHeight() / 2, p.getBbWidth() / 2, 0.05f, 40));
+            if (!Clients.bedrock(player)) continue;
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket(p.getId()));
+            // SendMixin turns the spawn into the model's carrier, as for any Pokémon
+            player.connection.send(new net.minecraft.network.protocol.game.ClientboundAddEntityPacket(p.getId(), p.getUUID(), p.getX(), p.getY(), p.getZ(),
+                    p.getXRot(), p.getYRot(), net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, p.getYHeadRot()));
+        }
     }
 
     public static ModelHolder holder(int entityId) { return HOLDERS.get(entityId); }
