@@ -41,6 +41,25 @@ public final class Dex {
         return Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(p).getKnowledgeForSpecies(s.getResourceIdentifier());
     }
 
+    /**
+     * Cobblemon's Pokédex scanner for players without the mod: right-click a Pokémon holding a Pokédex, and Cobblemon
+     * scans it (start, then finish a moment later, as its client does) and our Pokédex opens at its entry.
+     */
+    static void scan(ServerPlayer p, com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe) {
+        com.cobblemon.mod.common.net.serverhandling.pokedex.scanner.StartScanningHandler.INSTANCE.handle(
+                new com.cobblemon.mod.common.net.messages.server.pokedex.scanner.StartScanningPacket(pe.getId(), 1), p.server, p);
+        long at = System.currentTimeMillis() + 2500; // ponytail: Cobblemon wants a scan held a moment; 2.5 s is enough
+        Tasks.until(() -> {
+            if (p.hasDisconnected() || pe.isRemoved()) return true;
+            if (System.currentTimeMillis() < at) return false;
+            com.cobblemon.mod.common.net.serverhandling.pokedex.scanner.FinishScanningHandler.INSTANCE.handle(
+                    new com.cobblemon.mod.common.net.messages.server.pokedex.scanner.FinishScanningPacket(pe.getId(), 1), p.server, p);
+            Species sp = pe.getPokemon().getSpecies();
+            open(p, Math.max(0, order().indexOf(sp)) / PAGE, sp);
+            return true;
+        });
+    }
+
     static void open(ServerPlayer p, int page, Species chosen) {
         if (Clients.bedrock(p)) bedrock(p, page, chosen);
         else if (Ui.loaded && Config.vanillaJava().screenArt()) DexArt.open(p);

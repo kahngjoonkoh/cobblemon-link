@@ -40,6 +40,10 @@ public final class Battles {
             p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
             return true;
         }
+        if (p.getMainHandItem().getItem() instanceof com.cobblemon.mod.common.item.PokedexItem && BattleUi.get(p) == null) {
+            Dex.scan(p, pe);
+            return true;
+        }
         if (p.isShiftKeyDown() && p.getUUID().equals(pe.getOwnerUUID()) && BattleUi.get(p) == null) { // Cobblemon's interaction wheel
             Wheel.open(p, pe);
             return true;
