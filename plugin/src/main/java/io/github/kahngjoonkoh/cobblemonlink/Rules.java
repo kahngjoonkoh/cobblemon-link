@@ -117,4 +117,27 @@ final class Rules {
             if (e.getValue().size() == fossils.size() && new java.util.HashSet<>(e.getValue()).equals(new java.util.HashSet<>(fossils))) return e.getKey();
         return null;
     }
+
+    /**
+     * Cobblemon's marks for a wild Pokémon, as the main games roll them: Rare, then a Personality mark, Uncommon, the
+     * time of day's, the weather's, then Fishing / Revival for a fished or fossil Pokémon; the first that hits, or null.
+     * time: the world's day time (0 = 6:00); weather: rainy, stormy, snowy, blizzard, sandstorm or null.
+     */
+    static String mark(java.util.Map<String, Dex.Mark> marks, java.util.Random r, long time, String weather, boolean fished, boolean revived) {
+        long t = Math.floorMod(time, 24000);
+        String when = t >= 23000 || t < 1000 ? "dawn" : t >= 5000 && t < 7000 ? "lunchtime" : t >= 12000 && t < 13000 ? "dusk" : t >= 14000 && t < 22000 ? "sleepy-time" : null;
+        java.util.List<String> personality = marks.entrySet().stream().filter(e -> "personality".equals(e.getValue().group)).map(java.util.Map.Entry::getKey).sorted().toList();
+        String[] order = {"mark_rare", personality.isEmpty() ? null : "personality", "mark_uncommon", when == null ? null : "mark_time_" + when,
+                weather == null ? null : "mark_weather_" + weather, fished ? "mark_fishing" : null, revived ? "mark_revival" : null};
+        for (String id : order) {
+            if (id == null) continue;
+            if (id.equals("personality")) {
+                if (r.nextDouble() < marks.get(personality.getFirst()).chance) return personality.get(r.nextInt(personality.size()));
+                continue;
+            }
+            Dex.Mark m = marks.get(id);
+            if (m != null && r.nextDouble() < m.chance) return id;
+        }
+        return null;
+    }
 }

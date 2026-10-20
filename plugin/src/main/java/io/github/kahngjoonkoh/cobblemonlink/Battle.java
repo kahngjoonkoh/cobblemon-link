@@ -185,7 +185,7 @@ final class Battle {
             Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
             Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
             Sounds.cry(wildEntity, wild.species);
-            String appeared = t("cobblemonlink.battle.appeared", name(wild), wild.level);
+            String appeared = t("cobblemonlink.battle.appeared", wild.titled(pl.dex, loc), wild.level);
             log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
         }
 

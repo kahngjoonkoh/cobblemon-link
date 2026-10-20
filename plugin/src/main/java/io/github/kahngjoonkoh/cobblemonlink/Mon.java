@@ -36,6 +36,13 @@ final class Mon {
     String mint;         // a mint's nature: Cobblemon's effective nature for stats and battles
     String held;         // held item id (Cobblemon's), or null
     boolean fished;
+    /** The name with the mark's title ("Pikachu the Peckish"), as a wild Pokémon appears. */
+    String titled(Dex dex, String loc) {
+        String n = name(dex, loc);
+        return mark == null ? n : Ui.lang.get(loc, "cobblemon.mark." + mark + ".title", n);
+    }
+
+    String mark;  // Cobblemon's mark (mark_time_dawn...): its title is the Pokémon's ("Pikachu the Peckish")
     List<String> benched = new ArrayList<>(); // Cobblemon's benched moves: known before, can be swapped back in
 
     /** Puts a move on the bench (once). */

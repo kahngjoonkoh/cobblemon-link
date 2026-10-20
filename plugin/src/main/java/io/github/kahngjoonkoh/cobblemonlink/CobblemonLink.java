@@ -79,6 +79,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Lang lang = Lang.load(null);
     Machines machines;
     Npcs npcs;
+    private final Map<java.util.UUID, Integer> entityClick = new java.util.HashMap<>(); // tick of each player's last entity right-click
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
@@ -357,6 +358,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent e) {
+        entityClick.put(e.getPlayer().getUniqueId(), Bukkit.getCurrentTick());
         if (spawner.isCompanion(e.getRightClicked())) e.setCancelled(true); // no saddles or leads on your Pokémon
         if (npcs.isNpc(e.getRightClicked())) {
             e.setCancelled(true);
@@ -433,6 +435,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon (not on a crafting
         // table, chest or other block that opens)
         if (clicked != null && clicked.getType().isInteractable() && !e.getPlayer().isSneaking()) return;
+        // the client follows a cancelled right-click on an entity with a use of the held item: not an item use
+        if (Bukkit.getCurrentTick() - entityClick.getOrDefault(e.getPlayer().getUniqueId(), -100) <= 1) return;
         if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && items != null
                 && items.use(e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand())) e.setCancelled(true);
     }

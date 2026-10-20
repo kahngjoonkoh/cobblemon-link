@@ -97,6 +97,12 @@ final class Dex {
     List<Spawn> spawns;
     Map<String, List<String>> fossils = Map.of(); // species -> the fossils it's revived from
     Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle
+    Map<String, Mark> marks = Map.of();             // Cobblemon's marks with a chance on wild Pokémon
+
+    static final class Mark {
+        double chance;
+        String group;
+    }
     Map<String, Map<String, String>> names; // kind ("move", "ability", "type") -> id -> English name
 
     static Dex load(Path file) throws IOException {

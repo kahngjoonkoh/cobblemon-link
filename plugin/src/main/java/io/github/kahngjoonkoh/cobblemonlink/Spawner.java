@@ -148,6 +148,16 @@ final class Spawner {
         }
     }
 
+    /** The main games' weather for marks: rain is snow where it's cold and a sandstorm where it never rains. */
+    static String weather(Location at) {
+        if (!at.getWorld().hasStorm()) return null;
+        var b = at.getBlock();
+        boolean storm = at.getWorld().isThundering();
+        if (b.getHumidity() == 0) return "sandstorm";
+        if (b.getTemperature() < 0.15) return storm ? "blizzard" : "snowy";
+        return storm ? "stormy" : "rainy";
+    }
+
     /**
      * A Poké Rod's catch (Cobblemon's fishing spawns at the bobber): one rarity bucket, the spawns that fit the water
      * there and the rod; the Pokémon is "fished" (Lure Ball) and, under 90 kg, lobbed toward the player. Null: no bite.
@@ -191,7 +201,11 @@ final class Spawner {
         return "common";
     }
 
-    Entity spawn(Location loc, Mon mon) {
+    Entity spawn(Location loc, Mon mon) { return spawn(loc, mon, false); }
+
+    /** revived: a fossil from the Restoration Tank (the Revival Mark). */
+    Entity spawn(Location loc, Mon mon, boolean revived) {
+        if (mon.mark == null) mon.mark = Rules.mark(pl.dex.marks, ThreadLocalRandom.current(), loc.getWorld().getTime(), weather(loc), mon.fished, revived);
         Pig pig = loc.getWorld().spawn(loc, Pig.class, e -> {
             e.setPersistent(false); // never saved with the chunk: models don't survive a reload anyway
             e.setRemoveWhenFarAway(true);

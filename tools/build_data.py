@@ -198,6 +198,16 @@ def npcs(res, dex):
     return out
 
 
+def marks(res):
+    """Cobblemon's marks a wild Pokémon can carry: id -> {chance, group} (Rules.mark picks one)."""
+    out = {}
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/marks/*.json')):
+        d = json.load(open(f))
+        if 'chance' in d:
+            out[os.path.basename(f)[:-5]] = {'chance': d['chance'], 'group': d.get('group')}
+    return out
+
+
 def main(a):
     if len(a) != 2:
         sys.exit(__doc__)
@@ -211,7 +221,7 @@ def main(a):
     fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
                for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
-               'npcs': npcs(res, dex)},
+               'npcs': npcs(res, dex), 'marks': marks(res)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')

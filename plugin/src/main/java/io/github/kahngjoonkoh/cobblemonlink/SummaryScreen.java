@@ -198,6 +198,7 @@ final class SummaryScreen {
                 String nat = Ui.tr(p, "cobblemon.nature." + m.nature.toLowerCase(), m.nature);
                 rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.nature", "Nature"), m.mint != null && !m.mint.equals(m.nature) ? nat + " (" + Ui.tr(p, "cobblemon.nature." + m.mint.toLowerCase(), m.mint) + ")" : nat, "none"});
                 rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.ability", "Ability"), pl.dex.label("ability", m.ability, loc), "none"});
+                if (m.mark != null) rows.add(new String[]{Ui.tr(p, "cobblemon.mark." + m.mark, m.mark), m.titled(pl.dex, loc), "none"});
                 rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.experience_points", "EXP. Points"), String.valueOf(m.exp), "none"});
                 rows.add(new String[]{Ui.tr(p, "cobblemon.ui.info.to_next_level", "To Next Lv."), String.valueOf(next), "none"});
             }
@@ -432,6 +433,8 @@ final class SummaryScreen {
                     PcScreen.text(t, "pc_bold", px + 7, ry + 3, rows[k][0], false);
                     PcScreen.text(t, "pc_bold", px + 44, ry + 3, PcScreen.fit("pc_bold", rows[k][1], k == 0 ? 28 : 56), false);
                 }
+                if (m.mark != null) // under the ability, where its box has room: Cobblemon's title
+                    PcScreen.text(t, "pc_text", px + 44, py + 5 + 15 * rows.length + 3, PcScreen.fit("pc_text", m.titled(pl.dex, loc), 60), false);
                 PcScreen.text(t, "pc_text", px + 48, py + 118, Ui.tr(p, "cobblemon.ui.info.experience_points", "Exp. Points"), false);
                 PcScreen.text(t, "pc_text", px + 101 - PcScreen.width("pc_text", String.valueOf(m.exp)), py + 118, String.valueOf(m.exp), false);
                 PcScreen.text(t, "pc_text", px + 48, py + 128, Ui.tr(p, "cobblemon.ui.info.to_next_level", "To Next Lv."), false);

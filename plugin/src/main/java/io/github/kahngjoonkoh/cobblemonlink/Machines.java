@@ -226,7 +226,7 @@ final class Machines {
         save();
         if (species == null || pl.dex.get(species) == null) return;
         Location at = m.at(w).add(m.at(w).getDirection().multiply(1.5));
-        pl.spawner.spawn(at, Mon.create(pl.dex, species, 1)); // FossilMultiblockStructure: a wild Pokémon to catch
+        pl.spawner.spawn(at, Mon.create(pl.dex, species, 1), true); // FossilMultiblockStructure: a wild Pokémon to catch
         Player owner = m.owner == null ? null : Bukkit.getPlayer(UUID.fromString(m.owner));
         if (owner != null) owner.sendMessage(Component.text(pl.t(owner, "cobblemonlink.machine.revived", pl.dex.name(species, CobblemonLink.loc(owner))), NamedTextColor.GREEN));
     }
