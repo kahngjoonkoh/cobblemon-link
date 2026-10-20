@@ -147,6 +147,26 @@ def berries(src, out):
     return n
 
 
+def gilded(src, out):
+    """Cobblemon's gilded chests (drawn by its client from Bedrock geometry): each colour as "clb_<chest>"."""
+    base = 'assets/cobblemon/bedrock/block_entities/'
+    names = src.z.namelist() if src.z else [base + 'variations/' + f for f in os.listdir(os.path.join(src.dir, base, 'variations'))]
+    n = 0
+    for v in [x for x in names if x.startswith(base + 'variations/') and x.endswith('.json')]:
+        var = json.loads(src.read(v))['variations'][0]
+        geo, tex = var['model'].split(':')[1], var['texture'].split(':')[1]
+        name = 'clb_' + os.path.basename(v)[:-5]
+        d = json.loads(src.read(base + 'models/' + geo + '.json'))
+        d['minecraft:geometry'][0]['description']['identifier'] = 'geometry.' + name
+        os.makedirs(os.path.join(out, name), exist_ok=True)
+        json.dump(d, open(os.path.join(out, name, name + '.geo.json'), 'w'))
+        open(os.path.join(out, name, name + '.png'), 'wb').write(src.read('assets/cobblemon/' + tex))
+        json.dump({"format_version": "1.8.0", "animations": {"idle": {"loop": True, "animation_length": 1, "bones": {}}}},
+                  open(os.path.join(out, name, name + '.animation.json'), 'w'))
+        n += 1
+    return n
+
+
 def plants(src):
     """Cobblemon's plants and crystals (Furniture.plant): berry bushes, apricorns, mints, saplings, clusters."""
     base = 'assets/cobblemon/blockstates/'
@@ -177,6 +197,9 @@ if __name__ == '__main__':
     for b in sys.argv[3:]:
         if b == 'berries':
             print(berries(src, out), 'berry models')
+            continue
+        if b == 'gilded':
+            print(gilded(src, out), 'gilded chests')
             continue
         for name in plants(src) if b == 'plants' else [b]:
             for m in models_of(src, name): n += convert(src, m, out)

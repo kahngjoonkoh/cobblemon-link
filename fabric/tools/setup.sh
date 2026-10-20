@@ -53,7 +53,7 @@ if [ -d "$ASSETS/java" ]; then
   [ -n "$J" ] && python3 tools/bedrock_sounds.py "$J" "$DATA/geyser/packs/cobblemon-link-sounds.mcpack" >/dev/null
   # Cobblemon's machine blocks (healing machine, PC...) as GeyserModelEngine models; keep in step with Furniture.BLOCKS
   [ -n "$J" ] && VANILLA_JAR=$(ls "$DATA"/fabric/polymer/cached_client_jars/*.jar 2>/dev/null | head -1) python3 tools/bedrock_blocks.py "$J" "$DATA/geyser/extensions/geysermodelengineextension/input" healing_machine pc \
-      pasture display_case fossil_analyzer restoration_tank monitor tm_machine campfire_pot_{red,blue,green,white,yellow,pink,black} plants berries >/dev/null
+      pasture display_case fossil_analyzer restoration_tank monitor tm_machine campfire_pot_{red,blue,green,white,yellow,pink,black} plants berries gilded >/dev/null
   # Cobblemon's NPCs as models (their skins), from the Cobblemon jar unpacked
   if [ -n "$J" ]; then rm -rf ~/.cache/cl-fabric/cobj && mkdir -p ~/.cache/cl-fabric/cobj && unzip -q -o "$J" 'assets/*' -d ~/.cache/cl-fabric/cobj
     python3 tools/npc_models.py ~/.cache/cl-fabric/cobj "$MODELS" "$DATA/geyser/extensions/geysermodelengineextension/input" >/dev/null; fi

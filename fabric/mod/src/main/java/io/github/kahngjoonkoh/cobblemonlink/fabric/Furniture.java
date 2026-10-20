@@ -39,7 +39,8 @@ import org.joml.Quaternionf;
 public final class Furniture {
     static final List<String> BLOCKS = List.of("healing_machine", "pc", "pasture", "display_case", "fossil_analyzer",
             "restoration_tank", "monitor", "tm_machine", "campfire_pot_red", "campfire_pot_blue", "campfire_pot_green",
-            "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black", "campfire", "soul_campfire");
+            "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black", "campfire", "soul_campfire",
+            "gilded_chest", "black_gilded_chest", "blue_gilded_chest", "green_gilded_chest", "pink_gilded_chest", "white_gilded_chest", "yellow_gilded_chest");
 
     /** Cobblemon's campfires: Minecraft's campfire stands in (PolyEntry), the pot on it is ours. */
     static final List<String> CAMPFIRES = List.of("campfire", "soul_campfire");
@@ -116,6 +117,26 @@ public final class Furniture {
                 ITEMS.computeIfAbsent(v.model, m -> PolymerResourcePackUtils.requestModel(
                         Models.CARRIERS.get(Math.floorMod(m.hashCode(), Models.CARRIERS.size())), ResourceLocation.parse(m)));
         }
+        // Cobblemon's gilded chests: its Bedrock chest geometry in each colour, as item models (closed lid)
+        Map<String, byte[]> chestFiles = new HashMap<>();
+        var vdir = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("cobblemon").flatMap(c -> c.findPath("assets/cobblemon/bedrock/block_entities/variations"));
+        if (vdir.isPresent()) try (var list = java.nio.file.Files.list(vdir.get())) {
+            for (var f : (Iterable<java.nio.file.Path>) list::iterator) {
+                String name = f.getFileName().toString().replace(".json", "");
+                var v = JsonParser.parseString(java.nio.file.Files.readString(f)).getAsJsonObject().getAsJsonArray("variations").get(0).getAsJsonObject();
+                String geo = v.get("model").getAsString().split(":")[1], tex = v.get("texture").getAsString().split(":")[1];
+                byte[] g = resource("assets/cobblemon/bedrock/block_entities/models/" + geo + ".json"), png = resource("assets/cobblemon/" + tex);
+                if (g == null || png == null) continue;
+                String id = "cobblemonlink:block/" + name;
+                chestFiles.put("assets/cobblemonlink/models/block/" + name + ".json", Berries.model(JsonParser.parseString(new String(g, StandardCharsets.UTF_8)).getAsJsonObject(),
+                        "cobblemonlink:item/chest/" + name, 0).toString().getBytes(StandardCharsets.UTF_8));
+                chestFiles.put("assets/cobblemonlink/textures/item/chest/" + name + ".png", png);
+                ITEMS.put(id, PolymerResourcePackUtils.requestModel(Models.CARRIERS.get(Math.floorMod(id.hashCode(), Models.CARRIERS.size())), ResourceLocation.parse(id)));
+            }
+        } catch (java.io.IOException e) {
+            System.out.println("[cobblemonlink] gilded chests: " + e);
+        }
+        PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(b -> chestFiles.forEach(b::addData));
         // PolyMc's pack carries only the block models items use: these, their parents and textures too
         PolymerResourcePackUtils.RESOURCE_PACK_CREATION_EVENT.register(b -> {
             java.util.Set<String> done = new java.util.HashSet<>();
@@ -216,6 +237,14 @@ public final class Furniture {
         Variant v = variant(s);
         if (v == null) return null;
         List<Variant> out = new ArrayList<>();
+        String path = BuiltInRegistries.BLOCK.getKey(s.getBlock()).getPath();
+        if (path.endsWith("gilded_chest") && ITEMS.containsKey("cobblemonlink:block/" + path)) { // turned by its facing, as Cobblemon's renderer
+            int y = s.hasProperty(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING)
+                    ? (int) s.getValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING).toYRot() : 0;
+            y += 180; // the geometry's lock is on its back (-z), like a mob's face; a pig carrier with this yaw faces the same way
+            out.add(new Variant(st -> true, "cobblemonlink:block/" + path, y));
+            return out;
+        }
         if (!CAMPFIRES.contains(BuiltInRegistries.BLOCK.getKey(s.getBlock()).getPath())) out.add(v);
         if (level.getBlockEntity(pos) instanceof com.cobblemon.mod.common.block.entity.CampfireBlockEntity be && !be.getPotItem().isEmpty()) {
             boolean lid = s.getValues().entrySet().stream().anyMatch(e -> e.getKey().getName().equals("lid") && Boolean.TRUE.equals(e.getValue()));

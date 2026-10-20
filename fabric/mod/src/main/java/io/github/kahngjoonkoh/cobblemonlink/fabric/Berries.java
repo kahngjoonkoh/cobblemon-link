@@ -76,9 +76,12 @@ final class Berries {
 
     /**
      * A Bedrock geometry's cubes as a Minecraft block model around (8, 8, 8) (x mirrored, as Bedrock's is), the
-     * texture to be bound per berry ("#0"). ponytail: no cube rotations or per-face UV; berry fruit has neither.
+     * texture to be bound per berry ("#0"). ponytail: no bone rotations or per-face UV; berry fruit has neither (a gilded chest's two slanted belt strips stay flat).
      */
-    static JsonObject model(JsonObject geo, String id) {
+    static JsonObject model(JsonObject geo, String id) { return model(geo, id, 8); }
+
+    /** y0: where the geometry's y = 0 goes in the block model (8: the middle, a berry's point; 0: the floor). */
+    static JsonObject model(JsonObject geo, String id, float y0) {
         JsonObject g = geo.getAsJsonArray("minecraft:geometry").get(0).getAsJsonObject();
         JsonObject desc = g.getAsJsonObject("description");
         float tw = desc.get("texture_width").getAsFloat(), th = desc.get("texture_height").getAsFloat();
@@ -90,16 +93,19 @@ final class Berries {
                 JsonObject cube = c.getAsJsonObject();
                 float[] o = floats(cube.getAsJsonArray("origin")), sz = floats(cube.getAsJsonArray("size")), uv = floats(cube.getAsJsonArray("uv"));
                 float w = sz[0], h = sz[1], d = sz[2], u = uv[0], v = uv[1];
+                float in = cube.has("inflate") ? cube.get("inflate").getAsFloat() : 0; // grows the box: keeps flat belts off the faces they lie on
+                boolean mir = cube.has("mirror") && cube.get("mirror").getAsBoolean();
                 JsonObject e = new JsonObject();
-                e.add("from", arr(8 - (o[0] + w), 8 + o[1], 8 + o[2]));
-                e.add("to", arr(8 - o[0], 8 + o[1] + h, 8 + o[2] + d));
+                e.add("from", arr(8 - (o[0] + w) - in, y0 + o[1] - in, 8 + o[2] - in));
+                e.add("to", arr(8 - o[0] + in, y0 + o[1] + h + in, 8 + o[2] + d + in));
                 JsonObject faces = new JsonObject();
-                faces.add("up", face(u + d, v, w, d, tw, th));
-                faces.add("down", face(u + d + w, v, w, d, tw, th));
-                faces.add("north", face(u + d, v + d, w, h, tw, th));
-                faces.add("south", face(u + 2 * d + w, v + d, w, h, tw, th));
-                faces.add("west", face(u, v + d, d, h, tw, th));
-                faces.add("east", face(u + d + w, v + d, d, h, tw, th));
+                // Bedrock's box UV row: east (u), north, west, south; x is mirrored here, so the strips keep their sides
+                faces.add("up", face(u + d, v, w, d, tw, th, mir));
+                faces.add("down", face(u + d + w, v, w, d, tw, th, mir));
+                faces.add("north", face(u + d, v + d, w, h, tw, th, mir));
+                faces.add("south", face(u + 2 * d + w, v + d, w, h, tw, th, mir));
+                faces.add(mir ? "west" : "east", face(u, v + d, d, h, tw, th, mir));
+                faces.add(mir ? "east" : "west", face(u + d + w, v + d, d, h, tw, th, mir));
                 e.add("faces", faces);
                 elements.add(e);
             }
@@ -112,9 +118,10 @@ final class Berries {
         return m;
     }
 
-    private static JsonObject face(float u, float v, float w, float h, float tw, float th) {
+    private static JsonObject face(float u, float v, float w, float h, float tw, float th, boolean mirror) {
         JsonObject f = new JsonObject();
-        f.add("uv", arr(u * 16 / tw, v * 16 / th, (u + w) * 16 / tw, (v + h) * 16 / th));
+        float a = u * 16 / tw, b = (u + w) * 16 / tw;
+        f.add("uv", mirror ? arr(b, v * 16 / th, a, (v + h) * 16 / th) : arr(a, v * 16 / th, b, (v + h) * 16 / th));
         f.addProperty("texture", "#0");
         return f;
     }

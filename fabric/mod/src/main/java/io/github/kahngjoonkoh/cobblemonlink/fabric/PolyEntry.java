@@ -15,12 +15,12 @@ public class PolyEntry implements PolyMcEntrypoint {
             registry.registerBlockPoly(BuiltInRegistries.BLOCK.get(ResourceLocation.fromNamespaceAndPath("cobblemon", id)),
                     new SimpleReplacementPoly(id.equals("campfire") ? Blocks.CAMPFIRE : id.equals("soul_campfire") ? Blocks.SOUL_CAMPFIRE
                             : Furniture.plant(id) ? Blocks.STRUCTURE_VOID : Blocks.BARRIER));
-        // Cobblemon's signs and chests as Minecraft's (same properties: facing, rotation...): signs keep their text
+        // Cobblemon's signs and Gimmighoul's chest as Minecraft's (gilded chests are Furniture's) (same properties: facing, rotation...): signs keep their text
         // (SendMixin hands their block-entity data over as Minecraft's sign's), chests open as chests (Menus)
         for (var k : BuiltInRegistries.BLOCK.keySet()) {
             if (!k.getNamespace().equals("cobblemon")) continue;
             String id = k.getPath();
-            net.minecraft.world.level.block.Block to = id.endsWith("gilded_chest") || id.equals("gimmighoul_chest") ? Blocks.CHEST
+            net.minecraft.world.level.block.Block to = id.equals("gimmighoul_chest") ? Blocks.CHEST
                     : id.endsWith("_wall_hanging_sign") ? (id.startsWith("saccharine") ? Blocks.CHERRY_WALL_HANGING_SIGN : Blocks.JUNGLE_WALL_HANGING_SIGN)
                     : id.endsWith("_hanging_sign") ? (id.startsWith("saccharine") ? Blocks.CHERRY_HANGING_SIGN : Blocks.JUNGLE_HANGING_SIGN)
                     : id.endsWith("_wall_sign") ? (id.startsWith("saccharine") ? Blocks.CHERRY_WALL_SIGN : Blocks.JUNGLE_WALL_SIGN)
