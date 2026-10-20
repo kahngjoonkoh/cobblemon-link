@@ -46,7 +46,7 @@ public final class Summary {
         if (party.isEmpty()) return;
         int i = Math.clamp(index, 0, party.size() - 1);
         if (Clients.bedrock(p)) bedrock(p, party, i, tab);
-        else PartyMenu.open(p); // ponytail: vanilla Java's Summary comes with the vanillaJava levels
+        else JavaScreens.party(p);
     }
 
     static void bedrock(ServerPlayer p, List<Pokemon> party, int i, int tab) {

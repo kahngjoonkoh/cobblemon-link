@@ -62,7 +62,8 @@ public final class BattleUi {
             }
             ui.bars();
             if (ui.choosing && !ui.formOpen)
-                ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal("You need to choose an action. Tap the Pokémon.")));
+                ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(Clients.bedrock(ui.player)
+                        ? "You need to choose an action. Tap the Pokémon." : "You need to choose an action. Right-click the Pokémon or /battle.")));
         }
     }
 
@@ -99,7 +100,7 @@ public final class BattleUi {
     }
 
     /** The Pokémon tapped or /battle: the menu again, if a choice is due. */
-    void reveal() { if (choosing && !formOpen) openMenu(); }
+    void reveal() { if (choosing && (!formOpen || !Clients.bedrock(player))) openMenu(); }
 
     // ---- menus ----
 
@@ -194,6 +195,11 @@ public final class BattleUi {
     private void form(int kind, List<Forms.Opt> opts) {
         List<String> last = log.subList(Math.max(0, log.size() - 4), log.size());
         formOpen = true;
+        if (!Clients.bedrock(player)) { // vanilla Java: a chest
+            JavaScreens.battle(player, kind, opts, new ArrayList<>(last), () -> formOpen = false);
+            formOpen = false; // ponytail: Esc on the chest isn't seen; /battle or a click on the Pokémon reopens it
+            return;
+        }
         Forms.send(player, "Battle" + Forms.MARK + kind, String.join("\n", last.isEmpty() ? List.of("What will you do?") : last), opts, i -> {
             formOpen = false; // any answer closes it; the action may send the next one
             if (i >= 0 && i < opts.size()) opts.get(i).action().run();

@@ -55,7 +55,5 @@ public class Bridge implements ModInitializer {
             long at = System.currentTimeMillis() + 8000;
             if (Clients.java(h)) Tasks.until(() -> h.player.hasDisconnected() || System.currentTimeMillis() > at && Packs.send(h));
         });
-        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
-                net.minecraft.commands.Commands.literal("vparty").executes(c -> { PartyMenu.open(c.getSource().getPlayerOrException()); return 1; })));
     }
 }

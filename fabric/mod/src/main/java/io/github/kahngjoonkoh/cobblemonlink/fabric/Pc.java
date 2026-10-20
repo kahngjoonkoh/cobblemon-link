@@ -96,6 +96,28 @@ public final class Pc {
         v.box = Math.floorMod(v.box, pc(p).getBoxes().size());
         if (v.selected != null && where(p, v.selected) == null) v.selected = null;
         if (Clients.bedrock(p)) bedrock(p, v);
+        else JavaScreens.pc(p, v);
+    }
+
+    /** Java's filter: the next (or previous) type. */
+    static void cycleType(ServerPlayer p, boolean back) {
+        View v = VIEWS.get(p.getUUID());
+        int i = v.type == null ? -1 : BattleUi.TYPES.indexOf(v.type), n = BattleUi.TYPES.size() + 1;
+        i = Math.floorMod(i + 1 + (back ? -1 : 1), n) - 1;
+        v.type = i < 0 ? null : BattleUi.TYPES.get(i);
+        v.confirm = false;
+        show(p, v);
+    }
+
+    /** Java's box settings: the next unlocked wallpaper. ponytail: renaming a box needs a text field (Bedrock forms). */
+    static void nextWallpaper(ServerPlayer p) {
+        View v = VIEWS.get(p.getUUID());
+        PCBox box = pc(p).getBoxes().get(v.box);
+        int w = WALLPAPERS.indexOf(wallpaperOf(box));
+        do w = (w + 1) % WALLPAPERS.size(); while (locked(p, w));
+        box.setWallpaper(wallpaper(w));
+        p.sendSystemMessage(Component.literal("Wallpaper: " + WALLPAPER_NAMES.get(w)));
+        show(p, v);
     }
 
     private static boolean shown(View v, Pokemon m) {

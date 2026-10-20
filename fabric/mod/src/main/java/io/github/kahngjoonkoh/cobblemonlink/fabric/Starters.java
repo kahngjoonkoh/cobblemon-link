@@ -56,6 +56,7 @@ public final class Starters {
         List<Region> regions = regions(p);
         if (regions.isEmpty() || regions.getFirst().species().isEmpty()) return;
         if (Clients.bedrock(p)) bedrock(p, regions, 0, 0, 0);
+        else JavaScreens.starter(p, regions, 0);
     }
 
     static String desc(String species) {

@@ -74,9 +74,9 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | idle / walk / battle_idle / faint | standard | Keyframes posed on the server | ✅ `m2-java-charizard-walking.png` |
 | Move animations (cry, physical, special, recoil) | full | From Cobblemon's animation packet | 🟡 wired |
 | 3D Poké Ball | standard | Own renderer on Cobblemon's `EmptyPokeBallEntity` | ✅ `m3-java-pokeball-capture.png` |
-| Starter (`/starter`, toast) | basic: chest · standard: art | | ⬜ |
-| Party / Summary / PC / Pokédex | basic: chest · standard: art | | ⬜ |
-| Battle | basic/standard: chest menu · full: battle screen | | ⬜ |
+| Starter (`/starter`, toast) | basic: chest · standard: art | Cobblemon's StarterHandler; chest a row a region | 🟡 chest ✅ `j2-java-basic-starter-party-dex.png`; art ⬜ |
+| Party / Summary / PC / Pokédex | basic: chest · standard: art | The Paper version's chest menus on Cobblemon's data (party + options, PC with sort/filter/release/wallpaper, Pokédex) | 🟡 chests ✅ `j2-java-basic-starter-party-dex.png`; art ⬜ |
+| Battle | basic/standard: chest menu · full: battle screen | BattleUi's menus as a chest, HP boss bars | 🟡 chest ✅ `j1-java-basic-battle.png` (all levels for now); battle screen ⬜ |
 | Party HUD, chat-free EXP | full | | ⬜ |
 | UI pack shaders for the 1.21.1 client | standard | | ⬜ |
 
