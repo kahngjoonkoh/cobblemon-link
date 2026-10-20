@@ -18,6 +18,22 @@ import net.minecraft.world.phys.Vec3;
 final class Particles {
     private Particles() {}
 
+    private static int tick;
+
+    /** Shiny Pokémon sparkle now and then, as Cobblemon's client makes them (it starts that effect itself). */
+    static void register() {
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (++tick % 40 != 0) return;
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                if (!Clients.bridged(p.connection)) continue;
+                for (var pe : p.serverLevel().getEntitiesOfClass(com.cobblemon.mod.common.entity.pokemon.PokemonEntity.class, p.getBoundingBox().inflate(24),
+                        e -> e.getPokemon().getShiny() && !e.isInvisible()))
+                    p.connection.send(new ClientboundLevelParticlesPacket(ParticleTypes.END_ROD, false, pe.getX(), pe.getY() + pe.getBbHeight() * 0.6, pe.getZ(),
+                            pe.getBbWidth() * 0.4f, pe.getBbHeight() * 0.3f, pe.getBbWidth() * 0.4f, 0.01f, 4));
+            }
+        });
+    }
+
     /** The vanilla particle for a Cobblemon effect id (path), and how many; null to show nothing. */
     record Look(ParticleOptions type, int count, float spread) {}
 
