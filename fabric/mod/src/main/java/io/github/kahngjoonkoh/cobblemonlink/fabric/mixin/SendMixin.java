@@ -84,6 +84,8 @@ public class SendMixin {
             io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.callbacks(h.player, c.payload());
             if (c.payload() instanceof com.cobblemon.mod.common.net.messages.client.storage.pc.OpenPCPacket)
                 h.player.server.execute(() -> io.github.kahngjoonkoh.cobblemonlink.fabric.Pc.open(h.player));
+            if (c.payload() instanceof com.cobblemon.mod.common.net.messages.client.pasture.OpenPasturePacket)
+                h.player.server.execute(() -> io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.pasture(h.player));
             if (c.payload() instanceof com.cobblemon.mod.common.net.messages.client.starter.OpenStarterUIPacket)
                 h.player.server.execute(() -> io.github.kahngjoonkoh.cobblemonlink.fabric.Starters.open(h.player));
             // the rest of Cobblemon's messages mean nothing to a client without it

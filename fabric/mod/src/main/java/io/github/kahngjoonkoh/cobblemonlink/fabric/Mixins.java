@@ -14,4 +14,6 @@ public final class Mixins {
     }
 
     public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); }
+
+    public static void pasture(net.minecraft.server.level.ServerPlayer p) { Pasture.open(p); }
 }
