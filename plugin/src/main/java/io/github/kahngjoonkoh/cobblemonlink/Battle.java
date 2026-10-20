@@ -70,6 +70,11 @@ final class Battle {
     private int hiddenAt, lastSneak = -100;
     private Entity ally; // the player's active Pokémon, out beside them
     private int allyIndex = -1;
+    String format = "singles";  // Cobblemon's battle formats: singles, doubles, triples
+    private int slot;           // doubles / triples: the active position being chosen for
+    private final List<String> picks = new ArrayList<>(); // the choices made so far this turn, one per position
+    private final Entity[] extra = new Entity[3], foeExtra = new Entity[3]; // positions b and c, out beside position a
+    private final int[] extraIdx = {-1, -1, -1}, foeExtraIdx = {-1, -1, -1};
     private long animUntil; // the server tick the turn's battle animations end (animate)
     private int turn; // Showdown's turn number (Quick Ball, Timer Ball)
     private final BossBar wildBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
@@ -158,6 +163,7 @@ final class Battle {
         if (pvp()) {
             init.add("p2", Store.GSON.toJsonTree(rival.team().stream().map(m -> m.set(pl.dex)).toList()));
             init.addProperty("pvp", true);
+            rival.format = format;
             for (Battle b : List.of(this, rival)) {
                 for (Mon m : b.team()) {
                     b.names.put(m.id, b.name(m));
@@ -189,6 +195,7 @@ final class Battle {
             log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
         }
 
+        if (!format.equals("singles")) init.addProperty("format", format);
         Sounds.music(player, pvp() ? "pvp" : trainer() ? "pvn" : "pvw");
         if (pvp()) Sounds.music(rival.player, "pvp");
         String host = pl.getConfig().getString("sim.host");
@@ -241,7 +248,12 @@ final class Battle {
         switch (msg.get("type").getAsString()) {
             case "request" -> {
                 request = msg.getAsJsonObject("request");
-                if (!request.has("wait")) openMenu();
+                slot = 0;
+                picks.clear();
+                if (request.has("wait")) return;
+                skipPasses();
+                if (slot < slots()) openMenu();
+                else sendPicks();
             }
             case "log" -> {
                 animate(msg.getAsJsonArray("lines"));
@@ -261,10 +273,16 @@ final class Battle {
             case "state" -> {
                 state = msg;
                 JsonArray p1 = state.getAsJsonArray(side);
+                int pos = 0;
                 for (int i = 0; i < p1.size(); i++)
                     if (p1.get(i).getAsJsonObject().get("active").getAsBoolean()) {
                         participants.add(order.get(i));
                         JsonObject p = p1.get(i).getAsJsonObject();
+                        if (pos > 0) { // doubles / triples: the others stand further along the line
+                            sendOutAt(pos++, p.get("hp").getAsInt() > 0 ? order.get(i) : -1, false);
+                            continue;
+                        }
+                        pos++;
                         if (p.get("hp").getAsInt() <= 0 && ally != null) { // Cobblemon: it faints, then goes back
                             faint(ally);
                             ally = null;
@@ -273,9 +291,14 @@ final class Battle {
                     }
                 if (trainer()) { // the NPC's active Pokémon, out in front of it; fainted, it goes back
                     JsonArray p2 = state.getAsJsonArray(foe);
+                    int fpos = 0;
                     for (int i = 0; i < p2.size(); i++)
                         if (p2.get(i).getAsJsonObject().get("active").getAsBoolean()) {
                             boolean down = p2.get(i).getAsJsonObject().get("hp").getAsInt() <= 0;
+                            if (fpos++ > 0) {
+                                sendOutAt(fpos - 1, down ? -1 : i, true);
+                                continue;
+                            }
                             if (down && foeOut != null) {
                                 faint(foeOut);
                                 foeOut = null;
@@ -304,7 +327,7 @@ final class Battle {
             openSwitch(false);
             return;
         }
-        JsonObject active = request.getAsJsonArray("active").get(0).getAsJsonObject();
+        JsonObject active = activeReq();
         boolean trapped = active.has("trapped") && active.get("trapped").getAsBoolean();
         // BattleGeneralActionSelection: Switch only when not trapped; Catch hides the battle so a ball can be thrown
         List<Integer> art = new ArrayList<>(List.of(0, 1, 2, 3)); // battle_menu_fight/switch/bag/run
@@ -362,7 +385,7 @@ final class Battle {
     private PrintWriter out() { return side.equals("p1") ? out : rival.out; }
 
     private void openFight() {
-        JsonArray moves = request.getAsJsonArray("active").get(0).getAsJsonObject().getAsJsonArray("moves");
+        JsonArray moves = activeReq().getAsJsonArray("moves");
         if (screen != null) {
             List<Screen.Tile> tiles = new ArrayList<>();
             for (int i = 0; i < moves.size(); i++) { // BattleMoveSelection: 92x24 tiles from (20, H-84), 13/5 px apart
@@ -371,7 +394,7 @@ final class Battle {
                 String name = pl.dex.label("move", mv.get("id").getAsString(), loc), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
                 String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
                 int x = 20 + i % 2 * 105, top = 84 - i / 2 * 29, t = Math.max(0, Ui.TYPES.indexOf(type));
-                String choice = "move " + (i + 1);
+                String choice = "move " + (i + 1) + target(mv);
                 char idle = (char) (Ui.MOVE + 2 * t);
                 tiles.add(new Screen.Tile(x, top, 92, 24, idle, disabled ? idle : (char) (idle + 1), o -> {
                     o.glyph(Ui.Overlay.BL, x - 9, top - 2, (char) (Ui.TYPE_BIG + t), 19);
@@ -394,7 +417,7 @@ final class Battle {
                 boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
                 String type = mv.has("type") ? mv.get("type").getAsString() : "normal";
                 String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
-                String choice = "move " + (i + 1);
+                String choice = "move " + (i + 1) + target(mv);
                 opts.add(new Opt(pl.dex.label("move", mv.get("id").getAsString(), loc) + "\n          " + pp, "move_" + (Ui.TYPES.contains(type) ? type : "normal"),
                         disabled ? this::openFight : () -> choose(choice)));
             }
@@ -408,7 +431,7 @@ final class Battle {
             boolean disabled = mv.has("disabled") && mv.get("disabled").getAsBoolean();
             String name = pl.dex.label("move", mv.get("id").getAsString(), loc), type = mv.has("type") ? mv.get("type").getAsString() : "normal";
             String pp = mv.has("pp") ? mv.get("pp").getAsInt() + "/" + mv.get("maxpp").getAsInt() : "";
-            String choice = "move " + (i + 1);
+            String choice = "move " + (i + 1) + target(mv);
             Component label = Ui.bedrock(player) ? Component.text(name + "  (" + pp + ")") : Ui.moveTile(name, type, pp, disabled);
             buttons.add(button(label, Ui.MOVE_W + 4, pl.dex.label("type", type) + "  PP " + pp, disabled ? this::openFight : () -> choose(choice)));
         }
@@ -427,7 +450,7 @@ final class Battle {
             for (int i = 0; i < side.size(); i++) {
                 JsonObject p = side.get(i).getAsJsonObject();
                 String cond = p.get("condition").getAsString();
-                if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
+                if (p.get("active").getAsBoolean() || cond.endsWith(" fnt") || picks.contains("switch " + (i + 1))) continue;
                 String choice = "switch " + (i + 1);
                 Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
                 int x = 12 + n % 2 * 98, top = 192 - n / 2 * 31;
@@ -445,7 +468,7 @@ final class Battle {
             for (int i = 0; i < side.size(); i++) {
                 JsonObject p = side.get(i).getAsJsonObject();
                 String cond = p.get("condition").getAsString();
-                if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
+                if (p.get("active").getAsBoolean() || cond.endsWith(" fnt") || picks.contains("switch " + (i + 1))) continue;
                 String choice = "switch " + (i + 1);
                 Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
                 opts.add(new Opt(name(m) + "  Lv." + m.level + "\n" + cond.split(" ")[0], "party", () -> choose(choice)));
@@ -459,7 +482,7 @@ final class Battle {
         for (int i = 0; i < side.size(); i++) {
             JsonObject p = side.get(i).getAsJsonObject();
             String cond = p.get("condition").getAsString();
-            if (p.get("active").getAsBoolean() || cond.endsWith(" fnt")) continue;
+            if (p.get("active").getAsBoolean() || cond.endsWith(" fnt") || picks.contains("switch " + (i + 1))) continue;
             String choice = "switch " + (i + 1);
             Mon m = pl.store.get(player.getUniqueId()).party.get(order.get(p.get("slot").getAsInt()));
             String name = name(m) + " Lv." + m.level, hp = cond.split(" ")[0];
@@ -673,10 +696,17 @@ final class Battle {
         var o = new Ui.Overlay();
         o.fade = hidden ? 4 : 0; // BattleOverlay MIN_OPACITY 0.5 while minimised
         JsonArray p1 = state.getAsJsonArray(side);
-        for (int i = 0; i < p1.size(); i++)
+        for (int i = 0, n = 0; i < p1.size(); i++)
             if (p1.get(i).getAsJsonObject().get("active").getAsBoolean())
-                panel(o, Ui.Overlay.TL, 12, pl.store.get(player.getUniqueId()).party.get(order.get(i)), p1.get(i).getAsJsonObject(), true);
-        panel(o, Ui.Overlay.TR, -152, foeMon(), foeState(), false);
+                panel(o, Ui.Overlay.TL, 12, 45 * n++, pl.store.get(player.getUniqueId()).party.get(order.get(i)), p1.get(i).getAsJsonObject(), true);
+        if (wildBattle()) panel(o, Ui.Overlay.TR, -152, foeMon(), foeState(), false);
+        else {
+            JsonArray p2 = state.getAsJsonArray(foe);
+            List<Mon> t = pvp() ? rival.team() : npcTeam;
+            for (int i = 0, n = 0; i < p2.size() && i < t.size(); i++)
+                if (p2.get(i).getAsJsonObject().get("active").getAsBoolean())
+                    panel(o, Ui.Overlay.TR, -152, 45 * n++, t.get(i), p2.get(i).getAsJsonObject(), false);
+        }
         o.fade = hidden ? 6 : 0; // BattleMessagePane at 0.3 with no screen open
         o.glyph(Ui.Overlay.BR, -181, 85, '\ue103', 170);
         List<String> last = log.subList(Math.max(0, log.size() - 4), log.size());
@@ -700,15 +730,18 @@ final class Battle {
     }
 
     /** One 140x40 tile: portrait ring, name, level, HP bar; yours shows HP numbers, the wild one a percentage. */
-    private void panel(Ui.Overlay o, int corner, int x, Mon m, JsonObject p, boolean own) {
-        o.glyph(corner, x + (own ? 5 : 107), 18, '\ue102', 29);
+    private void panel(Ui.Overlay o, int corner, int x, Mon m, JsonObject p, boolean own) { panel(o, corner, x, 0, m, p, own); }
+
+    /** dy: doubles / triples stack the tiles, 45 px apart (Cobblemon's BattleOverlay VERTICAL_SPACING). */
+    private void panel(Ui.Overlay o, int corner, int x, int dy, Mon m, JsonObject p, boolean own) {
+        o.glyph(corner, x + (own ? 5 : 107), 18 + dy, '\ue102', 29);
         var face = Ui.portrait(m.model(pl.dex), !own); // BattleOverlay: the portrait over the ring, under the tile
-        if (face != null) o.add(corner, x + (own ? 5 : 107), 18, face, 29);
-        o.glyph(corner, x, 10, own ? '\ue100' : '\ue101', 141);
+        if (face != null) o.add(corner, x + (own ? 5 : 107), 18 + dy, face, 29);
+        o.glyph(corner, x, 10 + dy, own ? '\ue100' : '\ue101', 141);
         int ib = x + (own ? 40 : 7), bar = Math.round(ratio(p) * 97);
-        o.label(corner, ib, 17, name(m)).label(corner, ib + 69, 17, "Lv.").label(corner, ib + 82, 17, String.valueOf(m.level));
-        if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29, (char) (0xE110 + bar), bar + 1);
-        o.small(corner, ib + (own ? 39 : 44), 28,
+        o.label(corner, ib, 17 + dy, name(m)).label(corner, ib + 69, 17 + dy, "Lv.").label(corner, ib + 82, 17 + dy, String.valueOf(m.level));
+        if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29 + dy, (char) (0xE110 + bar), bar + 1);
+        o.small(corner, ib + (own ? 39 : 44), 28 + dy,
                 own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : (int) Math.ceil(ratio(p) * 100) + "%");
     }
 
@@ -717,8 +750,74 @@ final class Battle {
     }
 
     private void choose(String choice) {
+        if (request == null || slots() <= 1) {
+            send(choice);
+            return;
+        }
+        picks.add(choice); // doubles / triples: one choice per position, sent together
+        slot++;
+        skipPasses();
+        if (slot < slots()) openMenu();
+        else sendPicks();
+    }
+
+    private void send(String choice) {
         PrintWriter o = out();
         if (o != null) o.println("{\"choose\":\"" + choice + "\",\"side\":\"" + side + "\"}");
+    }
+
+    private void sendPicks() {
+        send(String.join(", ", picks));
+        picks.clear();
+    }
+
+    /** Positions this request wants a choice for (1 in singles). */
+    private int slots() {
+        if (request.has("forceSwitch")) return request.getAsJsonArray("forceSwitch").size();
+        return request.has("active") ? request.getAsJsonArray("active").size() : 1;
+    }
+
+    /** Positions that have nothing to choose (not forced to switch, or fainted with no one left) pass. */
+    private void skipPasses() {
+        while (slot < slots()) {
+            boolean needs = request.has("forceSwitch") ? request.getAsJsonArray("forceSwitch").get(slot).getAsBoolean()
+                    : !request.getAsJsonObject("side").getAsJsonArray("pokemon").get(slot).getAsJsonObject().get("condition").getAsString().endsWith(" fnt");
+            if (needs) return;
+            picks.add("pass");
+            slot++;
+        }
+    }
+
+    private JsonObject activeReq() { return request.getAsJsonArray("active").get(Math.min(slot, request.getAsJsonArray("active").size() - 1)).getAsJsonObject(); }
+
+    /** Doubles / triples: a move at one foe needs its position (Showdown's 1-3). */
+    private String target(JsonObject mv) {
+        String t = mv.has("target") ? mv.get("target").getAsString() : "";
+        // the foe straight across (always adjacent; Showdown mirrors foe positions), which Showdown retargets if fainted
+        return slots() > 1 && (t.equals("normal") || t.equals("any") || t.equals("adjacentFoe")) ? " " + (slots() - slot) : "";
+    }
+
+    /**
+     * Doubles / triples: the Pokémon at position pos (1, 2) beside position 0's, 2 blocks further along the line;
+     * foe: the NPC trainer's. -1 recalls it.
+     */
+    private void sendOutAt(int pos, int index, boolean foeSide) {
+        Entity[] es = foeSide ? foeExtra : extra;
+        int[] idx = foeSide ? foeExtraIdx : extraIdx;
+        if (idx[pos] == index && (index < 0 || es[pos] != null)) return;
+        if (es[pos] != null) faint(es[pos]);
+        es[pos] = null;
+        idx[pos] = index;
+        Entity first = foeSide ? foeOut : ally;
+        if (index < 0 || first == null) return;
+        Location base = first.getLocation();
+        var line = new org.bukkit.util.Vector(-base.getDirection().getZ(), 0, base.getDirection().getX()).normalize(); // its right
+        Location at = base.clone().add(line.multiply(foeSide ? 2.0 * pos : -2.0 * pos));
+        Mon m = foeSide ? npcTeam.get(index) : pl.store.get(player.getUniqueId()).party.get(index);
+        es[pos] = pl.spawner.sendOut(at, m.worn(pl.dex), m.drawScale(pl.dex));
+        Spawner.animate(es[pos], "battle_idle", AnimationIterator.Type.LOOP);
+        pl.balls.sendOut(foeSide ? (org.bukkit.entity.LivingEntity) wildEntity : player, es[pos], m.ball);
+        Sounds.cry(es[pos], m.species);
     }
 
     /**
@@ -793,7 +892,8 @@ final class Battle {
         for (JsonElement l : lines) {
             String[] p = l.getAsString().split("\\|");
             if (p.length < 3 || !p[1].equals("move") && !p[1].equals("-damage")) continue;
-            Entity who = p[2].startsWith(side) ? ally : p[2].startsWith(foe) ? foeEntity() : null;
+            int at2 = p[2].length() > 2 ? p[2].charAt(2) - 'a' : 0; // p1a / p1b / p1c: the position
+            Entity who = p[2].startsWith(side) ? (at2 > 0 ? extra[at2] : ally) : p[2].startsWith(foe) ? (at2 > 0 && trainer() ? foeExtra[at2] : at2 > 0 && pvp() ? rival.extra[at2] : foeEntity()) : null;
             if (who == null) continue;
             boolean move = p[1].equals("move");
             Bukkit.getScheduler().runTaskLater(pl, () -> {
@@ -888,6 +988,8 @@ final class Battle {
             if (s != null) { s.hideBossBar(wildBar); s.hideBossBar(ownBar); }
         }
         sendOut(-1);
+        for (Entity e : extra) if (e != null) e.remove();
+        for (Entity e : foeExtra) if (e != null) e.remove();
         if (overlayTask != null) {
             overlayTask.cancel();
             player.sendActionBar(Component.empty());

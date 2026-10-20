@@ -37,7 +37,7 @@ Counts: see [the summary at the end](#summary).
 | Starting a wild battle | Send a party Pokémon at it (R) | Right-click or hit it | 🟡 | 🟡 |
 | Wild AI | `RandomBattleAI` | Random legal choices | ✅ | ✅ |
 | Singles vs wild | ✓ | ✓ | ✅ | ✅ |
-| Doubles, triples, multi, royal | ✓ | — | ⬜ | ⬜ |
+| Doubles, triples, multi, royal | ✓ | Doubles and triples (Cobblemon's GEN_9 formats in the sim): `/challenge <player> doubles|triples`, and NPCs whose dialogue starts a double battle (AI Man); one choice per position, moves aim at the foe across, both sides' Pokémon out and stacked HP tiles ([Java](docs/evidence/m23-java-npc-double-battle.png), [Bedrock](docs/evidence/m23-bedrock-double-battle-bot.log), `sim/test-doubles.js`); no target picking, multi or royal battles | 🟡 | 🟡 |
 | PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; `/spectate <player>` (64 blocks) shows the battle's HP bars and log | ✅ | ✅ |
 | NPC trainers (`StrongBattleAI`) | ✓ | `/spawnnpc <npc>` places Cobblemon's battling NPC classes (their pool parties) as player-shaped Mannequins; right-click to talk (their dialogue) or battle; the sim's TrainerAI picks the strongest move at the NPC's skill; NPC battle music, Forfeit, no Catch ([NPC](docs/evidence/m12-java-npc-trainer.png), [battle](docs/evidence/m12-java-npc-battle.png), [Korean](docs/evidence/m12-java-npc-battle-korean.png), [Bedrock bot](docs/evidence/m12-bedrock-npc-battle-bot.log)); default skin, no dialogues or switching strategy | 🟡 | 🟡 |
 | Fleeing | Walk 32 blocks away | Run, or walk 24 blocks away | 🟡 | 🟡 |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 40 | 2 | 1 |
-| Bedrock | 52 | 40 | 2 | 1 |
+| Java | 52 | 41 | 1 | 1 |
+| Bedrock | 52 | 41 | 1 | 1 |
 
 ## Suggested order
 

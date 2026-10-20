@@ -24,5 +24,11 @@ class MolangTest {
         assertEquals("has_charge", page[0]);
         assertEquals(0.0, m.run("false ? q.dialogue.close()")); // MoLang's ternary without an else
         assertFalse(Molang.truthy(m.run("q.unknown.thing(1, 'a')")));
+        boolean[] closed = {false};
+        m.funcs.put("q.dialogue.close", a -> { closed[0] = true; return 0.0; });
+        m.funcs.put("q.npc.is_in_battle_with", a -> false);
+        m.funcs.put("q.npc.is_doing_activity", a -> true);
+        m.run("(q.npc.is_in_battle_with(q.player) || !q.npc.is_doing_activity('minecraft:idle', 'cobblemon:battling')) ? q.dialogue.close()");
+        assertFalse(closed[0]); // npc-example's opening: only closes mid-battle
     }
 }

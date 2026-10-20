@@ -86,11 +86,11 @@ final class Npcs {
         Npc n = pl.dex.npcs.get(npc.getPersistentDataContainer().get(key, PersistentDataType.STRING));
         if (n == null || pl.battles.containsKey(p.getUniqueId())) return;
         if (n.dialogue != null && pl.dex.dialogues.containsKey(n.dialogue)) pl.dialogues.start(p, npc, n, n.dialogue);
-        else battle(p, npc);
+        else battle(p, npc, "singles");
     }
 
     /** A battle against the NPC's party, healed as it was spawned. */
-    void battle(Player p, Entity npc) {
+    void battle(Player p, Entity npc, String format) {
         Npc n = pl.dex.npcs.get(npc.getPersistentDataContainer().get(key, PersistentDataType.STRING));
         if (n == null || n.pool.isEmpty() || pl.battles.containsKey(p.getUniqueId())) return;
         if (pl.inBattle(npc)) {
@@ -102,6 +102,7 @@ final class Npcs {
                 new TypeToken<List<Mon>>() {}.getType());
         pl.companions.recallAll(p);
         Battle b = Battle.trainer(pl, p, npc, pl.lang.getOr(CobblemonLink.loc(p), n.name, n.name), team, n.skill);
+        b.format = format;
         pl.battles.put(p.getUniqueId(), b);
         if (!b.start()) pl.battles.remove(p.getUniqueId());
     }

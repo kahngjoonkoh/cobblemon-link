@@ -64,6 +64,7 @@ final class Hotbar {
         var model = it.getItemMeta().getItemModel();
         String tex = model == null || !model.getNamespace().equals("cobblemon") ? null : model.getKey().startsWith("tm_")
                 ? "item/tms/" + model.getKey().substring(3) + "_tm" : cobblemonIcons.get(model.getKey());
+        if (tex != null && !tex.startsWith("item/")) tex = null; // a block-atlas texture (machines): no sprite in the items atlas
         Component icon = CobblemonLink.BALL_MODEL.equals(model) ? Ui.glyphs("\ue270") // build_ui.py: the Poké Ball
                 : tex != null ? Component.object(net.kyori.adventure.text.object.ObjectContents.sprite(
                         net.kyori.adventure.key.Key.key("minecraft", "items"), net.kyori.adventure.key.Key.key("cobblemon", tex))) // the items pack's sprite

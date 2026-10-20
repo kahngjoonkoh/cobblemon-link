@@ -1,7 +1,7 @@
 // Battle sidecar: one battle per TCP connection, newline-delimited JSON. Runs Cobblemon's own Showdown build
 // (data/cobblemon/showdown.zip, unpacked by tools/build.sh into assets/showdown and mounted at $SHOWDOWN), so HP,
 // status and PP carry in and out of battle and bag items work exactly like Cobblemon's.
-//   in : {"p1":[set...],"p2":[set...],"pvp":false,"skill":0-5 (an NPC trainer: Cobblemon's StrongBattleAI skill)}   then {"choose":"move 1" | "switch 2" | "pass" | "useitem <uuid> <name> <item> [data...]",
+//   in : {"p1":[set...],"p2":[set...],"pvp":false,"format":"singles"|"doubles"|"triples","skill":0-5 (an NPC trainer: Cobblemon's StrongBattleAI skill)}   then {"choose":"move 1" | "switch 2" | "pass" | "useitem <uuid> <name> <item> [data...]",
 //        "side":"p1"}  or  {"forfeit":"p1"}
 //   out: {"type":"request","request":{...}}  {"type":"log","lines":[...]}
 //        {"type":"state","p1":[...],"p2":[...]}  {"type":"end","winner":"p1"|"p2"|null}
@@ -20,6 +20,11 @@ const { Cobblemon } = require(`${SD}/sim/cobblemon/cobblemon`);
 const { RandomPlayerAI } = require(`${SD}/sim/tools/random-player-ai`);
 
 const PORT = +(process.env.PORT || 9000);
+// Showdown's RandomPlayerAI assumes at most two per side (pokemon[i ^ 1]) and throws in triples; let Showdown pick then
+const receiveRequest = RandomPlayerAI.prototype.receiveRequest;
+RandomPlayerAI.prototype.receiveRequest = function (request) {
+  try { receiveRequest.call(this, request); } catch (e) { this.choose('default'); }
+};
 // BattleFormat.GEN_9_SINGLES, as Cobblemon sends it (BattleFormat.toFormatJSON)
 const FORMAT = { mod: 'cobblemon', gameType: 'singles', gen: 9, ruleset: ['Obtainable', '+Past', '+Unobtainable'], effectType: 'Format' };
 const toID = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -115,7 +120,9 @@ function startBattle(sock, init) {
     }
   })().catch(e => send({ type: 'error', message: String(e) }));
 
-  streams.omniscient.write(`>start ${JSON.stringify({ format: FORMAT })}`);
+  // doubles / triples: Cobblemon's GEN_9_DOUBLES / GEN_9_TRIPLES
+  const format = init.format === 'doubles' || init.format === 'triples' ? { ...FORMAT, gameType: init.format } : FORMAT;
+  streams.omniscient.write(`>start ${JSON.stringify({ format })}`);
   streams.omniscient.write(`>player p1 ${JSON.stringify({ name: 'Player', team: pack(init.p1) })}`);
   stream.battle.p1.pokemon.forEach((p, i) => { p.clSlot = i; });
   streams.omniscient.write(`>player p2 ${JSON.stringify({ name: init.pvp ? 'Rival' : init.skill != null ? 'Trainer' : 'Wild', team: pack(init.p2) })}`);
@@ -128,7 +135,8 @@ function startBattle(sock, init) {
 }
 
 // useitem <pokemon uuid> <item name> <bag item id> [data...]: Cobblemon's BagItemActionResponse
-const CHOICE = /^(move [1-4]|switch [1-6]|pass|useitem [0-9a-f-]{36} [^\s|]+ [a-z_]+( [a-z0-9_.]+)*)$/;
+const ONE = 'move [1-4]( -?[1-3])?|switch [1-6]|pass|useitem [0-9a-f-]{36} [^\\s|]+ [a-z_]+( [a-z0-9_.]+)*';
+const CHOICE = new RegExp(`^(${ONE})(, (${ONE}))*$`); // one choice per active position
 
 net.createServer(sock => {
   let battle = null, buf = '';

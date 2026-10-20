@@ -17,6 +17,14 @@ final class Molang {
     final Map<String, Function<List<Object>, Object>> funcs = new HashMap<>();
     private String s;
     private int i;
+    private boolean dry; // parsing a branch that isn't taken: no calls
+
+    /** Parses (and only runs when take) one sub-expression. */
+    private Object branch(boolean take, java.util.function.Supplier<Object> p) {
+        boolean was = dry;
+        dry = was || !take;
+        try { return p.get(); } finally { dry = was; }
+    }
 
     /** Runs statements; the last one's value. */
     Object run(String src) {
@@ -56,21 +64,22 @@ final class Molang {
     private Object expr() {
         Object c = or();
         if (eat("?")) {
-            Object a = expr(), b = eat(":") ? expr() : 0.0;
-            return truthy(c) ? a : b;
+            boolean t = truthy(c);
+            Object a = branch(t, this::expr), b = eat(":") ? branch(!t, this::expr) : 0.0;
+            return t ? a : b;
         }
         return c;
     }
 
     private Object or() {
         Object a = and();
-        while (eat("||")) { Object b = and(); a = truthy(a) || truthy(b); }
+        while (eat("||")) { boolean t = truthy(a); Object b = branch(!t, this::and); a = t || truthy(b); }
         return a;
     }
 
     private Object and() {
         Object a = eq();
-        while (eat("&&")) { Object b = eq(); a = truthy(a) && truthy(b); }
+        while (eat("&&")) { boolean t = truthy(a); Object b = branch(t, this::eq); a = t && truthy(b); }
         return a;
     }
 
@@ -129,7 +138,7 @@ final class Molang {
                 do args.add(expr()); while (eat(","));
                 eat(")");
             }
-            var f = funcs.get(name);
+            var f = dry ? null : funcs.get(name);
             return f == null ? 0.0 : f.apply(args);
         }
         if (name.startsWith("v.")) return vars.getOrDefault(name.substring(2), 0.0);

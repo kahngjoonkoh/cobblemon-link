@@ -1,0 +1,14 @@
+form ".PaperBed" | Hello, I'm .PaperBed! | Next
+form "AI Man" | Hello, .PaperBed! I'm AI Man! | Battle ; Cancel
+bossbar §rAI Man's Beedrill  Lv.12 1
+bossbar §rRattata  Lv.10   26/26 HP 1
+bossbar §rAI Man's Beedrill  Lv.12 0
+bossbar §rPikachu  Lv.20   49/49 HP 0
+bossbar §rRattata  Lv.10   26/26 HP 0
+form "Battle§r§l§1" | You are challenged by AI / Man! | Fight ; Switch ; Forfeit
+bossbar §rAI Man's Beedrill  Lv.12 0
+bossbar §rPikachu  Lv.20   49/49 HP 0
+bossbar §rRattata  Lv.10   26/26 HP 0
+form "Battle§r§l§2" | You are challenged by AI / Man! / Go! Pikachu! / Go! Rattata! | Double Team           15/15 ; Electro Ball           10/10 ; Feint           10/10 ; Spark           20/20 ;  
+form "Battle§r§l§1" | You are challenged by AI / Man! / Go! Pikachu! / Go! Rattata! | Fight ; Switch ; Forfeit
+form "Battle§r§l§2" | You are challenged by AI / Man! / Go! Pikachu! / Go! Rattata! | Tail Whip           30/30 ; Quick Attack           30/30 ; Focus Energy           30/30 ; Bite           25/25 ;  

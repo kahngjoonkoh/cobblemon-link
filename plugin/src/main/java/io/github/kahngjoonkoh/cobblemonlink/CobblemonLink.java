@@ -598,6 +598,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     }
 
     private final Map<UUID, UUID> challenges = new HashMap<>(); // challenged -> challenger
+    private final Map<UUID, String> challengeFormat = new HashMap<>(); // challenged -> singles / doubles / triples
 
     /** Cobblemon's battle challenge between players (32 blocks), accepted from a clickable chat line. */
     private void challenge(Player p, String[] a) {
@@ -612,6 +613,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
                 return;
             }
             Battle[] b = Battle.pvp(this, by, p);
+            b[0].format = challengeFormat.getOrDefault(p.getUniqueId(), "singles"); // start() passes it to the rival
             battles.put(by.getUniqueId(), b[0]);
             battles.put(p.getUniqueId(), b[1]);
             if (!b[0].start()) {
@@ -620,9 +622,10 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             }
             return;
         }
-        Player other = a.length == 1 ? Bukkit.getPlayerExact(a[0]) : null;
+        Player other = a.length >= 1 ? Bukkit.getPlayerExact(a[0]) : null;
+        String format = a.length > 1 && List.of("doubles", "triples").contains(a[1].toLowerCase()) ? a[1].toLowerCase() : "singles";
         if (other == null || other.equals(p)) {
-            p.sendMessage(Component.text("/challenge <player>", NamedTextColor.RED));
+            p.sendMessage(Component.text("/challenge <player> [singles|doubles|triples]", NamedTextColor.RED));
             return;
         }
         if (!other.getWorld().equals(p.getWorld()) || other.getLocation().distance(p.getLocation()) > 32) {
@@ -630,6 +633,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             return;
         }
         challenges.put(other.getUniqueId(), p.getUniqueId());
+        challengeFormat.put(other.getUniqueId(), format);
         p.sendMessage(Component.text(t(p, "cobblemonlink.challenge.sent", other.getName()), NamedTextColor.GRAY));
         other.sendMessage(Component.text(t(other, "cobblemonlink.challenge.received", p.getName()), NamedTextColor.YELLOW)
                 .append(Component.text(t(other, "cobblemonlink.trade.accept"), NamedTextColor.GREEN).clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/challenge accept " + p.getName()))));
@@ -849,7 +853,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             else b.reveal();
         });
         new AdminCommands(this).register();
-        playerCommand("challenge", "/challenge <player>: a Pokémon battle; /challenge accept <player>", null, this::challenge);
+        playerCommand("challenge", "/challenge <player> [singles|doubles|triples]: a Pokémon battle; /challenge accept <player>", null, this::challenge);
         playerCommand("spectate", "/spectate <player>: watch their battle (64 blocks); again to stop", null, (p, a) -> {
             for (Battle b : battles.values()) // stop watching any battle
                 if (b.spectators.remove(p.getUniqueId())) { p.sendMessage(Component.text(t(p, "cobblemonlink.spectate.stop"), NamedTextColor.GRAY)); return; }

@@ -58,7 +58,12 @@ final class Dialogues {
             m.funcs.put("q.player.main_held_item.is_of", a -> p.getInventory().getItemInMainHand().getType().getKey().toString().equals(Molang.text(a.getFirst())));
             m.funcs.put("q.dialogue.close", a -> { closed = true; return 0.0; });
             m.funcs.put("q.dialogue.set_page", a -> { page = index(Molang.text(a.getFirst())); return 0.0; });
-            m.funcs.put("q.npc.start_battle", a -> { closed = true; pl.onMain(() -> pl.npcs.battle(p, npc)); return 0.0; });
+            m.funcs.put("q.npc.start_battle", a -> { // ('double' / 'triple': Cobblemon's battle formats)
+                String f = a.size() > 1 ? Molang.text(a.get(1)) : "";
+                closed = true;
+                pl.onMain(() -> pl.npcs.battle(p, npc, f.startsWith("double") ? "doubles" : f.startsWith("triple") ? "triples" : "singles"));
+                return 0.0;
+            });
             m.funcs.put("q.npc.run_action_effect", a -> {
                 if (String.valueOf(a.getFirst()).contains("heal")) pl.heal(p);
                 return 0.0;
