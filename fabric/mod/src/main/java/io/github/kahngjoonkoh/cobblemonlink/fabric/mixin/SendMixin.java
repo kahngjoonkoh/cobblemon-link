@@ -120,6 +120,14 @@ public class SendMixin {
             var size = new ClientboundUpdateAttributesPacket(pe.getId(), List.of(scale));
             return new ClientboundBundlePacket(List.of(stand, look, size, sp));
         }
+        // Cobblemon's apricorn boats are Minecraft boats underneath: shown as one (a jungle boat), ridden as one
+        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.boat.CobblemonBoatEntity boat)
+            return new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
+                    boat instanceof com.cobblemon.mod.common.entity.boat.CobblemonChestBoatEntity ? net.minecraft.world.entity.EntityType.CHEST_BOAT : net.minecraft.world.entity.EntityType.BOAT,
+                    0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot());
+        if (packet instanceof ClientboundSetEntityDataPacket d && h.player.level().getEntity(d.id()) instanceof com.cobblemon.mod.common.entity.boat.CobblemonBoatEntity)
+            return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 15 && v.id() != 11 && v.id() != 2 && v.id() != 3
+                    && Bridge.VANILLA_DATA.contains(v.serializer())).toList()); // a boat's fields but its wood (ours isn't Minecraft's)
         // Cobblemon's NPCs (trainers, the professor...) as villagers named like them; clicks reach the NPC (its id)
         if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.npc.NPCEntity npc) {
             var as = new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
