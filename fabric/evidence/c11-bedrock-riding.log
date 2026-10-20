@@ -1,0 +1,7 @@
+# Bedrock bot (sneak + forward inputs via player_auth_input): /party -> Arcanine -> Send out; sneak + tap it -> the wheel -> Ride; hold forward 4 s
+form Bulbasaur§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_m
+form Arcanine§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_mo
+form Arcanine§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_mo
+using 24n
+form Arcanine |  | Shoulder<textures/cobblemonlink/none> ; Ride<textures/cobblemonlink/none> ; Change held item<textures
+  rcon: Arcanine Pos before [1.5, -60.0, 16.5], after [1.5, -60.0, 41.74]

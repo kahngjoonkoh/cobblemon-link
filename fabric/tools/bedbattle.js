@@ -37,14 +37,15 @@ if (process.env.USE_ITEM) setTimeout(() => {
     transaction_data: { action_type: 'click_air', trigger_type: 'player_input', block_position: { x: 0, y: 0, z: 0 }, face: 255, hotbar_slot: 0,
       held_item: held[0], player_pos: pos, click_pos: { x: 0, y: 0, z: 0 }, block_runtime_id: 0, client_prediction: 'success' } } })
 }, +process.env.USE_ITEM)
+const prefer = (process.env.PREFER || '').split(',').filter(Boolean) // PREFER_ONCE: each label is used once
 c.on('modal_form_request', p => {
   const f = JSON.parse(p.data)
   console.log('form', f.title, '|', (f.content || '').replace(/\n/g, ' / '), '|', (f.buttons || []).map(b => b.text.replace(/\n/g, ' ') + '<' + (b.image && b.image.data) + '>').join(' ; '))
   let a = answers[Math.min(n++, answers.length - 1)]
   // PREFER: button labels in order of preference (the first that a form has wins), e.g. for a trade
-  for (const want of (process.env.PREFER || '').split(',').filter(Boolean)) {
+  for (const want of prefer) {
     const i = (f.buttons || []).findIndex(b => b.text.includes(want))
-    if (i >= 0) { a = i; break }
+    if (i >= 0) { a = i; if (process.env.PREFER_ONCE) prefer.splice(prefer.indexOf(want), 1); break }
   }
   setTimeout(() => c.queue('modal_form_response', { form_id: p.form_id, has_response_data: true, data: JSON.stringify(a), has_cancel_reason: false }), 1500)
 })
@@ -57,3 +58,28 @@ c.on('set_title', p => p.text && console.log('title', p.type, JSON.stringify(p.t
 c.on('disconnect', p => { console.log('disconnect', p.message); process.exit(0) })
 c.on('error', e => { console.log('error', e.message) })
 setTimeout(() => { console.log('done after', secs, 's'); process.exit(0) }, secs * 1000)
+// INPUT=1: send movement input every tick like a real client. SNEAK_AT / SNEAK_FOR (ms): hold sneak;
+// FORWARD_AT / FORWARD_FOR (ms): hold W (walk, or steer a ride). Positions follow the server's corrections.
+if (process.env.INPUT) {
+  let tick = 0n, sneaking = false, start = Date.now(), yaw = 0
+  c.on('move_player', p => { if (p.runtime_id == me) yaw = p.yaw })
+  c.on('spawn', () => {
+    setInterval(() => {
+      const t = Date.now() - start
+      const sneak = process.env.SNEAK_AT && t > +process.env.SNEAK_AT && t < +process.env.SNEAK_AT + +(process.env.SNEAK_FOR || 2000)
+      const fwd = process.env.FORWARD_AT && t > +process.env.FORWARD_AT && t < +process.env.FORWARD_AT + +(process.env.FORWARD_FOR || 3000)
+      const flags = []
+      if (sneak && !sneaking) flags.push('start_sneaking')
+      if (!sneak && sneaking) flags.push('stop_sneaking')
+      if (sneak) flags.push('sneaking', 'sneak_down')
+      if (fwd) flags.push('up')
+      sneaking = sneak
+      const mv = { x: 0, z: fwd ? 1 : 0 }
+      try {
+        c.queue('player_auth_input', { pitch: 0, yaw, position: pos || { x: 0, y: 0, z: 0 }, move_vector: mv, head_yaw: yaw, input_data: flags,
+          input_mode: 'mouse', play_mode: 'normal', interaction_model: 'crosshair', interact_rotation: { x: 0, z: 0 }, tick: tick++,
+          delta: { x: 0, y: 0, z: 0 }, analogue_move_vector: mv, camera_orientation: { x: 0, y: 0, z: 1 }, raw_move_vector: mv })
+      } catch (e) { console.log('input error', e.message); process.exit(1) }
+    }, 50)
+  })
+}
