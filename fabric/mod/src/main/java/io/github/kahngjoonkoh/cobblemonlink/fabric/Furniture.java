@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Quaternionf;
@@ -221,6 +222,24 @@ public final class Furniture {
         return out;
     }
 
+    /** A fruit or flower on a berry bush: its geometry, growth point (block pixels) and turn. */
+    record Fruit(String geo, net.minecraft.world.phys.Vec3 at, net.minecraft.world.phys.Vec3 rot) {}
+
+    /** What Cobblemon's client draws on a grown bush: flowers at the flowering age, fruit when ripe. */
+    static List<Fruit> fruit(ServerLevel level, BlockPos pos) {
+        if (!(level.getBlockEntity(pos) instanceof com.cobblemon.mod.common.block.entity.BerryBlockEntity be)) return List.of();
+        int age = level.getBlockState(pos).getValue(com.cobblemon.mod.common.block.BerryBlock.Companion.getAGE());
+        if (age < com.cobblemon.mod.common.block.BerryBlock.FLOWER_AGE) return List.of();
+        boolean ripe = age >= com.cobblemon.mod.common.block.BerryBlock.FRUIT_AGE;
+        List<Fruit> out = new ArrayList<>();
+        for (var pair : be.berryAndGrowthPoint$common()) {
+            var berry = pair.getFirst();
+            var id = ripe ? berry.getFruitModelIdentifier() : berry.getFlowerModelIdentifier();
+            out.add(new Fruit(id.getPath().replace(".geo", ""), pair.getSecond().getPosition(), pair.getSecond().getRotation()));
+        }
+        return out;
+    }
+
     /** One machine block: a Java holder and a Bedrock holder, checking the block every half second. */
     static final class Part {
         final ServerLevel level;
@@ -266,7 +285,8 @@ public final class Furniture {
                 destroy();
                 return;
             }
-            String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat);
+            List<Fruit> fruit = fruit(level, pos);
+            String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat) + fruit;
             if (key.equals(shown)) return;
             shown = key;
             items.forEach(java::removeElement);
@@ -287,6 +307,28 @@ public final class Furniture {
                 pig.setYaw(v.y + 180);
                 pig.setInteractionHandler(click);
                 String m = "clb_" + v.model.substring(v.model.lastIndexOf('/') + 1);
+                gme.put(pig.getEntityId(), m);
+                for (var h : bedrock.getWatchingPlayers())
+                    h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + m)));
+                pigs.add(bedrock.addElement(pig));
+            }
+            for (Fruit f : fruit) {
+                ItemStack it = Berries.item(f.geo);
+                if (it != null) {
+                    // at its growth point (block pixels), turned as Cobblemon turns it; the model's (8, 8, 8) is the point
+                    ItemDisplayElement item = new ItemDisplayElement(it);
+                    item.setModelTransformation(ItemDisplayContext.NONE);
+                    item.setViewRange(1);
+                    item.setOffset(new net.minecraft.world.phys.Vec3(f.at.x / 16 - 0.5, f.at.y / 16 - 0.5, f.at.z / 16 - 0.5));
+                    item.setLeftRotation(Models.euler((float) f.rot.x, (float) f.rot.y, (float) f.rot.z));
+                    items.add(java.addElement(item));
+                }
+                SimpleEntityElement pig = new SimpleEntityElement(EntityType.PIG);
+                pig.setNoGravity(true);
+                pig.setSilent(true);
+                pig.setInteractionHandler(click);
+                pig.setOffset(new net.minecraft.world.phys.Vec3(f.at.x / 16 - 0.5, f.at.y / 16, f.at.z / 16 - 0.5));
+                String m = "clberry_" + f.geo;
                 gme.put(pig.getEntityId(), m);
                 for (var h : bedrock.getWatchingPlayers())
                     h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + m)));

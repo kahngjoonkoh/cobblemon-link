@@ -4,7 +4,7 @@ uses becomes a GeyserModelEngine model "clb_<model>" (geometry from the Java mod
 one atlas), which the server shows on a carrier at the block (Furniture.java). Java models are Blockbench's: the
 same conversion as geo2bb.py, backwards (x mirrored, rotations' x and y negated).
 ponytail: no per-face UV rotation; animated textures show their first frame.
-usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint)"""
+usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint; 'berries': their fruit and flowers)"""
 import io, json, os, sys, zipfile
 from PIL import Image
 
@@ -107,6 +107,34 @@ def models_of(src, block):
     return sorted(out)
 
 
+def berries(src, out):
+    """The fruit and flower each berry bush shows (Cobblemon draws them on the grown bush): its Bedrock geometry as
+    it is, as GeyserModelEngine model "clberry_<geometry>" with its texture."""
+    base = 'assets/cobblemon/'
+    names = src.z.namelist() if src.z else [os.path.relpath(os.path.join(r, f), src.dir) for r, _, fs in os.walk(os.path.join(src.dir, 'data/cobblemon/berries')) for f in fs]
+    pairs = set()
+    for n in names:
+        if n.startswith('data/cobblemon/berries/') and n.endswith('.json'):
+            d = json.loads(src.read(n))
+            for m, t in ((d.get('fruitModel'), d.get('fruitTexture')), (d.get('flowerModel'), d.get('flowerTexture'))):
+                if m and t: pairs.add((m.split(':')[1], t.split(':')[1]))
+    n = 0
+    for geo, tex in sorted(pairs):
+        g = base + 'bedrock/berries/' + geo + '.json'
+        t = base + 'textures/berries/' + tex + '.png'
+        if not (src.has(g) and src.has(t)): continue
+        name = 'clberry_' + geo.replace('.geo', '')
+        d = json.loads(src.read(g))
+        d['minecraft:geometry'][0]['description']['identifier'] = 'geometry.' + name
+        os.makedirs(os.path.join(out, name), exist_ok=True)
+        json.dump(d, open(os.path.join(out, name, name + '.geo.json'), 'w'))
+        open(os.path.join(out, name, name + '.png'), 'wb').write(src.read(t))
+        json.dump({"format_version": "1.8.0", "animations": {"idle": {"loop": True, "animation_length": 1, "bones": {}}}},
+                  open(os.path.join(out, name, name + '.animation.json'), 'w'))
+        n += 1
+    return n
+
+
 def plants(src):
     """Cobblemon's berry bushes, apricorns and mints (Furniture.plant): every blockstate named so."""
     base = 'assets/cobblemon/blockstates/'
@@ -133,6 +161,9 @@ if __name__ == '__main__':
     src, out = Src(sys.argv[1]), sys.argv[2]
     n = 0
     for b in sys.argv[3:]:
+        if b == 'berries':
+            print(berries(src, out), 'berry models')
+            continue
         for name in plants(src) if b == 'plants' else [b]:
             for m in models_of(src, name): n += convert(src, m, out)
     print(n, 'block models')

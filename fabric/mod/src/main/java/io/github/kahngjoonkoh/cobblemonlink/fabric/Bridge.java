@@ -45,6 +45,7 @@ public class Bridge implements ModInitializer {
         Extras.register();
         Furniture.register();
         Shoulders.register();
+        Berries.register();
         Riding.register();
         Particles.register();
         // the pack once in game, vanilla Java only (Packs); Polymer may still be building it
