@@ -21,7 +21,9 @@ MACHINES = {
     'fossil_analyzer': ['facing=north,on=false'],
     'tm_machine': ['facing=north,empty=false,open=false,active=false,dispensed=false'],
     'display_case': None,
-    'campfire_pot_red': ['facing=north,open=false,occupied=false'],
+    'poke_snack': ['bites=0,facing=north'],
+    **{f'campfire_pot_{c}': ['facing=north,open=false,occupied=false']
+       for c in ('red', 'black', 'blue', 'green', 'pink', 'white', 'yellow')},  # on a campfire (Machines.java)
 }
 
 

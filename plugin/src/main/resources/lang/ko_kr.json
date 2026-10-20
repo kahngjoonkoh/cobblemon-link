@@ -105,5 +105,8 @@
  "cobblemonlink.ui.stat_short.sp_atk": "특공",
  "cobblemonlink.ui.stat_short.sp_def": "특방",
  "cobblemonlink.ui.stat_short.speed": "스피드",
- "cobblemonlink.shoulder.cant": "%1$s은(는) 어깨에 탈 수 없다."
+ "cobblemonlink.shoulder.cant": "%1$s은(는) 어깨에 탈 수 없다.",
+ "cobblemonlink.pot.unlit": "냄비 아래 모닥불이 꺼져 있다.",
+ "cobblemonlink.pot.cook": "요리하기",
+ "cobblemonlink.pot.seasoning": "조미료는 오른쪽 칸에 넣는다"
 }

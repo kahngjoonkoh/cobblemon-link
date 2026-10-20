@@ -38,6 +38,9 @@ final class Recipes {
         List<String> ingredient, base, addition, template, input, bottle;
     }
 
+    /** Cobblemon's Campfire Pot recipes (cooking_pot, cooking_pot_shapeless), cooked by Machines' pot menu. */
+    static final List<Def> pot = new ArrayList<>();
+
     static int register(CobblemonLink pl, Path file) throws IOException {
         if (!Files.exists(file)) return 0;
         List<Def> defs;
@@ -73,6 +76,11 @@ final class Recipes {
             case "smelting" -> new FurnaceRecipe(key, result, choice(pl, d.ingredient), d.xp, d.time);
             case "blasting" -> new BlastingRecipe(key, result, choice(pl, d.ingredient), d.xp, d.time);
             case "smithing" -> new SmithingTransformRecipe(key, result, choice(pl, d.template), choice(pl, d.base), choice(pl, d.addition));
+            case "pot", "pot_shapeless" -> {
+                if (d.result.startsWith("cobblemon:") && pl.items.create(d.result.substring(10), 1) == null) yield null;
+                pot.add(d);
+                yield null;
+            }
             case "brewing" -> {
                 Bukkit.getPotionBrewer().addPotionMix(new PotionMix(key, result, choice(pl, d.bottle), choice(pl, d.input)));
                 yield null;
@@ -82,6 +90,60 @@ final class Recipes {
         if (r != null) Bukkit.addRecipe(r);
         return true;
     }
+
+    /**
+     * The pot recipe this 3x3 grid (row by row, null = empty) makes, or null: shaped ones anywhere in the grid (not
+     * mirrored), shapeless ones by their ingredients.
+     */
+    static Def cook(CobblemonLink pl, ItemStack[] grid) {
+        for (Def d : pot) if (d.type.equals("pot") ? shaped(pl, d, grid) : shapeless(pl, d, grid)) return d;
+        return null;
+    }
+
+    private static boolean shaped(CobblemonLink pl, Def d, ItemStack[] grid) {
+        int h = d.pattern.size(), w = d.pattern.stream().mapToInt(String::length).max().orElse(0);
+        for (int oy = 0; oy + h <= 3; oy++)
+            for (int ox = 0; ox + w <= 3; ox++) {
+                boolean ok = true;
+                for (int i = 0; i < 9 && ok; i++) {
+                    int x = i % 3 - ox, y = i / 3 - oy;
+                    char c = x >= 0 && y >= 0 && y < h && x < d.pattern.get(y).length() ? d.pattern.get(y).charAt(x) : ' ';
+                    ok = c == ' ' ? empty(grid[i]) : !empty(grid[i]) && is(pl, grid[i], d.key.get(String.valueOf(c)));
+                }
+                if (ok) return true;
+            }
+        return false;
+    }
+
+    private static boolean shapeless(CobblemonLink pl, Def d, ItemStack[] grid) {
+        List<ItemStack> left = new ArrayList<>();
+        for (ItemStack s : grid) if (!empty(s)) left.add(s);
+        if (left.size() != d.ingredients.size()) return false;
+        for (List<String> ing : d.ingredients) { // ponytail: greedy, fine for Cobblemon's recipes (no overlapping choices)
+            ItemStack hit = left.stream().filter(s -> is(pl, s, ing)).findFirst().orElse(null);
+            if (hit == null) return false;
+            left.remove(hit);
+        }
+        return true;
+    }
+
+    static boolean empty(ItemStack s) { return s == null || s.isEmpty(); }
+
+    /** An item matches one of these ids or tags (a Cobblemon item only its own id). */
+    static boolean is(CobblemonLink pl, ItemStack s, List<String> ids) {
+        String cob = pl.items.id(s);
+        for (String id : ids) {
+            if (id.startsWith("cobblemon:")) { if (id.substring(10).equals(cob)) return true; }
+            else if (cob != null) continue;
+            else if (id.startsWith("#")) {
+                Tag<Material> tag = Bukkit.getTag(Tag.REGISTRY_ITEMS, NamespacedKey.fromString(id.substring(1)), Material.class);
+                if (tag != null && tag.isTagged(s.getType())) return true;
+            } else if (s.getType().getKey().toString().equals(id)) return true;
+        }
+        return false;
+    }
+
+    static ItemStack result(CobblemonLink pl, Def d) { return stack(pl, d.result, d.count); }
 
     /** "cobblemon:x" -> Cobblemon's item; "minecraft:x" -> the vanilla item. */
     private static ItemStack stack(CobblemonLink pl, String id, int count) {

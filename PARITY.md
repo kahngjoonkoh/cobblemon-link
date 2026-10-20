@@ -26,7 +26,7 @@ Counts: see [the summary at the end](#summary).
 | Shinies | 1/8192, shiny textures | Same | ✅ | ✅ |
 | Regional forms, features, gender | ✓ | Spawn properties and species features | ✅ | ✅ |
 | Herds, alphas (1.8.0) | ✓ | Cobblemon's 1,260 herd spawns (`spawn_pool_world/herds`): a leader, then followers around it up to the herd's size, each no more than its maxTimes; alphas are drawn bigger (Cobblemon's formula) on both clients (GeyserModelEngine sends the tracker's scale), get three perfect IVs, their held item and the Alpha Mark ([herd](docs/evidence/m16-java-herd.png), [alpha beside a normal one](docs/evidence/m16-java-alpha-vs-normal.png)); `/spawnherd <leader>` for admins | ✅ | ✅ |
-| Influences (Sweet Incense, Poké Snacks, Saccharine log, bait) | ✓ | Fishing bait: Cobblemon's 79 baits (berries, Poké Bait, golden apples...) in the other hand are used up on a bite, with their effects: rarer bucket, type bias, level raise, nature, IVs, hidden ability, alpha, gender, shiny rerolls, friendship, marks ([evidence](docs/evidence/m18-java-fishing-bait.png), [log](docs/evidence/m18-fishing-bait.log)); no Poké Snacks, Sweet Incense or Saccharine logs | 🟡 | 🟡 |
+| Influences (Sweet Incense, Poké Snacks, Saccharine log, bait) | ✓ | Fishing bait: Cobblemon's 79 baits (berries, Poké Bait, golden apples...) in the other hand are used up on a bite, with their effects: rarer bucket, type bias, level raise, nature, IVs, hidden ability, alpha, gender, shiny rerolls, friendship, marks ([evidence](docs/evidence/m18-java-fishing-bait.png), [log](docs/evidence/m18-fishing-bait.log)); Poké Snacks (see Campfire pot); no Sweet Incense or Saccharine logs | 🟡 | 🟡 |
 | Wild model and animations | ✓ | Cobblemon's models: BetterModel (Java), GeyserModelEngine (Bedrock) | ✅ | ✅ |
 
 ## Battles
@@ -107,7 +107,7 @@ Counts: see [the summary at the end](#summary).
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
 | Berries and berry trees | 70 | Held berries work in battle; healing, status, Leppa and EV-lowering berries can be fed out of battle (and healing ones used from the bag); berries drop from sweet berry bushes; no berry trees or mulch | 🟡 | 🟡 |
 | Apricorns | ✓ | The 7 apricorns, from leaves | 🟡 | 🟡 |
-| Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | — | ⬜ | ⬜ |
+| Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | The seven Campfire Pots go on a lit campfire; their menu (3x3 grid, three seasonings, Cook) makes Cobblemon's 118 pot recipes at once; bait seasonings go into a Poké Snack, which placed draws a wild Pokémon within 8 blocks about once a minute for 8 bites ([pot](docs/evidence/m19-java-campfire-pot.png), [cooked](docs/evidence/m19-java-campfire-pot-cooked.png), [snack](docs/evidence/m19-java-poke-snack.png), [log](docs/evidence/m19-poke-snack.log)); no cooking time or food colours; the campfire's own flame shows through the pot | 🟡 | 🟡 |
 | Medicine (potions, revives, status cures, ethers) | ✓ | All of them, in and out of battle, with Cobblemon's art | ✅ | ✅ |
 | Vitamins, EXP candies, Rare Candy | ✓ | Vitamins (+10 EVs), feathers (+1), EXP candies, Rare Candy | ✅ | ✅ |
 | Evolution stones and ores | ✓ | The items work; no ores or other ways to find them yet (`/pokeitem`) | 🟡 | 🟡 |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 36 | 6 | 1 |
-| Bedrock | 52 | 36 | 6 | 1 |
+| Java | 52 | 37 | 5 | 1 |
+| Bedrock | 52 | 37 | 5 | 1 |
 
 ## Suggested order
 

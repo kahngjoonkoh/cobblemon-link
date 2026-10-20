@@ -197,13 +197,40 @@ final class Spawner {
      * there and the rod; the Pokémon is "fished" (Lure Ball) and, under 90 kg, lobbed toward the player. Null: no bite.
      */
     Entity fish(Player p, Location hook, int lure, String rod, List<Dex.Bait> bait) {
+        Mon m = baited(p, hook.getBlock(), "fishing", lure, rod, bait, true);
+        if (m == null) return null;
+        Entity e = spawn(hook, m);
+        if (pl.dex.of(m).weight < 900) // Cobblemon's lobPokemonTowardsTarget
+            e.setVelocity(p.getLocation().toVector().subtract(hook.toVector()).multiply(0.12).setY(0.6));
+        return e;
+    }
+
+    /**
+     * Cobblemon's Poké Snack: one Pokémon on a grounded spot within 8 blocks (no herds), with the snack's bait
+     * effects; null if no spot or spawn fits.
+     */
+    Entity snack(Location at, List<Dex.Bait> bait) {
+        var r = ThreadLocalRandom.current();
+        Player near = at.getWorld().getPlayers().stream().min(java.util.Comparator.comparingDouble(x -> x.getLocation().distanceSquared(at))).orElse(null);
+        for (int tries = 0; tries < 30; tries++) {
+            Block b = at.getBlock().getRelative(r.nextInt(-8, 9), r.nextInt(-3, 4), r.nextInt(-8, 9));
+            if (!"grounded".equals(position(b))) continue;
+            Mon m = baited(near, b, "grounded", -1, null, bait, false);
+            if (m != null) return spawn(b.getLocation().add(0.5, 0, 0.5), m);
+        }
+        return null;
+    }
+
+    /** A spawn of this type fitting the block, rolled with bait effects (pokeSnack / fishing buckets are the same). */
+    private Mon baited(Player p, Block at, String type, int lure, String rod, List<Dex.Bait> bait, boolean fished) {
         var r = ThreadLocalRandom.current();
         String bucket = bucket();
         for (Dex.Bait b : bait) // a rarer bucket: one tier up per hit
             if (b.type.equals("rarity_bucket") && r.nextDouble() < b.chance) bucket = switch (bucket) {
                 case "common" -> "uncommon"; case "uncommon" -> "rare"; default -> "ultra-rare"; };
         List<Dex.Spawn> fits = new ArrayList<>();
-        for (Dex.Spawn s : pl.dex.spawns) if (s.type.equals("fishing") && bucket.equals(s.bucket) && fits(s, hook.getBlock(), lure, rod)) fits.add(s);
+        for (Dex.Spawn s : pl.dex.spawns)
+            if (s.type.equals(type) && s.herd == null && bucket.equals(s.bucket) && fits(s, at, lure, rod)) fits.add(s);
         if (fits.isEmpty()) return null;
         java.util.function.ToDoubleFunction<Dex.Spawn> weight = s -> { // typing bait: its type's Pokémon x value
             double w = s.weight;
@@ -214,7 +241,7 @@ final class Spawner {
         Dex.Spawn pick = fits.getLast();
         for (Dex.Spawn s : fits) if ((roll -= weight.applyAsDouble(s)) <= 0) { pick = s; break; }
         List<String> props = new ArrayList<>(pick.props);
-        int level = level(p, pick.level[0], pick.level[1]);
+        int level = p == null ? pick.level[0] : level(p, pick.level[0], pick.level[1]);
         for (Dex.Bait b : bait) {
             if (r.nextDouble() >= b.chance) continue;
             switch (b.type) {
@@ -226,12 +253,9 @@ final class Spawner {
             }
         }
         Mon m = Mon.create(pl.dex, pick.species, Math.min(100, level), props);
-        m.fished = true;
+        m.fished = fished;
         Rules.bait(pl.dex, m, bait, r);
-        Entity e = spawn(hook, m);
-        if (pl.dex.of(m).weight < 900) // Cobblemon's lobPokemonTowardsTarget
-            e.setVelocity(p.getLocation().toVector().subtract(hook.toVector()).multiply(0.12).setY(0.6));
-        return e;
+        return m;
     }
 
     /** Cobblemon's /checkspawn: every spawn of this position type that fits this block now, by bucket. */

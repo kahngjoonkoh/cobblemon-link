@@ -365,6 +365,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         entityClick.put(e.getPlayer().getUniqueId(), Bukkit.getCurrentTick());
         if (spawner.isCompanion(e.getRightClicked())) {
             e.setCancelled(true); // no saddles or leads on your Pokémon
+            Machines.Machine machine = machines == null ? null : machines.at(e.getRightClicked().getLocation().getBlock());
+            if (machine != null) { // a machine's model carrier took the click instead of its block
+                if (e.getHand() == EquipmentSlot.HAND) machines.use(e.getPlayer(), machine, e.getPlayer().getInventory().getItemInMainHand());
+                return;
+            }
             if (e.getHand() == EquipmentSlot.HAND && e.getPlayer().isSneaking()) companions.shoulder(e.getPlayer(), e.getRightClicked());
             return;
         }
@@ -561,6 +566,10 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
+        if (e.getView().getTopInventory().getHolder() instanceof Machines.Pot pot) {
+            pot.click(e);
+            return;
+        }
         if (!(e.getView().getTopInventory().getHolder() instanceof Menu m)) return;
         e.setCancelled(true);
         m.click(e); // raw slots past the menu are only ever StarterScreen's buttons
@@ -569,6 +578,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     /** The PC hides the player's own items from their screen (PcScreen.hideInventory): show them again. */
     @EventHandler
     public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (e.getInventory().getHolder() instanceof Machines.Pot pot && e.getPlayer() instanceof Player p) pot.close(p);
         if (e.getInventory().getHolder() instanceof Menu m && m.onClose != null) m.onClose.run();
         if (e.getInventory().getHolder() instanceof Menu && e.getPlayer() instanceof Player p)
             Bukkit.getScheduler().runTask(this, () -> { if (!(p.getOpenInventory().getTopInventory().getHolder() instanceof Menu)) p.updateInventory(); });
@@ -577,6 +587,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     @EventHandler
     public void onDrag(InventoryDragEvent e) {
         if (e.getView().getTopInventory().getHolder() instanceof Menu) e.setCancelled(true);
+        if (e.getView().getTopInventory().getHolder() instanceof Machines.Pot pot && e.getRawSlots().stream().anyMatch(i -> i < 27 && !pot.free(i)))
+            e.setCancelled(true);
     }
 
     private final Map<UUID, UUID> challenges = new HashMap<>(); // challenged -> challenger

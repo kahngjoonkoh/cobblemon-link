@@ -105,5 +105,8 @@
  "cobblemonlink.ui.stat_short.sp_atk": "SpA",
  "cobblemonlink.ui.stat_short.sp_def": "SpD",
  "cobblemonlink.ui.stat_short.speed": "Spe",
- "cobblemonlink.shoulder.cant": "%1$s can't ride on your shoulder."
+ "cobblemonlink.shoulder.cant": "%1$s can't ride on your shoulder.",
+ "cobblemonlink.pot.unlit": "The campfire under the pot isn't lit.",
+ "cobblemonlink.pot.cook": "Cook",
+ "cobblemonlink.pot.seasoning": "Seasonings go in the right column"
 }

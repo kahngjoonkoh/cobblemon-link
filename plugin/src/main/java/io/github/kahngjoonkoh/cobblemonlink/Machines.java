@@ -35,6 +35,10 @@ import org.bukkit.inventory.ItemStack;
  * - Pasture: party Pokémon left to roam around it, taken back from its menu.
  * - TM Machine: makes TMs from a Blank TM and Cobblemon's TM ingredients.
  * - Display Case: shows one item (right-click with it); right-click with an empty hand takes it back.
+ * - Campfire Pot: put on a campfire; its menu takes a 3x3 grid and up to three seasonings and cooks Cobblemon's pot
+ *   recipes while the campfire is lit. Seasonings with bait effects go into a Poké Snack or Poké Bait.
+ * - Poké Snack: draws a wild Pokémon within 8 blocks about once a minute, with its seasonings' bait effects; eaten
+ *   after 8 bites (Cobblemon's MAX_BITES).
  */
 final class Machines {
     static final List<String> TALL = List.of("pc", "pasture", "restoration_tank");
@@ -50,6 +54,9 @@ final class Machines {
         List<Mon> pastured = new ArrayList<>();
         List<String> pasturedBy = new ArrayList<>();
         String shown;           // display case: the item inside (ItemStack bytes, Base64)
+        String bait;            // Poké Snack: its seasonings (Cobblemon bait items, comma separated)
+        int bites;              // Poké Snack: Pokémon drawn so far
+        long nextBite;          // Poké Snack: when the next one comes (ms)
         transient Entity carrier, display;
         transient List<Entity> roaming = new ArrayList<>();
 
@@ -98,6 +105,7 @@ final class Machines {
             if (m.type.equals("restoration_tank") && m.reviveAt > 0 && now >= m.reviveAt) revive(m, w);
             if (m.type.equals("pasture")) roam(m, w);
             if (m.shown != null && (m.display == null || !m.display.isValid())) m.display = showcase(m, w);
+            if (m.type.equals("poke_snack") && now >= m.nextBite) snack(m, w, now);
         }
     }
 
@@ -114,6 +122,20 @@ final class Machines {
         });
         BetterModel.model(model).ifPresent(r -> r.create(BukkitAdapter.adapt(pig)));
         return pig;
+    }
+
+    /** A Poké Snack's bite: a Pokémon comes (when one fits), and after 8 the snack is gone. */
+    private void snack(Machine m, World w, long now) {
+        m.nextBite = now + java.util.concurrent.ThreadLocalRandom.current().nextLong(40_000, 80_000);
+        List<Dex.Bait> bait = new ArrayList<>();
+        if (m.bait != null) for (String id : m.bait.split(",")) bait.addAll(pl.dex.baits.getOrDefault(id, List.of()));
+        if (pl.spawner.snack(m.at(w), bait) == null) return;
+        if (++m.bites >= 8) {
+            machines.remove(m.key());
+            if (m.carrier != null) m.carrier.remove();
+            w.getBlockAt(m.x, m.y, m.z).setType(Material.AIR);
+        }
+        save();
     }
 
     /**
@@ -147,6 +169,77 @@ final class Machines {
         save();
     }
 
+    /** The Campfire Pot's menu: a 3x3 grid, three seasonings, Cook, the result. */
+    final class Pot implements org.bukkit.inventory.InventoryHolder {
+        static final int[] GRID = {1, 2, 3, 10, 11, 12, 19, 20, 21}, SEASONING = {5, 14, 23};
+        static final int COOK = 15, RESULT = 16;
+        final Machine m;
+        final org.bukkit.inventory.Inventory inv;
+
+        Pot(Machine m, Player p) {
+            this.m = m;
+            inv = Bukkit.createInventory(this, 27, Component.text(pl.items.name(p, m.type)));
+            ItemStack pane = Menu.icon(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
+            for (int i = 0; i < 27; i++) inv.setItem(i, pane);
+            for (int i : GRID) inv.setItem(i, null);
+            for (int i : SEASONING) inv.setItem(i, null);
+            inv.setItem(RESULT, null);
+            inv.setItem(COOK, Menu.icon(Material.CAMPFIRE, pl.t(p, "cobblemonlink.pot.cook"), List.of(pl.t(p, "cobblemonlink.pot.seasoning"))));
+        }
+
+        @Override
+        public org.bukkit.inventory.Inventory getInventory() { return inv; }
+
+        boolean free(int slot) {
+            return slot == RESULT || java.util.Arrays.stream(GRID).anyMatch(x -> x == slot) || java.util.Arrays.stream(SEASONING).anyMatch(x -> x == slot);
+        }
+
+        void click(org.bukkit.event.inventory.InventoryClickEvent e) {
+            int slot = e.getRawSlot();
+            if (slot >= 27) { if (e.isShiftClick()) e.setCancelled(true); return; } // ponytail: no shift-moving into the pot
+            if (!free(slot) || slot == RESULT && !e.getCursor().isEmpty()) e.setCancelled(true);
+            if (slot == COOK) cook((Player) e.getWhoClicked());
+        }
+
+        /** Cobblemon's cooking, at once: the campfire must be lit; one of each grid item and seasoning is used. */
+        void cook(Player p) {
+            World w = Bukkit.getWorld(m.world);
+            Block fire = w.getBlockAt(m.x, m.y, m.z);
+            if (!(fire.getBlockData() instanceof org.bukkit.block.data.type.Campfire c) || !c.isLit()) {
+                p.sendMessage(Component.text(pl.t(p, "cobblemonlink.pot.unlit"), NamedTextColor.RED));
+                return;
+            }
+            ItemStack[] grid = new ItemStack[9];
+            for (int i = 0; i < 9; i++) grid[i] = inv.getItem(GRID[i]);
+            Recipes.Def d = Recipes.cook(pl, grid);
+            ItemStack out = d == null ? null : Recipes.result(pl, d), have = inv.getItem(RESULT);
+            if (out == null || !Recipes.empty(have) && (!have.isSimilar(out) || have.getAmount() + out.getAmount() > have.getMaxStackSize())) return;
+            List<String> bait = new ArrayList<>();
+            for (int i : SEASONING) {
+                ItemStack s = inv.getItem(i);
+                String id = s == null || s.isEmpty() ? null : java.util.Objects.requireNonNullElse(pl.items.id(s), s.getType().getKey().toString());
+                if (id == null || !pl.dex.baits.containsKey(id)) continue;
+                bait.add(id);
+                s.subtract();
+            }
+            if (!bait.isEmpty() && (d.result.equals("cobblemon:poke_snack") || d.result.equals("cobblemon:poke_bait")))
+                out.editPersistentDataContainer(pdc -> pdc.set(new org.bukkit.NamespacedKey(pl, "bait"), org.bukkit.persistence.PersistentDataType.STRING, String.join(",", bait)));
+            for (int i : GRID) { ItemStack s = inv.getItem(i); if (s != null) s.subtract(); }
+            if (Recipes.empty(have)) inv.setItem(RESULT, out); else have.add(out.getAmount());
+            Sounds.play(p, "block.campfire_pot.cook");
+        }
+
+        /** Closing gives back what's left in it. */
+        void close(Player p) {
+            for (int i = 0; i < 27; i++) {
+                if (!free(i)) continue;
+                ItemStack s = inv.getItem(i);
+                if (s != null && !s.isEmpty()) p.getInventory().addItem(s).values().forEach(x -> p.getWorld().dropItem(p.getLocation(), x));
+                inv.setItem(i, null);
+            }
+        }
+    }
+
     void removeAll() {
         for (Machine m : machines.values()) {
             if (m.display != null) m.display.remove();
@@ -163,6 +256,20 @@ final class Machines {
 
     /** Right-click with a machine item on a block face: place it there, facing the player. */
     boolean place(Player p, String type, Block clicked, BlockFace face) {
+        if (type.startsWith("campfire_pot_")) { // on the campfire itself, which stays
+            if (!org.bukkit.Tag.CAMPFIRES.isTagged(clicked.getType()) || at(clicked) != null) return false;
+            Machine m = new Machine();
+            m.type = type;
+            m.world = clicked.getWorld().getName();
+            m.x = clicked.getX();
+            m.y = clicked.getY();
+            m.z = clicked.getZ();
+            m.yaw = Math.round((p.getLocation().getYaw() + 180) / 90f) * 90f;
+            m.owner = p.getUniqueId().toString();
+            machines.put(m.key(), m);
+            save();
+            return true;
+        }
         Block b = clicked.getRelative(face);
         if (!b.getType().isAir() || TALL.contains(type) && !b.getRelative(BlockFace.UP).getType().isAir()) return false;
         Machine m = new Machine();
@@ -173,6 +280,10 @@ final class Machines {
         m.z = b.getZ();
         m.yaw = Math.round((p.getLocation().getYaw() + 180) / 90f) * 90f; // facing the player, square to the world
         m.owner = p.getUniqueId().toString();
+        if (type.equals("poke_snack")) { // its seasonings, from the Campfire Pot
+            m.bait = p.getInventory().getItemInMainHand().getPersistentDataContainer().get(new org.bukkit.NamespacedKey(pl, "bait"), org.bukkit.persistence.PersistentDataType.STRING);
+            m.nextBite = System.currentTimeMillis() + 20_000;
+        }
         b.setType(Material.BARRIER);
         if (TALL.contains(type)) b.getRelative(BlockFace.UP).setType(Material.BARRIER);
         machines.put(m.key(), m);
@@ -191,7 +302,7 @@ final class Machines {
         if (m.display != null) m.display.remove();
         m.roaming.forEach(Entity::remove);
         Block b = w.getBlockAt(m.x, m.y, m.z);
-        b.setType(Material.AIR);
+        if (!m.type.startsWith("campfire_pot_")) b.setType(Material.AIR); // a pot leaves its campfire
         if (TALL.contains(m.type)) b.getRelative(BlockFace.UP).setType(Material.AIR);
         ItemStack it = pl.items.create(m.type, 1);
         if (it != null) w.dropItemNaturally(b.getLocation().add(0.5, 0.5, 0.5), it);
@@ -226,7 +337,7 @@ final class Machines {
             case "pasture" -> pastureMenu(p, m);
             case "tm_machine" -> tmMenu(p, 0);
             case "display_case" -> displayCase(p, m, hand);
-            default -> {}
+            default -> { if (m.type.startsWith("campfire_pot_")) p.openInventory(new Pot(m, p).inv); }
         }
     }
 

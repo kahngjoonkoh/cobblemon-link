@@ -94,6 +94,9 @@ def table(res):
         items.setdefault(i, {'kind': 'evolution'})
     for m in MACHINES:  # placed as Machines.java's blocks
         items[m] = {'kind': 'machine'}
+    items['poke_snack'] = {'kind': 'machine'}  # placed: it draws Pokémon to it (Machines.snack)
+    for c in ('red', 'black', 'blue', 'green', 'pink', 'white', 'yellow'):  # Campfire Pots: placed on a campfire
+        items[f'campfire_pot_{c}'] = {'kind': 'machine'}
     for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json'):  # into the restoration tank
         for i in json.load(open(f))['fossils']:
             items[i.split(':')[1]] = {'kind': 'fossil'}
@@ -116,7 +119,8 @@ def table(res):
 
 RECIPE_TYPES = {'minecraft:crafting_shaped': 'shaped', 'minecraft:crafting_shapeless': 'shapeless',
                 'minecraft:smelting': 'smelting', 'minecraft:blasting': 'blasting',
-                'minecraft:smithing_transform': 'smithing', 'cobblemon:brewing_stand': 'brewing'}
+                'minecraft:smithing_transform': 'smithing', 'cobblemon:brewing_stand': 'brewing',
+                'cobblemon:cooking_pot': 'pot', 'cobblemon:cooking_pot_shapeless': 'pot_shapeless'}  # Machines.java's Campfire Pot
 
 
 def recipes(res, items):
@@ -154,13 +158,13 @@ def recipes(res, items):
 
     def has_model(i):  # an item, not a block (blocks would need placing) or a boat/sign/door
         path = f'{res}/assets/cobblemon/models/item/{i}.json'
-        if i in MACHINES:
+        if i in MACHINES or i.startswith('campfire_pot_') or i == 'poke_snack':
             return os.path.exists(path)
         if not os.path.exists(path) or re.search(r'(boat|sign|door|fence|button|pressure_plate|_block|tm_machine|display_case)$', i):
             return False
         return not json.load(open(path)).get('parent', '').startswith('cobblemon:block')
     out = []
-    for f in sorted(glob.glob(f'{res}/data/cobblemon/recipe/*.json') + glob.glob(f'{res}/data/cobblemon/recipe/brewing_stand/*.json')):
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/recipe/*.json') + glob.glob(f'{res}/data/cobblemon/recipe/brewing_stand/*.json') + glob.glob(f'{res}/data/cobblemon/recipe/campfire_pot/*.json')):
         d = json.load(open(f))
         kind = RECIPE_TYPES.get(d.get('type'))
         r = d.get('result')
