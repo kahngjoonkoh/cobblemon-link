@@ -44,8 +44,11 @@ public final class Furniture {
     /** Cobblemon's campfires: Minecraft's campfire stands in (PolyEntry), the pot on it is ours. */
     static final List<String> CAMPFIRES = List.of("campfire", "soul_campfire");
 
-    /** Cobblemon's plants (berry bushes, apricorns, mints): drawn the same way, over a stand-in you can walk through. */
-    static boolean plant(String id) { return id.endsWith("_berry") || id.endsWith("_apricorn") || id.endsWith("_mint"); }
+    /** Cobblemon's plants and crystals (berry bushes, apricorns, mints, saplings, gem and tumblestone clusters): drawn the same way, over a stand-in you can walk through. */
+    static boolean plant(String id) {
+        return id.endsWith("_berry") || id.endsWith("_apricorn") || id.endsWith("_mint") || id.contains("sapling")
+                || id.endsWith("_cluster") || id.contains("budding_");
+    }
 
     /** Every block drawn here: the machines above and Cobblemon's plants. */
     static List<String> blocks() {

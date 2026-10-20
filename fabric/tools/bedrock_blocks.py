@@ -4,7 +4,7 @@ uses becomes a GeyserModelEngine model "clb_<model>" (geometry from the Java mod
 one atlas), which the server shows on a carrier at the block (Furniture.java). Java models are Blockbench's: the
 same conversion as geo2bb.py, backwards (x mirrored, rotations' x and y negated).
 ponytail: no per-face UV rotation; animated textures show their first frame.
-usage: bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint; 'berries': their fruit and flowers)"""
+usage: [VANILLA_JAR=client.jar] bedrock_blocks.py COBBLEMON_JAR_OR_DIR OUT_DIR BLOCK... ('plants': every berry bush, apricorn and mint; 'berries': their fruit and flowers)"""
 import io, json, os, sys, zipfile
 from PIL import Image
 
@@ -24,6 +24,17 @@ class Src:
         return os.path.exists(os.path.join(self.dir, n))
 
 
+class Srcs:
+    """Several sources, the first that has a file wins (Cobblemon's jar, then Minecraft's for its parent models)."""
+    def __init__(self, *srcs): self.srcs = srcs
+    def read(self, n): return next(s for s in self.srcs if s.has(n)).read(n)
+    def has(self, n): return any(s.has(n) for s in self.srcs)
+    @property
+    def z(self): return self.srcs[0].z
+    @property
+    def dir(self): return self.srcs[0].dir
+
+
 def ref(r, kind):
     ns, p = r.split(':') if ':' in r else ('minecraft', r)
     return f'assets/{ns}/{kind}/{p}'
@@ -31,6 +42,7 @@ def ref(r, kind):
 
 def model(src, name):
     """Elements and textures with the parents' filled in."""
+    if not src.has(ref(name, 'models') + '.json'): return {'textures': {}, 'elements': []}
     m = json.loads(src.read(ref(name, 'models') + '.json'))
     tex, els = dict(m.get('textures', {})), m.get('elements')
     if m.get('parent') and not m['parent'].startswith('minecraft:block/block') and src.has(ref(m['parent'], 'models') + '.json'):
@@ -136,10 +148,11 @@ def berries(src, out):
 
 
 def plants(src):
-    """Cobblemon's berry bushes, apricorns and mints (Furniture.plant): every blockstate named so."""
+    """Cobblemon's plants and crystals (Furniture.plant): berry bushes, apricorns, mints, saplings, clusters."""
     base = 'assets/cobblemon/blockstates/'
     names = src.z.namelist() if src.z else [base + f for f in os.listdir(os.path.join(src.dir, base))]
-    return sorted(n[len(base):-5] for n in names if n.startswith(base) and n.endswith(('_berry.json', '_apricorn.json', '_mint.json')))
+    plant = lambda b: b.endswith(('_berry', '_apricorn', '_mint', '_cluster')) or 'sapling' in b or 'budding_' in b
+    return sorted(n[len(base):-5] for n in names if n.startswith(base) and n.endswith('.json') and plant(n[len(base):-5]))
 
 
 def demo():
@@ -158,7 +171,8 @@ def demo():
 
 if __name__ == '__main__':
     demo()
-    src, out = Src(sys.argv[1]), sys.argv[2]
+    # VANILLA_JAR: Minecraft's client jar, for parents such as block/cross (saplings) and amethyst_cluster
+    src, out = Srcs(*[Src(p) for p in (sys.argv[1], os.environ.get('VANILLA_JAR')) if p]), sys.argv[2]
     n = 0
     for b in sys.argv[3:]:
         if b == 'berries':
