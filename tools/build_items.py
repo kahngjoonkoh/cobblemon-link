@@ -222,6 +222,8 @@ def build(res, out):
     model = lambda m: {'type': 'minecraft:model', 'model': m}
     for i in items:
         icons[i] = model_files(res, f'item/{i}', java)
+        if icons[i] and '/assets/cobblemon/textures/' in icons[i]:  # the battle hotbar draws it as the client's sprite
+            items[i]['icon'] = icons[i].split('/assets/cobblemon/textures/')[1][:-4]
         d = model('cobblemon:item/' + i)
         if items[i]['kind'] == 'ball' and model_files(res, f'item/{i}_model', java):
             # in flight (a thrown item renders as "ground"): Cobblemon's 3D ball, like the Poké Ball's
@@ -303,7 +305,7 @@ def demo():
         json.dump({'evolutions': [{'variant': 'item_interact', 'requiredContext': 'cobblemon:fire_stone'}]},
                   open(f'{t}/data/cobblemon/species/g1/vulpix.json', 'w'))
         items = build(t, t)
-        assert items == {'potion': {'name': 'Potion', 'kind': 'potion', 'heal': 20}}, items  # no model: no fire stone
+        assert items == {'potion': {'name': 'Potion', 'kind': 'potion', 'heal': 20, 'icon': 'item/medicine/potion'}}, items  # no model: no fire stone
         z = zipfile.ZipFile(f'{t}/items-pack.zip')
         assert 'assets/cobblemon/textures/item/medicine/potion.png' in z.namelist()
         assert json.load(open(f'{t}/geyser-items.json'))['items']['minecraft:paper'][0]['model'] == 'cobblemon:potion'

@@ -25,6 +25,7 @@ import org.bukkit.potion.PotionEffectType;
 final class Hotbar {
     static final int BC = 2 | 8, ITEM = BC | 16; // Ui.Overlay corner: bottom centre; bit 16 = doubled (8 px sprite -> 16)
     static Map<String, Component> icons = Map.of();     // Icons.java, set at startup
+    static Map<String, String> cobblemonIcons = Map.of(); // Cobblemon item id -> its texture (items.json), set at startup
     static Map<String, Icons.Sprite> hud = Map.of();
 
     private final Player player;
@@ -60,8 +61,13 @@ final class Hotbar {
     /** Hud.extractSlot, without the durability bar: the icon, and the count bottom-right with its shadow. */
     private static void slot(Ui.Overlay o, int x, ItemStack it) {
         if (it == null || it.isEmpty()) return;
-        Component icon = CobblemonLink.BALL_MODEL.equals(it.getItemMeta().getItemModel())
-                ? Ui.glyphs("\ue270") : icons.get(it.getType().getKey().getKey()); // build_ui.py: the Poké Ball
+        var model = it.getItemMeta().getItemModel();
+        String tex = model == null || !model.getNamespace().equals("cobblemon") ? null : model.getKey().startsWith("tm_")
+                ? "item/tms/" + model.getKey().substring(3) + "_tm" : cobblemonIcons.get(model.getKey());
+        Component icon = CobblemonLink.BALL_MODEL.equals(model) ? Ui.glyphs("\ue270") // build_ui.py: the Poké Ball
+                : tex != null ? Component.object(net.kyori.adventure.text.object.ObjectContents.sprite(
+                        net.kyori.adventure.key.Key.key("minecraft", "items"), net.kyori.adventure.key.Key.key("cobblemon", tex))) // the items pack's sprite
+                : icons.get(it.getType().getKey().getKey());
         if (icon instanceof TextComponent) o.add(BC, x, 19, icon, 17); // rendered icon (Icons.pack), 16 px + 1
         else if (icon != null) o.add(ITEM, x, 19, icon, 8);            // the client's flat sprite
         if (it.getAmount() > 1) {

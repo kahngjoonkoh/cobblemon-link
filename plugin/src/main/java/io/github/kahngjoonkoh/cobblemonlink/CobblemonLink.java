@@ -103,6 +103,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
         try {
             items = Items.load(this, getDataFolder().toPath().resolve("items.json")); // setup.sh installs it
+            Map<String, String> tex = new java.util.HashMap<>();
+            items.defs.forEach((id, d) -> { if (d.icon != null) tex.put(id, d.icon); });
+            Hotbar.cobblemonIcons = tex;
         } catch (IOException e) {
             getLogger().warning("items.json unreadable: " + e);
         }

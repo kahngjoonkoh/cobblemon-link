@@ -29,7 +29,7 @@ import org.bukkit.persistence.PersistentDataType;
  */
 final class Items {
     static final class Def {
-        String name, kind, stat, nature;
+        String name, kind, stat, nature, icon; // icon: its texture (item/medicine/potion), for the battle hotbar
         int heal, pp, exp, amount;
         double ratio;
         List<String> cure = List.of();

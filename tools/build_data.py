@@ -124,19 +124,29 @@ def species_looks(res, dex, modeled):
 
 def spawns(res, dex):
     out = []
-    for f in sorted(glob.glob(f'{res}/data/cobblemon/spawn_pool_world/*.json')):
+    def rng(r, default='5-30'):
+        lo, _, hi = str(r or default).partition('-')
+        return [int(lo), int(hi or lo)]
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/spawn_pool_world/**/*.json', recursive=True)):  # herds/ too
         for s in json.load(open(f)).get('spawns', []):
-            words = (s.get('pokemon') or '').split()
-            sid = words[0] if words else ''
             cond, anti = s.get('condition', {}), s.get('anticondition', {})
-            if (s.get('type') != 'pokemon' or s.get('spawnablePositionType') not in POSITIONS or sid not in dex
+            herd = None
+            if s.get('type') == 'pokemon-herd':  # Cobblemon's herds: a leader (an alpha in herds/) and followers
+                herd = [{'species': h['pokemon'].split()[0], 'props': h['pokemon'].split()[1:], 'weight': h.get('weight', 1),
+                         'level': rng(h.get('levelRange'), s.get('levelRange')), 'max': h.get('maxTimes', 1),
+                         'leader': bool(h.get('isLeader'))} for h in s.get('herdablePokemon', []) if h['pokemon'].split()[0] in dex]
+                leaders = [h for h in herd if h['leader']]
+                words = [leaders[0]['species']] if leaders else []
+            else:
+                words = (s.get('pokemon') or '').split()
+            sid = words[0] if words else ''
+            if (s.get('type') not in ('pokemon', 'pokemon-herd') or s.get('spawnablePositionType') not in POSITIONS or sid not in dex
                     or set(cond) - KNOWN_CONDITIONS or set(anti) - KNOWN_CONDITIONS):
                 continue
-            lo, _, hi = str(s.get('level', '5-30')).partition('-')
             props = [w for w in words[1:] if w != sid]  # form/feature properties: alolan, flower=white, region_bias=hisui
             out.append({'species': sid, 'bucket': s['bucket'], 'weight': s['weight'], **({'props': props} if props else {}),
-                        'level': [int(lo), int(hi or lo)], 'type': s['spawnablePositionType'], 'cond': cond,
-                        **({'anti': anti} if anti else {})})
+                        'level': rng(s.get('level') or s.get('levelRange')), 'type': s['spawnablePositionType'], 'cond': cond,
+                        **({'anti': anti} if anti else {}), **({'herd': herd, 'maxHerd': s.get('maxHerdSize', 4)} if herd else {})})
     return out
 
 

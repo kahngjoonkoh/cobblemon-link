@@ -141,11 +141,45 @@ final class Spawner {
             double wsum = fits.stream().mapToDouble(s -> s.weight).sum(), roll = rnd.nextDouble(wsum);
             Dex.Spawn pick = fits.getLast();
             for (Dex.Spawn s : fits) if ((roll -= s.weight) <= 0) { pick = s; break; }
+            if (pick.herd != null) {
+                herd(p, l, pick, rnd);
+                others.add(l);
+                left--;
+                continue;
+            }
             Entity e = spawn(l, Mon.create(pl.dex, pick.species, level(p, pick.level[0], pick.level[1]), pick.props));
             if (type.equals("submerged") || type.equals("seafloor")) Bukkit.getMobGoals().removeGoal((Mob) e, VanillaGoal.FLOAT); // stays down
             others.add(l);
             left--;
         }
+    }
+
+    /**
+     * Cobblemon's herd spawn: the leader (weighted among the leaders), then followers up to the herd's size, each
+     * member no more than its maxTimes, standing around the leader.
+     */
+    void herd(Player p, Location at, Dex.Spawn s, java.util.Random rnd) {
+        List<Dex.HerdMember> leaders = s.herd.stream().filter(h -> h.leader).toList();
+        List<Dex.HerdMember> followers = new ArrayList<>(s.herd.stream().filter(h -> !h.leader).toList());
+        Dex.HerdMember lead = weighted(leaders, rnd);
+        if (lead == null) return;
+        spawn(at, Mon.create(pl.dex, lead.species, level(p, Math.max(lead.level[0], s.level[0]), Math.min(lead.level[1], s.level[1])), lead.props));
+        Map<Dex.HerdMember, Integer> used = new java.util.HashMap<>();
+        int n = 1 + rnd.nextInt(Math.max(1, s.maxHerd - 1));
+        for (int i = 0; i < n && !followers.isEmpty(); i++) {
+            Dex.HerdMember f = weighted(followers, rnd);
+            if (used.merge(f, 1, Integer::sum) >= f.max) followers.remove(f);
+            Location l = at.clone().add(rnd.nextDouble(-3, 3), 0, rnd.nextDouble(-3, 3));
+            int top = l.getWorld().getHighestBlockYAt(l) + 1; // on the ground near the leader, else beside it
+            if (Math.abs(top - at.getY()) <= 2) l.setY(top); else l = at.clone();
+            spawn(l, Mon.create(pl.dex, f.species, level(p, f.level[0], f.level[1]), f.props));
+        }
+    }
+
+    private static Dex.HerdMember weighted(List<Dex.HerdMember> list, java.util.Random rnd) {
+        double roll = rnd.nextDouble(Math.max(1e-9, list.stream().mapToDouble(h -> h.weight).sum()));
+        for (Dex.HerdMember h : list) if ((roll -= h.weight) <= 0) return h;
+        return list.isEmpty() ? null : list.getLast();
     }
 
     /** The main games' weather for marks: rain is snow where it's cold and a sandstorm where it never rains. */
@@ -212,7 +246,8 @@ final class Spawner {
             e.setSilent(true);
             e.getPersistentDataContainer().set(pl.wildKey, PersistentDataType.STRING, Store.GSON.toJson(mon));
         });
-        model(pig, mon.model(pl.dex));
+        model(pig, mon.model(pl.dex), mon.alpha ? 1.5f : 1);
+        if (mon.alpha) pig.getAttribute(org.bukkit.attribute.Attribute.SCALE).setBaseValue(1.5); // and its hitbox
         // Cobblemon's wild Pokémon don't follow food or breed like pigs (Paper keeps float, wander and look goals)
         var goals = Bukkit.getMobGoals();
         goals.removeGoal(pig, VanillaGoal.TEMPT);
@@ -317,9 +352,15 @@ final class Spawner {
      * The BetterModel model on a carrier, animated for Java players only: Bedrock players see GeyserModelEngine's
      * native entity (animated on the phone), and Geyser would only decode and drop the Java bone stream.
      */
-    private static void model(Pig pig, String model) {
-        BetterModel.model(model).ifPresent(r -> r.create(BukkitAdapter.adapt(pig)).getPipeline()
-                .viewFilter(p -> p.uuid().getMostSignificantBits() != 0)); // Ui.bedrock: Floodgate's UUIDs
+    private static void model(Pig pig, String model) { model(pig, model, 1); }
+
+    /** scale: the tracker's (GeyserModelEngine sends the same scale to Bedrock). */
+    private static void model(Pig pig, String model, float scale) {
+        BetterModel.model(model).ifPresent(r -> {
+            var t = r.create(BukkitAdapter.adapt(pig));
+            if (scale != 1) t.scaler(kr.toxicity.model.api.tracker.ModelScaler.value(scale));
+            t.getPipeline().viewFilter(p -> p.uuid().getMostSignificantBits() != 0); // Ui.bedrock: Floodgate's UUIDs
+        });
     }
 
     static void face(Entity e, Location target) {

@@ -79,6 +79,18 @@ final class Dex {
         int[] level;
         Cond cond = new Cond(), anti;               // Cobblemon's condition and anticondition, as written
         List<String> props = List.of(); // Cobblemon spawn properties: alolan, flower=white, region_bias=hisui
+        List<HerdMember> herd;          // a herd spawn: its leader and followers (Spawner.herd)
+        int maxHerd;
+    }
+
+    /** One of a herd's Pokémon: Cobblemon's herdablePokemon. */
+    static final class HerdMember {
+        String species;
+        List<String> props = List.of();
+        double weight;
+        int[] level;
+        int max = 1;
+        boolean leader;
     }
 
     /** One of Cobblemon's spawning conditions; a null field isn't checked. */

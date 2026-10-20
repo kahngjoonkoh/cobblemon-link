@@ -42,6 +42,7 @@ final class Mon {
         return mark == null ? n : Ui.lang.get(loc, "cobblemon.mark." + mark + ".title", n);
     }
 
+    boolean alpha; // Cobblemon's alpha: drawn 1.5x
     String mark;  // Cobblemon's mark (mark_time_dawn...): its title is the Pokémon's ("Pikachu the Peckish")
     List<String> benched = new ArrayList<>(); // Cobblemon's benched moves: known before, can be swapped back in
 
@@ -92,6 +93,13 @@ final class Mon {
                 : s.maleRatio < 0 ? "" : r.nextDouble() < s.maleRatio ? "M" : "F";
         for (int i = 0; i < 6; i++) m.ivs[i] = r.nextInt(32);
         m.friendship = s.baseFriendship;
+        for (String p : props) if (p.startsWith("held_item=")) m.held = p.substring(p.indexOf(':') + 1); // cobblemon:water_gem
+        for (String p : props) if (p.startsWith("mark=")) m.mark = p.substring(5); // e.g. /pokespawn rattata 5 mark=mark_rare
+        if (props.contains("alpha=true")) { // Cobblemon's alphas: big, perfect in three stats, the Alpha Mark
+            m.alpha = true;
+            m.mark = "mark_alpha";
+            for (int i = 0, set = 0; set < 3 && i < 30; i++) { int k = r.nextInt(6); if (m.ivs[k] != 31) { m.ivs[k] = 31; set++; } }
+        }
         // the four most recent level-up moves, like a wild Pokémon in the main games
         for (List<String> lm : s.moves) {
             if (Integer.parseInt(lm.get(0)) > m.level || m.moves.contains(lm.get(1))) continue;
