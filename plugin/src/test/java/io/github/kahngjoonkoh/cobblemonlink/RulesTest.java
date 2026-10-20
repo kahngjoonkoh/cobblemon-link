@@ -16,27 +16,49 @@ class RulesTest {
         assertEquals(1_640_000, Rules.expFor("fluctuating", 100));
         assertEquals(0, Rules.expFor("medium_slow", 1)); // formula goes negative at 1
         assertEquals(135, Rules.expFor("medium_slow", 5)); // a level 5 starter
-        var rnd = new java.util.Random(7);
-        assertEquals(4, Rules.shakes(1.0, rnd));
-        assertEquals(0, Rules.shakes(0.0, rnd));
-        int caught = 0;
-        for (int i = 0; i < 20000; i++) if (Rules.shakes(0.3, rnd) == 4) caught++;
-        assertEquals(0.3, caught / 20000.0, 0.02, "four checks keep the single roll's odds");
     }
 
+    /** Cobblemon's CobblemonCaptureCalculator, against its own numbers. */
     @Test
-    void catchChance() {
-        // full HP Pikachu (rate 190): a = 190/3, about 25%
-        assertEquals(190 / 3.0 / 255, Rules.catchChance(190, 35, 35, ""), 1e-9);
-        // 1 HP and asleep is far better, capped at 100%
-        assertEquals(1.0, Rules.catchChance(190, 1, 35, "slp"));
-        assertTrue(Rules.catchChance(3, 1, 100, "") < 0.02); // legendary-tier rate stays hard
+    void capture() {
+        var rnd = new java.util.Random(7);
+        // full-HP Pikachu (190) at L20 in battle: (3-2)/3 * 190 = 63.3 -> each check passes 77%
+        int caught = 0;
+        for (int i = 0; i < 20000; i++) if (Rules.capture(190, 35, 35, "", 20, true, 1, 0, 0, rnd).caught()) caught++;
+        assertEquals(Math.pow(Math.round(65536 / Math.pow(255 / (190 / 3.0), 0.1875)) / 65537.0, 4), caught / 20000.0, 0.02);
+        // outside battle x0.5, so harder
+        int wild = 0;
+        for (int i = 0; i < 20000; i++) if (Rules.capture(190, 35, 35, "", 20, false, 1, 0, 0, rnd).caught()) wild++;
+        assertTrue(wild < caught - 1000);
+        // 1 HP, asleep, low level: certain
+        assertTrue(Rules.capture(190, 1, 35, "slp", 5, true, 1, 0, 0, rnd).caught());
+        assertEquals(4, Rules.capture(190, 1, 35, "slp", 5, true, 1, 0, 0, rnd).shakes());
+        // a legendary-tier rate at full HP stays hard, and fails short of four checks
+        var hard = Rules.capture(3, 100, 100, "", 50, true, 1, 0, 0, new java.util.Random(1));
+        assertFalse(hard.caught());
+        // critical captures need 31+ caught, and are one check
+        boolean sawCritical = false;
+        for (int i = 0; i < 2000 && !sawCritical; i++) {
+            var c = Rules.capture(255, 1, 35, "slp", 30, true, 1, 0, 700, rnd);
+            if (c.critical()) { sawCritical = true; assertEquals(1, c.shakes()); }
+        }
+        assertTrue(sawCritical);
+        for (int i = 0; i < 2000; i++) assertFalse(Rules.capture(255, 1, 35, "slp", 30, true, 1, 0, 30, rnd).critical());
     }
 
     @Test
     void statsAndExp() {
-        assertEquals(34, Rules.maxHp(35, 31, 12)); // Showdown reports Pikachu L12, 31 IVs, as 34 HP
-        assertEquals(25, Rules.expGain(51, 5, 12)); // Rattata L5 beaten by a L12: 51*5/5*(20/27)^2.5 + 1
+        assertEquals(34, Rules.maxHp(35, 31, 0, 12)); // Showdown reports Pikachu L12, 31 IVs, as 34 HP
+        assertEquals(41, Rules.maxHp(35, 31, 252, 12)); // (70+31+63)*12/100 + 22
+        // Rattata L5 beaten by a L12: (51*5/5*(20/27)^2.5 + 1) x Cobblemon's 2 = 50.2
+        assertEquals(50, Rules.expGain(51, 5, 12, 1, 1));
+        assertEquals(75, Rules.expGain(51, 5, 12, 1, 1.5)); // traded
+        int[] evs = new int[6];
+        assertEquals(252, Rules.addEv(evs, 5, 300));
+        assertEquals(252, Rules.addEv(evs, 1, 255));
+        assertEquals(6, Rules.addEv(evs, 2, 10)); // 510 total
+        assertEquals(3, Rules.levelUpFriendship(70));
+        assertEquals(0, Rules.levelUpFriendship(200));
     }
 
     /** Cobblemon's PlayerLevelRangeInfluence, case by case. */

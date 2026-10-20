@@ -72,6 +72,8 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     PokeBalls balls;
     Spawner spawner;
     Companions companions;
+    Items items;
+    Evolutions evolutions;
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
     private final List<ResourcePackInfo> packs = new ArrayList<>(); // sent to Java players on join
@@ -88,6 +90,12 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             return;
         }
         store = new Store(getDataFolder().toPath().resolve("players"), getConfig().getInt("pc.boxes", 40));
+        try {
+            items = Items.load(this, getDataFolder().toPath().resolve("items.json")); // setup.sh installs it
+        } catch (IOException e) {
+            getLogger().warning("items.json unreadable: " + e);
+        }
+        evolutions = new Evolutions(this);
         pc = new PcScreen(this);
         panel = new PartyPanel(this);
         balls = new PokeBalls(this);
@@ -106,6 +114,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTaskTimer(this, spawner::cleanup, 200, 200);
         Bukkit.getScheduler().runTaskTimer(this, () -> companions.tick(), 10, 10);
         Bukkit.getScheduler().runTaskTimer(this, this::guardBattles, 20, 20);
+        Bukkit.getScheduler().runTaskTimer(this, this::partySecond, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, this::showStarterToasts, 40, 40);
         Bukkit.getScheduler().runTaskTimer(this, this::unlockWallpapers, 20, 20);
         Bukkit.getScheduler().runTaskTimer(this, () -> panel.tick(), 20, 1); // Cobblemon's party overlay, vanilla Java
@@ -115,6 +124,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         buildIcons();
         loadPack("cobblemon-link-ui.zip");
         loadPack("cobblemon-link-icons.zip");
+        loadPack("cobblemon-link-items.zip"); // Cobblemon's item art (tools/build_items.py)
         try (var pics = Files.list(getDataFolder().toPath().resolveSibling("BetterModel"))) { // the Pokémon pictures, a pack a region
             pics.map(f -> f.getFileName().toString()).filter(n -> n.startsWith("cobblemon-link-pics-") && n.endsWith(".zip"))
                     .sorted().forEach(this::loadPack);
@@ -363,6 +373,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     public void onUse(PlayerInteractEvent e) {
         Battle b = battles.get(e.getPlayer().getUniqueId());
         if (b != null && b.screen() != null) e.setCancelled(true);
+        // Cobblemon's items: right-click with one in the main hand to use it on a party Pokémon
+        if (e.getHand() == EquipmentSlot.HAND && e.getAction().isRightClick() && items != null
+                && items.use(e.getPlayer(), e.getPlayer().getInventory().getItemInMainHand())) e.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -386,8 +399,9 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         e.setCancelled(true);
         ball.remove();
         Battle mine = battles.get(p.getUniqueId());
+        String ballId = items == null ? "poke_ball" : java.util.Objects.requireNonNullElse(items.id(ball.getItem()), "poke_ball");
         if (mine != null && mine.wildEntity.equals(hit)) {
-            mine.ballHit(model);
+            mine.ballHit(model, ballId);
             return;
         }
         if (inBattle(hit)) {
@@ -396,10 +410,15 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             return;
         }
         Mon wild = spawner.monOf(hit);
-        double chance = Rules.catchChance(dex.of(wild).catchRate, wild.hp(dex), wild.maxHp(dex), "");
-        balls.capture(model, hit, Rules.shakes(chance, ThreadLocalRandom.current()), caught -> {
+        Store.Data d = store.get(p.getUniqueId());
+        double bonus = Items.ballBonus(ballId, dex, new Items.Throw(wild, hit, false, 0, d.party, d.caught.contains(wild.species)));
+        var result = Double.isInfinite(bonus) ? new Rules.Capture(3, true, false) : Rules.capture(dex.of(wild).catchRate,
+                wild.hp(dex), wild.maxHp(dex), wild.status == null ? "" : wild.status, wild.level, false, bonus, 0,
+                d.caught.size(), ThreadLocalRandom.current());
+        balls.capture(model, hit, result, caught -> {
             if (!hit.isValid() || !p.isOnline()) return;
             if (caught) {
+                Items.caught(ballId, wild);
                 boolean toParty = store.give(p.getUniqueId(), wild);
                 hit.remove();
                 p.sendMessage(Component.text("Gotcha! " + wild.name(dex) + " (Lv." + wild.level + ") was caught!"
@@ -473,10 +492,21 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
     }
 
+    /** Cobblemon's passive healing, faint recovery and status expiry, every second out of battle. */
+    private void partySecond() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (battles.containsKey(p.getUniqueId())) continue;
+            for (Mon m : store.get(p.getUniqueId()).party) {
+                String msg = m.second(dex);
+                if (msg != null) p.sendMessage(Component.text(msg));
+            }
+        }
+    }
+
     void heal(Player p) {
         Store.Data d = store.get(p.getUniqueId());
         if (d.party.isEmpty() || battles.containsKey(p.getUniqueId())) return;
-        d.party.forEach(m -> m.hp = -1);
+        d.party.forEach(Mon::heal);
         store.save(p.getUniqueId());
         p.sendMessage(Component.text("Your Pokémon are fully healed.", NamedTextColor.GREEN));
     }
@@ -661,6 +691,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         });
         playerCommand("pokeballs", "/pokeballs [amount] (admin)", "cobblemonlink.admin",
                 (p, a) -> p.getInventory().addItem(ball(a.length > 0 ? Integer.parseInt(a[0]) : 16)));
+        playerCommand("pokeitem", "/pokeitem <item> [amount]: one of Cobblemon's items (admin)", "cobblemonlink.admin", (p, a) -> {
+            ItemStack it = a.length < 1 ? null : items.create(a[0], a.length > 1 ? Integer.parseInt(a[1]) : 1);
+            if (it == null) p.sendMessage(Component.text("Unknown item.", NamedTextColor.RED));
+            else p.getInventory().addItem(it);
+        });
     }
 
     private void playerCommand(String name, String description, String permission, BiConsumer<Player, String[]> run) {
@@ -680,6 +715,10 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
             @Override
             public Collection<String> suggest(CommandSourceStack src, String[] args) {
+                if (args.length <= 1 && name.equals("pokeitem")) {
+                    String prefix = args.length == 0 ? "" : args[0];
+                    return items.defs.keySet().stream().filter(s -> s.startsWith(prefix)).sorted().limit(50).toList();
+                }
                 if (args.length <= 1 && (name.equals("pokegive") || name.equals("pokespawn"))) {
                     String prefix = args.length == 0 ? "" : args[0];
                     return dex.species.keySet().stream().filter(s -> s.startsWith(prefix)).sorted().limit(50).toList();

@@ -1,0 +1,14 @@
+start_game
+text system "§r§e.PaperBed joined the game" 
+text system "§r§aYour Pokémon are fully healed." 
+bossbar §rWild Rattata  Lv.3 1
+bossbar §rPikachu  Lv.15   39/39 HP 1
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rPikachu  Lv.15   39/39 HP 0
+form "Battle§r§l§1" | A wild Rattata (Lv.3) / appeared! | Fight ; Switch ; Catch ; Run
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rPikachu  Lv.15   39/39 HP 0
+form "Battle§r§l§2" | A wild Rattata (Lv.3) / appeared! / Go! Pikachu! | Thunder Shock           30/30 ; Thunder Wave           20/20 ; Double Team           15/15 ; Electro Ball           10/10 ;  
+bossbar §rWild Rattata  Lv.3 0
+bossbar §rPikachu  Lv.15   39/39 HP 0
+done after 120 s

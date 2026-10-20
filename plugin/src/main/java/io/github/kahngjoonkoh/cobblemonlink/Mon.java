@@ -24,6 +24,17 @@ final class Mon {
     List<String> aspects = new ArrayList<>(); // from species features: alolan, flower-white, west-sea, ...
     boolean shiny;
     List<String> learnable = new ArrayList<>(); // level-up moves it wanted with 4 known: MoveLearn offers them
+    int[] evs = new int[6];
+    String status = "";  // Showdown id (par, brn, slp, frz, psn, tox), kept after battle like Cobblemon
+    int statusSecs;      // seconds out of battle until the status wears off (Cobblemon: 180-300)
+    List<Integer> pp;    // current PP per move, null = full
+    int friendship = -1; // -1: the species' base friendship (saves from before friendship)
+    String ball = "poke_ball";
+    String trainer;      // original trainer's UUID (Cobblemon's 1.5x EXP for traded Pokémon)
+    int faintSecs = -1, healSecs; // Cobblemon's faint and passive-heal timers (out of battle)
+    List<Integer> ppMax; // max PP per move, as the last battle reported it (Ether, Elixir)
+    String mint;         // a mint's nature: Cobblemon's effective nature for stats and battles
+    String held;         // held item id (Cobblemon's), or null
 
     static int shinyRate = 8192; // Cobblemon's shinyRate (config.yml)
 
@@ -47,6 +58,7 @@ final class Mon {
         m.gender = props.contains("male") ? "M" : props.contains("female") ? "F"
                 : s.maleRatio < 0 ? "" : r.nextDouble() < s.maleRatio ? "M" : "F";
         for (int i = 0; i < 6; i++) m.ivs[i] = r.nextInt(32);
+        m.friendship = s.baseFriendship;
         // the four most recent level-up moves, like a wild Pokémon in the main games
         for (List<String> lm : s.moves) {
             if (Integer.parseInt(lm.get(0)) > m.level || m.moves.contains(lm.get(1))) continue;
@@ -100,7 +112,14 @@ final class Mon {
     /** The converted model (looks.py) this Pokémon is drawn with. */
     String model(Dex dex) { return dex.model(species, allAspects()); }
 
-    int maxHp(Dex dex) { return Rules.maxHp(dex.of(this).base(0), ivs[0], level); }
+    int maxHp(Dex dex) { return Rules.maxHp(dex.of(this).base(0), ivs[0], ev(0), level); }
+
+    int ev(int stat) { return evs == null ? 0 : evs[stat]; }
+
+    int friendship(Dex dex) { return friendship < 0 ? dex.of(this).baseFriendship : friendship; }
+
+    /** Cobblemon's incrementFriendship / decrementFriendship: kept within 0-255. */
+    void addFriendship(Dex dex, int amount) { friendship = Math.clamp(friendship(dex) + amount, 0, 255); }
 
     int hp(Dex dex) {
         int max = maxHp(dex);
@@ -109,16 +128,45 @@ final class Mon {
 
     boolean fainted(Dex dex) { return hp(dex) == 0; }
 
+    /** A full heal (Healing Machine, bed): HP, status and PP. */
+    void heal() {
+        hp = -1;
+        status = "";
+        pp = null;
+        faintSecs = -1;
+    }
+
+    /**
+     * Cobblemon's PlayerPartyStore.onSecondPassed, out of battle: a fainted Pokémon wakes with 20% HP after 300 s;
+     * otherwise 5% of max HP (at least 1) every 60 s; a status wears off after its 180-300 s. Returns a message or null.
+     */
+    String second(Dex dex) {
+        if (fainted(dex)) {
+            if (faintSecs < 0) faintSecs = 300;
+            if (--faintSecs > -1) return null;
+            hp = (int) Math.ceil(maxHp(dex) * 0.2);
+            return name(dex) + " has recovered from fainting.";
+        }
+        faintSecs = -1;
+        if (hp >= 0 && --healSecs <= -1) {
+            healSecs = 60;
+            hp = Math.min(maxHp(dex), hp + (int) Math.round(Math.max(1.0, maxHp(dex) * 0.05)));
+            if (hp >= maxHp(dex)) hp = -1;
+        }
+        if (status != null && !status.isEmpty() && --statusSecs <= 0) status = "";
+        return null;
+    }
+
     String nickname; // Cobblemon's nickname (SummaryScreen), null for the species' name
 
     String name(Dex dex) { return nickname != null && !nickname.isBlank() ? nickname : dex.name(species); }
 
-    /** Showdown PokemonSet. */
+    /** Showdown PokemonSet plus the fields Cobblemon's Showdown reads (sim/server.js packs it). */
     Map<String, Object> set(Dex dex) {
         Map<String, Object> ivMap = new LinkedHashMap<>(), evMap = new LinkedHashMap<>();
         for (int i = 0; i < 6; i++) {
             ivMap.put(Dex.STATS[i], ivs[i]);
-            evMap.put(Dex.STATS[i], 0);
+            evMap.put(Dex.STATS[i], ev(i));
         }
         Map<String, Object> set = new LinkedHashMap<>();
         set.put("name", name(dex));
@@ -129,10 +177,17 @@ final class Mon {
         set.put("level", level);
         set.put("moves", moves);
         set.put("ability", ability);
-        set.put("nature", nature);
+        set.put("nature", mint != null ? mint : nature);
+        if (held != null) set.put("item", held);
         set.put("gender", gender);
         set.put("ivs", ivMap);
         set.put("evs", evMap);
+        set.put("uuid", id);
+        if (hp >= 0 && hp < maxHp(dex)) set.put("hp", hp);
+        set.put("status", status == null ? "" : status);
+        if (pp != null) set.put("pp", pp);
+        set.put("happiness", friendship(dex));
+        set.put("ball", ball == null ? "poke_ball" : ball);
         return set;
     }
 
@@ -148,6 +203,7 @@ final class Mon {
             int oldMax = maxHp(dex);
             level++;
             if (hp >= 0) hp += maxHp(dex) - oldMax;
+            addFriendship(dex, Rules.levelUpFriendship(friendship(dex)));
             say.accept(name(dex) + " grew to level " + level + "!");
             for (List<String> lm : s.moves) {
                 if (Integer.parseInt(lm.get(0)) != level || moves.contains(lm.get(1))) continue;
@@ -161,7 +217,7 @@ final class Mon {
                 }
             }
         }
-        for (List<String> evo : s.evolutions) { // as Cobblemon: ready to evolve, the player evolves it from the Summary
+        if (!"everstone".equals(held)) for (List<String> evo : s.evolutions) { // as Cobblemon: ready to evolve, evolved from the Summary
             String into = evo.get(1);
             if (level >= Integer.parseInt(evo.get(0)) && dex.get(into) != null) {
                 if (!into.equals(evolution)) say.accept(name(dex) + " seems ready to evolve!");
@@ -175,11 +231,13 @@ final class Mon {
 
     /** Evolves into the pending evolution; returns Cobblemon's message, or null if there's none. */
     String evolve(Dex dex) {
-        if (evolution == null || dex.get(evolution) == null) return null;
+        if (evolution == null || dex.get(evolution.split(" ")[0]) == null) return null;
         String before = name(dex);
         int oldMax = maxHp(dex);
         boolean named = nickname != null && !nickname.isBlank();
-        species = evolution; // aspects stay: an Alolan form evolves into the Alolan form
+        String[] result = evolution.split(" "); // "raichu alolan": a species and Cobblemon properties for the new form
+        species = result[0]; // aspects stay: an Alolan form evolves into the Alolan form
+        if (result.length > 1) aspects = featureAspects(dex, species, List.of(result).subList(1, result.length));
         evolution = null;
         if (hp >= 0) hp += maxHp(dex) - oldMax;
         return before + " evolved into " + (named ? dex.name(species) : name(dex)) + "!";

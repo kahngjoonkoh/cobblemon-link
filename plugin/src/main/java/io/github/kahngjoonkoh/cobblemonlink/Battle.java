@@ -51,6 +51,7 @@ final class Battle {
     private JsonObject request, state;
     private boolean over;
     private final List<String> turnLog = new ArrayList<>();
+    private final Map<String, String> names = new java.util.HashMap<>(); // Cobblemon's Showdown names Pokémon by UUID
     private final List<String> log = new ArrayList<>(); // Java overlay's battle log, wrapped
     private BukkitTask overlayTask;
     private Screen screen; // Java cursor screen; null on Bedrock, when the camera couldn't be set, or while hidden
@@ -59,6 +60,7 @@ final class Battle {
     private Entity ally; // the player's active Pokémon, out beside them
     private int allyIndex = -1;
     private long animUntil; // the server tick the turn's battle animations end (animate)
+    private int turn; // Showdown's turn number (Quick Ball, Timer Ball)
     private final BossBar wildBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
     private final BossBar ownBar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.GREEN, BossBar.Overlay.NOTCHED_10);
 
@@ -78,13 +80,13 @@ final class Battle {
             return false;
         }
         for (int i = 0; i < party.size(); i++) if (!order.contains(i)) order.add(i); // fainted ones last
+        wild.hp = -1;
         List<Map<String, Object>> team = order.stream().map(i -> party.get(i).set(pl.dex)).toList();
-        List<Integer> hp = order.stream().map(i -> party.get(i).hp(pl.dex)).toList();
         JsonObject init = new JsonObject();
         init.add("p1", Store.GSON.toJsonTree(team));
         init.add("p2", Store.GSON.toJsonTree(List.of(wild.set(pl.dex))));
-        init.add("hp1", Store.GSON.toJsonTree(hp));
-        wild.hp = -1;
+        for (Mon m : party) names.put(m.id, "Your " + m.name(pl.dex));
+        names.put(wild.id, "The wild " + wild.name(pl.dex));
         Spawner.freeze(wildEntity, true);
         Spawner.animate(wildEntity, "battle_idle", AnimationIterator.Type.LOOP);
         Spawner.face(wildEntity, player.getLocation()); // Cobblemon turns the opponent toward the player
@@ -129,7 +131,8 @@ final class Battle {
             case "log" -> {
                 animate(msg.getAsJsonArray("lines"));
                 for (JsonElement l : msg.getAsJsonArray("lines")) {
-                    String text = narrate(l.getAsString());
+                    if (l.getAsString().startsWith("|turn|")) turn = Integer.parseInt(l.getAsString().substring(6));
+                    String text = narrate(l.getAsString(), names);
                     if (text == null) continue;
                     if (text.startsWith("—")) continue;
                     turnLog.add(text);
@@ -637,10 +640,9 @@ final class Battle {
 
     /**
      * A thrown Poké Ball hit this battle's wild Pokémon: the main-series formula with its battle HP and status, then
-     * Cobblemon's capture sequence with the ball's model (PokeBalls.capture), then the result.
-     * ponytail: a failed throw doesn't cost a turn (Showdown has no item action); the main games give the wild Pokémon a free move.
+     * Cobblemon's capture sequence with the ball's model (PokeBalls.capture), then the result. A failed throw uses the turn.
      */
-    void ballHit(Entity ball) {
+    void ballHit(Entity ball, String ballId) {
         if (over) return;
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
@@ -650,17 +652,28 @@ final class Battle {
             max = w.get("maxhp").getAsInt();
             status = w.get("status").getAsString();
         }
-        double chance = Rules.catchChance(pl.dex.of(wild).catchRate, hp, max, status);
+        int top = 0; // Cobblemon's level check: the highest level on the thrower's side
+        for (int i : participants) top = Math.max(top, pl.store.get(player.getUniqueId()).party.get(i).level);
+        Store.Data d = pl.store.get(player.getUniqueId());
+        List<Mon> active = participants.stream().map(d.party::get).toList();
+        double bonus = Items.ballBonus(ballId, pl.dex, new Items.Throw(wild, wildEntity, true, Math.max(1, turn), active, d.caught.contains(wild.species)));
+        var result = Double.isInfinite(bonus) ? new Rules.Capture(3, true, false) : Rules.capture(pl.dex.of(wild).catchRate, hp, max, status,
+                wild.level, true, bonus, top, d.caught.size(), ThreadLocalRandom.current());
         int caughtHp = hp;
-        pl.balls.capture(ball, wildEntity, Rules.shakes(chance, ThreadLocalRandom.current()), caught -> {
+        String caughtStatus = status;
+        boolean myTurn = request != null && !request.has("wait") && !request.has("forceSwitch");
+        pl.balls.capture(ball, wildEntity, result, caught -> {
             if (over) return;
             if (caught) {
                 wild.hp = caughtHp;
+                wild.status = caughtStatus;
+                Items.caught(ballId, wild);
                 finish(null, true);
             } else {
                 turnLog.add("Oh no! The Pokémon broke free!");
                 log.addAll(Ui.wrap("Oh no! The Pokémon broke free!", 146));
-                openMenu();
+                if (myTurn) choose("pass"); // Cobblemon's ForcePassActionResponse: the throw was the turn
+                else openMenu();
             }
         });
     }
@@ -683,23 +696,42 @@ final class Battle {
         }
 
         List<Mon> party = pl.store.get(player.getUniqueId()).party;
-        if (state != null) {
+        if (state != null) { // as Cobblemon: HP, status and PP stay as the battle left them
             JsonArray p1 = state.getAsJsonArray("p1");
             for (int i = 0; i < p1.size() && i < order.size(); i++) {
                 Mon m = party.get(order.get(i));
-                int hp = p1.get(i).getAsJsonObject().get("hp").getAsInt();
+                JsonObject p = p1.get(i).getAsJsonObject();
+                int hp = p.get("hp").getAsInt();
+                if (hp == 0 && !m.fainted(pl.dex)) m.addFriendship(pl.dex, -1); // Cobblemon: fainting costs 1 friendship
                 m.hp = hp >= m.maxHp(pl.dex) ? -1 : hp;
+                String status = p.get("status").getAsString();
+                if (!status.equals(m.status)) m.statusSecs = ThreadLocalRandom.current().nextInt(180, 301);
+                m.status = hp == 0 ? "" : status;
+                List<Integer> pp = new ArrayList<>(), ppMax = new ArrayList<>();
+                p.getAsJsonArray("pp").forEach(x -> pp.add(x.getAsInt()));
+                p.getAsJsonArray("maxpp").forEach(x -> ppMax.add(x.getAsInt()));
+                m.pp = pp.equals(ppMax) ? null : pp;
+                m.ppMax = ppMax;
             }
         }
         if ("p1".equals(winner)) {
-            for (int idx : participants) {
+            Set<Integer> earners = new java.util.LinkedHashSet<>(participants); // and Exp. Share holders that sat out
+            for (int i = 0; i < party.size(); i++) if ("exp_share".equals(party.get(i).held)) earners.add(i);
+            for (int idx : earners) {
                 Mon m = party.get(idx);
                 if (m.fainted(pl.dex)) continue;
+                double share = participants.contains(idx) ? 1 : Rules.EXP_SHARE;
                 int level = m.level, moves = m.moves.size() + (m.learnable == null ? 0 : m.learnable.size());
                 String evolution = m.evolution;
-                long exp = Rules.expGain(pl.dex.of(wild).baseExp, wild.level, m.level);
+                int exp = Rules.expGain(pl.dex.of(wild).baseExp, wild.level, m.level, share, expBonus(m));
+                if (m.evs == null) m.evs = new int[6];
+                for (var ev : pl.dex.of(wild).evYield.entrySet()) { // Generation8EvCalculator, Power items +8
+                    int k = java.util.Arrays.asList(Dex.STATS).indexOf(ev.getKey());
+                    Rules.addEv(m.evs, k, ev.getValue() + (POWER_ITEMS[k].equals(m.held) ? 8 : 0));
+                }
                 boolean panel = pl.panel.on(player); // as Cobblemon: the party overlay shows it, not chat
                 m.gainExp(pl.dex, exp, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
+                pl.evolutions.update(m, player, panel ? s -> {} : s -> player.sendMessage(Component.text(s, NamedTextColor.AQUA)));
                 if (panel) pl.panel.gain(player, m, level, exp, m.moves.size() + (m.learnable == null ? 0 : m.learnable.size()) - moves,
                         m.evolution != null && !m.evolution.equals(evolution) ? 1 : 0);
             }
@@ -724,26 +756,85 @@ final class Battle {
         if (pl.isEnabled()) pl.onMain(() -> MoveLearn.next(pl, player));
     }
 
-    /** Showdown protocol line -> chat text, or null to skip (HP is shown in the menu instead). */
-    static String narrate(String line) {
+    /** Cobblemon's canFitForcedAction: a choice is being waited for (not a forced switch). */
+    boolean canUseItem() { return !over && request != null && !request.has("wait") && !request.has("forceSwitch"); }
+
+    /** The battle's own view of a party Pokémon (its HP and status here), for an item's canUse. */
+    private JsonObject stateOf(Mon m) {
+        if (state == null) return null;
+        List<Mon> party = pl.store.get(player.getUniqueId()).party;
+        JsonArray p1 = state.getAsJsonArray("p1");
+        for (int i = 0; i < p1.size() && i < order.size(); i++) if (party.get(order.get(i)) == m) return p1.get(i).getAsJsonObject();
+        return null;
+    }
+
+    int hp(Mon m) { JsonObject s = stateOf(m); return s == null ? m.hp(pl.dex) : s.get("hp").getAsInt(); }
+
+    int maxHp(Mon m) { JsonObject s = stateOf(m); return s == null ? m.maxHp(pl.dex) : s.get("maxhp").getAsInt(); }
+
+    /** BagItem.canUse in battle: potions on the hurt, revives on the fainted, cures on the matching status... */
+    boolean canUse(Mon m, Items.Def d) {
+        JsonObject s = stateOf(m);
+        if (s == null) return false;
+        int hp = s.get("hp").getAsInt(), max = s.get("maxhp").getAsInt();
+        String status = s.get("status").getAsString();
+        boolean active = s.get("active").getAsBoolean();
+        return switch (d.kind) {
+            case "potion" -> hp > 0 && (hp < max || !d.cure.isEmpty() && !status.isEmpty());
+            case "revive" -> hp == 0;
+            case "cure" -> hp > 0 && d.cure.contains(status);
+            case "ether", "elixir" -> hp > 0;
+            case "x_stat", "dire_hit", "guard_spec" -> active && hp > 0;
+            default -> false;
+        };
+    }
+
+    /** Cobblemon's BagItemActionResponse: "useitem <uuid> <item name> <showdown input>", which takes the turn. */
+    boolean useItem(Mon m, String id, String input) {
+        if (!canUseItem()) return false;
+        if (screen != null) screen.show(List.of());
+        player.closeDialog();
+        choose("useitem " + m.id + " item.cobblemon." + id + " " + input);
+        return true;
+    }
+
+    private static final String[] POWER_ITEMS = {"power_weight", "power_bracer", "power_belt", "power_lens", "power_band", "power_anklet"};
+
+    /** Cobblemon's EXP bonuses: traded (1.5), Lucky Egg (1.5), can evolve by level now (1.2), friendship 220+ (1.2). */
+    private double expBonus(Mon m) {
+        double b = m.trainer != null && !m.trainer.equals(player.getUniqueId().toString()) ? 1.5 : 1;
+        if ("lucky_egg".equals(m.held)) b *= Rules.LUCKY_EGG;
+        if (m.evolution != null) b *= 1.2;
+        if (m.friendship(pl.dex) >= 220) b *= 1.2;
+        return b;
+    }
+
+    /**
+     * Showdown protocol line -> chat text, or null to skip (HP is shown in the menu instead). Cobblemon's Showdown names
+     * each Pokémon by its UUID ("p1a: <uuid>"); names maps the UUID to "Your Pikachu" / "The wild Rattata".
+     */
+    static String narrate(String line, Map<String, String> names) {
         String[] p = line.split("\\|");
         if (p.length < 2) return null;
         return switch (p[1]) {
-            case "move" -> who(p[2]) + " used " + p[3] + "!";
-            case "switch" -> p[2].startsWith("p1") ? "Go! " + p[2].substring(5) + "!" : null;
-            case "faint" -> who(p[2]) + " fainted!";
+            case "move" -> who(p[2], names) + " used " + p[3] + "!";
+            case "switch" -> p[2].startsWith("p1") ? "Go! " + who(p[2], names).substring(5) + "!" : null;
+            case "bagitem" -> "You used your " + item(p[3]) + " on " + names.getOrDefault(p[2], "it").replaceFirst("^Your ", "") + "!";
+            case "-heal" -> who(p[2], names) + " restored its HP.";
+            case "-curestatus" -> who(p[2], names) + " was cured of its status.";
+            case "faint" -> who(p[2], names) + " fainted!";
             case "-supereffective" -> "It's super effective!";
             case "-resisted" -> "It's not very effective...";
-            case "-immune" -> "It doesn't affect " + who(p[2]) + "...";
+            case "-immune" -> "It doesn't affect " + who(p[2], names) + "...";
             case "-crit" -> "A critical hit!";
-            case "-miss" -> who(p[2]) + "'s attack missed!";
+            case "-miss" -> who(p[2], names) + "'s attack missed!";
             case "-fail" -> "But it failed!";
-            case "-status" -> who(p[2]) + " is now " + switch (p[3]) {
+            case "-status" -> who(p[2], names) + " is now " + switch (p[3]) {
                 case "par" -> "paralyzed"; case "brn" -> "burned"; case "slp" -> "asleep";
                 case "frz" -> "frozen"; case "psn", "tox" -> "poisoned"; default -> p[3]; } + "!";
-            case "cant" -> who(p[2]) + " can't move!";
-            case "-boost" -> who(p[2]) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " rose!";
-            case "-unboost" -> who(p[2]) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " fell!";
+            case "cant" -> who(p[2], names) + " can't move!";
+            case "-boost" -> who(p[2], names) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " rose!";
+            case "-unboost" -> who(p[2], names) + "'s " + STAT_NAMES.getOrDefault(p[3], p[3]) + " fell!";
             case "turn" -> "— Turn " + p[2] + " —";
             default -> null;
         };
@@ -752,8 +843,16 @@ final class Battle {
     private static final Map<String, String> STAT_NAMES = Map.of("atk", "Attack", "def", "Defense", "spa", "Sp. Atk",
             "spd", "Sp. Def", "spe", "Speed", "accuracy", "accuracy", "evasion", "evasiveness");
 
-    private static String who(String ident) {
-        String name = ident.length() > 5 ? ident.substring(5) : ident;
-        return (ident.startsWith("p1") ? "Your " : "The wild ") + name;
+    /** "item.cobblemon.super_potion" -> "Super Potion". */
+    private static String item(String key) {
+        String id = key.substring(key.lastIndexOf('.') + 1);
+        StringBuilder b = new StringBuilder();
+        for (String w : id.split("_")) b.append(b.isEmpty() ? "" : " ").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        return b.toString();
+    }
+
+    private static String who(String ident, Map<String, String> names) {
+        String id = ident.length() > 5 ? ident.substring(5) : ident;
+        return names.getOrDefault(id, (ident.startsWith("p1") ? "Your " : "The wild ") + id);
     }
 }

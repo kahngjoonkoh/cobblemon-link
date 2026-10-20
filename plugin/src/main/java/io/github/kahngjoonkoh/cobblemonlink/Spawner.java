@@ -271,11 +271,7 @@ final class Spawner {
 
     private boolean fits(Dex.Spawn s, Block at) {
         World w = at.getWorld();
-        long t = w.getTime();
-        boolean day = t >= 23460 || t < 12542;
-        if ("day".equals(s.timeRange) && !day) return false;
-        if ("night".equals(s.timeRange) && day) return false;
-        if ("dusk".equals(s.timeRange) && (t < 12000 || t > 14000)) return false;
+        if (s.timeRange != null && !Evolutions.inTime(s.timeRange, w.getTime() % 24000)) return false; // Cobblemon's TimeRanges
         if (s.isRaining != null && s.isRaining != w.hasStorm()) return false;
         if (s.minY != null && at.getY() < s.minY || s.maxY != null && at.getY() > s.maxY) return false;
         int sky = at.getLightFromSky();
@@ -284,6 +280,12 @@ final class Spawner {
         Key biome = biomes.getKey(at.getBiome());
         if (biome == null) return false;
         return s.biomes.stream().anyMatch(b -> inBiome(b, biome)) && s.antiBiomes.stream().noneMatch(b -> inBiome(b, biome));
+    }
+
+    /** Is this location's biome in id (a biome or a "#tag")? */
+    boolean inBiome(String id, org.bukkit.Location at) {
+        Key biome = biomes.getKey(at.getBlock().getBiome());
+        return biome != null && inBiome(id, biome);
     }
 
     /** "#cobblemon:is_forest" resolves through the bundled datapack's biome tags; plain ids compare directly. */

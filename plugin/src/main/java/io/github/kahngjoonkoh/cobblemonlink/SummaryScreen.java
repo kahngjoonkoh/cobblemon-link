@@ -28,7 +28,7 @@ final class SummaryScreen {
     static final int INFO = 0, MOVES = 1, STATS = 2;
     static final int EVOLVE = 17 + 3 * 8; // the Evolve button, after the 8 rows
     private static final String[] TABS = {"Info", "Moves", "Stats"};
-    private static final String[] STAT_NAMES = {"HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"};
+    static final String[] STAT_NAMES = {"HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"};
     private static final int[] NATURE_STATS = {1, 2, 5, 3, 4}; // the order natures raise and lower: Atk, Def, Spe, SpA, SpD
 
     private SummaryScreen() {}
@@ -144,9 +144,12 @@ final class SummaryScreen {
             case STATS -> {
                 int[] st = stats(pl.dex, m);
                 for (int k = 0; k < 6; k++) {
-                    String mark = k == 0 ? "" : nature(m.nature, k) > 0 ? " +" : nature(m.nature, k) < 0 ? " -" : "";
-                    rows.add(new String[]{STAT_NAMES[k] + mark, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k] + "   IV " + m.ivs[k], "none"});
+                    String mark = k == 0 ? "" : nature(m.mint != null ? m.mint : m.nature, k) > 0 ? " +" : nature(m.mint != null ? m.mint : m.nature, k) < 0 ? " -" : "";
+                    rows.add(new String[]{STAT_NAMES[k] + mark, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k] + "   IV " + m.ivs[k] + "  EV " + m.ev(k), "none"});
                 }
+                rows.add(new String[]{"Friendship", String.valueOf(m.friendship(pl.dex)), "none"}); // Cobblemon's Stats tab meter
+                String held = m.held == null ? "None" : pl.items != null && pl.items.defs.containsKey(m.held) ? pl.items.defs.get(m.held).name : m.held;
+                rows.add(new String[]{"Held Item", held, "none"});
             }
             default -> {
                 long next = m.level >= 100 ? 0 : Rules.expFor(s.expGroup, m.level + 1) - m.exp;
@@ -154,7 +157,7 @@ final class SummaryScreen {
                 rows.add(new String[]{"Species", pl.dex.name(m.species), "none"});
                 rows.add(new String[]{"Type", String.join(" / ", s.types.stream().map(t -> pl.dex.label("type", t)).toList()), "none"});
                 rows.add(new String[]{"OT", p.getName(), "none"});
-                rows.add(new String[]{"Nature", m.nature, "none"});
+                rows.add(new String[]{"Nature", m.mint != null && !m.mint.equals(m.nature) ? m.nature + " (" + m.mint + ")" : m.nature, "none"});
                 rows.add(new String[]{"Ability", pl.dex.label("ability", m.ability), "none"});
                 rows.add(new String[]{"EXP. Points", String.valueOf(m.exp), "none"});
                 rows.add(new String[]{"To Next Lv.", String.valueOf(next), "none"});
@@ -163,14 +166,14 @@ final class SummaryScreen {
         return rows;
     }
 
-    /** HP, Atk, Def, SpA, SpD, Spe at the Pokémon's level, IVs and nature (no EVs yet). */
+    /** HP, Atk, Def, SpA, SpD, Spe at the Pokémon's level, IVs, EVs and nature. */
     static int[] stats(Dex dex, Mon m) {
         Dex.Species s = dex.of(m);
         int[] out = new int[6];
         out[0] = m.maxHp(dex);
         for (int k = 1; k < 6; k++) {
-            int n = nature(m.nature, k);
-            out[k] = (int) (Rules.stat(s.base(k), m.ivs[k], m.level) * (n > 0 ? 1.1 : n < 0 ? 0.9 : 1.0));
+            int n = nature(m.mint != null ? m.mint : m.nature, k);
+            out[k] = (int) (Rules.stat(s.base(k), m.ivs[k], m.ev(k), m.level) * (n > 0 ? 1.1 : n < 0 ? 0.9 : 1.0));
         }
         return out;
     }
@@ -360,7 +363,7 @@ final class SummaryScreen {
                 int most = java.util.Arrays.stream(st).max().orElse(1);
                 for (int k = 0; k < 6; k++) {
                     int ry = py + 5 + 17 * k;
-                    int n = nature(m.nature, k);
+                    int n = nature(m.mint != null ? m.mint : m.nature, k);
                     PcScreen.text(t, "pc_bold", px + 7, ry + 4, SHORT[k] + (n > 0 ? "+" : n < 0 ? "-" : ""), false);
                     PcScreen.text(t, "pc_text", px + 44, ry + 4, (k == 0 ? m.hp(pl.dex) + "/" : "") + st[k], false);
                     int w = Math.max(1, Math.min(22, st[k] * 22 / Math.max(1, most))); // the strongest stat fills it
@@ -369,7 +372,7 @@ final class SummaryScreen {
                 }
                 PcScreen.text(t, "pc_bold", px + 7, py + 110, "Nature: " + m.nature, false);
                 int up = 0, down = 0;
-                for (int k = 1; k < 6; k++) { if (nature(m.nature, k) > 0) up = k; if (nature(m.nature, k) < 0) down = k; }
+                for (int k = 1; k < 6; k++) { if (nature(m.mint != null ? m.mint : m.nature, k) > 0) up = k; if (nature(m.mint != null ? m.mint : m.nature, k) < 0) down = k; }
                 PcScreen.text(t, "pc_text", px + 7, py + 118, up == 0 ? "No stat changes" : "Raises " + STAT_NAMES[up] + ", lowers " + STAT_NAMES[down], false);
             }
             default -> {

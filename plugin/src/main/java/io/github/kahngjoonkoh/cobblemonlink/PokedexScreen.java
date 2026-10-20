@@ -31,7 +31,7 @@ import org.bukkit.entity.Player;
  * image the picture or "pokedex/unknown").
  * Vanilla Java with the UI pack: the same, stacked over a 5-row chest (build_dex.py's art; see art()). Without the
  * pack: a chest of 45 a page.
- * ponytail: no regional dexes, poses or cry; evolutions only by level (the game data has no others yet).
+ * ponytail: no regional dexes, poses or cry.
  */
 final class PokedexScreen {
     static final int PAGE = 25;
@@ -357,7 +357,10 @@ final class PokedexScreen {
     static List<String> evolutions(Dex dex, Store.Data d, String sp) {
         if (prevo == null) {
             Map<String, String> m = new HashMap<>();
-            dex.species.forEach((id, s) -> { if (s.evolutions != null) for (List<String> e : s.evolutions) m.putIfAbsent(e.get(1), id); });
+            dex.species.forEach((id, s) -> {
+                if (s.evolutions != null) for (List<String> e : s.evolutions) m.putIfAbsent(e.get(1), id);
+                if (s.evos != null) for (Dex.Evo e : s.evos) m.putIfAbsent(e.species(), id);
+            });
             prevo = m;
         }
         String root = sp;
@@ -371,7 +374,31 @@ final class PokedexScreen {
         String name = d.seen.contains(sp) ? dex.name(sp) : "???";
         out.add(how.isEmpty() ? name : how + " > " + name);
         Dex.Species s = dex.get(sp);
-        if (s == null || s.evolutions == null || out.size() > 12) return;
-        for (List<String> e : s.evolutions) family(dex, d, e.get(1), "Lv" + (int) Double.parseDouble(String.valueOf(e.get(0))), out);
+        if (s == null || out.size() > 12) return;
+        if (s.evolutions != null)
+            for (List<String> e : s.evolutions) family(dex, d, e.get(1), "Lv" + (int) Double.parseDouble(String.valueOf(e.get(0))), out);
+        if (s.evos != null) for (Dex.Evo e : s.evos) if (!e.species().equals(sp)) family(dex, d, e.species(), how(e), out);
+    }
+
+    /** "Fire Stone", "Trade", "Friendship 160", "Lv20 night"...: the evolution's trigger, shortly. */
+    static String how(Dex.Evo e) {
+        List<String> parts = new ArrayList<>();
+        if (e.item != null) parts.add(title(e.item));
+        else if (e.variant.equals("trade")) parts.add("Trade");
+        for (var r : e.requirements) {
+            Object v = r.get("variant");
+            if ("level".equals(v) && r.get("minLevel") instanceof Number n) parts.add("Lv" + n.intValue());
+            else if ("friendship".equals(v)) parts.add("Friendship");
+            else if ("time_range".equals(v)) parts.add(String.valueOf(r.get("range")));
+            else if ("held_item".equals(v)) parts.add("holding " + title(String.valueOf(r.get("itemCondition")).replaceFirst(".*:", "")));
+            else if ("has_move".equals(v)) parts.add("knows " + r.get("move"));
+        }
+        return parts.isEmpty() ? "Level up" : String.join(" ", parts);
+    }
+
+    private static String title(String id) {
+        StringBuilder b = new StringBuilder();
+        for (String w : id.split("_")) if (!w.isEmpty()) b.append(b.isEmpty() ? "" : " ").append(Character.toUpperCase(w.charAt(0))).append(w.substring(1));
+        return b.toString();
     }
 }

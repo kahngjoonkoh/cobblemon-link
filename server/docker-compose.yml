@@ -56,6 +56,8 @@ services:
     restart: unless-stopped
 
   sim:
-    build: ../sim                  # Pokémon Showdown (MIT) battle engine; only the mc container talks to it
+    build: ../sim                  # Cobblemon's Showdown build (MIT/MPL) as the battle engine; only the mc container talks to it
     container_name: cobblemon-link-sim
     restart: unless-stopped
+    volumes:
+      - ../assets/showdown:/showdown:ro

@@ -13,7 +13,7 @@
 This repo takes a third approach:
 
 - **Gameplay** runs as a Paper plugin ([`plugin/`](plugin)), driven by Cobblemon's own data: species, stats, learnsets, evolutions and spawn pools.
-- **Battles** run on [Pokémon Showdown](https://github.com/smogon/pokemon-showdown), the same engine Cobblemon uses, in a small sidecar container ([`sim/`](sim)).
+- **Battles** run on Cobblemon's own build of [Pokémon Showdown](https://gitlab.com/cable-mc/cobblemon-showdown) (the `showdown.zip` Cobblemon ships), in a small sidecar container ([`sim/`](sim)). HP, status and PP carry over between battles, and Cobblemon's bag item effects run inside it.
 - **Visuals** reach players as **server-sent resource packs**, which vanilla clients accept with one "Proceed" click.
 - **Java:** [BetterModel](https://modrinth.com/plugin/bettermodel) renders Cobblemon's models with display entities and a generated resource pack.
 - **Bedrock:** [GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine) turns the same models into native Bedrock custom entities. Geyser pushes the Bedrock pack automatically.
@@ -232,7 +232,7 @@ Gameplay order follows [PARITY.md](PARITY.md#suggested-order):
   - No PokeDemo code or assets are included. Its screenshots in `docs/` only document how it looks on vanilla clients.
 - **[BetterModel](https://github.com/toxicity188/BetterModel)** (Java model rendering) is a runtime dependency, downloaded by `server/setup.sh` and not redistributed.
 - **[GeyserModelEngine](https://github.com/GeyserExtensionists/GeyserModelEngine)** and **[GeyserUtils](https://github.com/GeyserExtensionists/GeyserUtils)** (Bedrock bridge, both MIT, © zimzaza4) only publish a moving `latest` build. The exact tested jars are mirrored unmodified, with their licenses, on the [`deps-2026-10-15`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-15) release. GeyserModelEngine's Paper plugin comes from our public fork instead ([release `1.0.9-cl.2`](https://github.com/kahngjoonkoh/GeyserModelEngine/releases/tag/1.0.9-cl.2), branch `cobblemon-link-perf`): upstream 1.0.9 plus its open [PR #76](https://github.com/GeyserExtensionists/GeyserModelEngine/pull/76) by ScarletMC (`server/patches/`), which stops it re-sending every model's scale and colour to Bedrock players 50 times a second. It goes back to upstream once that is merged.
-- **[Pokémon Showdown](https://github.com/smogon/pokemon-showdown)** (MIT) runs every battle. It is installed from npm into the sidecar image and not redistributed.
+- **[cobblemon-showdown](https://gitlab.com/cable-mc/cobblemon-showdown)** (MIT, Cobblemon's fork of Pokémon Showdown) runs every battle. `tools/build.sh` unpacks it from Cobblemon's resources into `assets/showdown`, together with Cobblemon's bag item scripts (MPL-2.0).
 - **[Geyser and Floodgate](https://geysermc.org)**, **[packetevents](https://github.com/retrooper/packetevents)** and **[Paper](https://papermc.io)** are also runtime dependencies and are not redistributed.
 
 ## License

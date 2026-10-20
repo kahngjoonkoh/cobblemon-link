@@ -18,12 +18,16 @@ final class Dex {
         List<String> types;
         Map<String, Integer> baseStats;
         List<String> abilities;
-        int catchRate, baseExp;
+        int catchRate, baseExp, baseFriendship = 50;
+        double weight;     // hectograms
+        boolean ultraBeast;
+        Map<String, Integer> evYield = Map.of(); // EVs for defeating it (Gen 8), stat -> amount
         String expGroup, desc; // desc: the first Pokédex entry
         double maleRatio;
         int dex;               // national Pokédex number
         List<List<String>> moves;      // [level, move id], sorted by level (Gson reads the numbers as strings)
         List<List<String>> evolutions; // [min level, species id]
+        List<Evo> evos = List.of();    // every other evolution, as Cobblemon's species files write it (Evolutions)
         List<Form> forms = List.of();  // regional and other forms, picked by aspects
         List<String> features = List.of();
         Looks looks;
@@ -37,8 +41,18 @@ final class Dex {
         List<String> aspects, types, abilities;
         Map<String, Integer> baseStats;
         List<List<String>> moves, evolutions;
+        List<Evo> evos;
         Integer catchRate;
         Double maleRatio;
+        Map<String, Integer> evYield;
+    }
+
+    /** One Cobblemon evolution: variant (level_up, item_interact, trade), result ("raichu alolan"), item, requirements. */
+    static final class Evo {
+        String variant, result, item;
+        List<Map<String, Object>> requirements = List.of();
+
+        String species() { return result.split(" ")[0]; }
     }
 
     /** Cobblemon species feature (choice, weighted_choice, flag): a value per Pokémon, shown as an aspect. */
@@ -101,9 +115,14 @@ final class Dex {
             x.abilities = f.abilities != null ? f.abilities : s.abilities;
             x.moves = f.moves != null ? f.moves : s.moves;
             x.evolutions = f.evolutions != null ? f.evolutions : s.evolutions;
+            x.evos = f.evos != null ? f.evos : s.evos;
             x.catchRate = f.catchRate != null ? f.catchRate : s.catchRate;
             x.maleRatio = f.maleRatio != null ? f.maleRatio : s.maleRatio;
             x.baseExp = s.baseExp;
+            x.baseFriendship = s.baseFriendship;
+            x.weight = s.weight;
+            x.ultraBeast = s.ultraBeast;
+            x.evYield = f.evYield != null ? f.evYield : s.evYield;
             x.expGroup = s.expGroup;
             x.forms = s.forms;
             x.features = s.features;

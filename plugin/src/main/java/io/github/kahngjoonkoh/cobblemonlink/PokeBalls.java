@@ -58,10 +58,12 @@ final class PokeBalls {
     boolean capturing(Entity wild) { return capturing.contains(wild.getUniqueId()); }
 
     /**
-     * Cobblemon's capture sequence for a ball that hit `wild`, ending in done(caught). shakes: passed checks (0-4,
-     * Rules.shakes); 4 is a catch, shown as 3 shakes as in Cobblemon.
+     * Cobblemon's capture sequence for a ball that hit `wild`, ending in done(caught): the ball shakes once per passed
+     * check (Rules.capture), at most 3 times, then clicks shut or breaks open.
      */
-    void capture(Entity ball, Entity wild, int shakes, Consumer<Boolean> done) {
+    void capture(Entity ball, Entity wild, Rules.Capture result, Consumer<Boolean> done) {
+        int shakes = result.shakes();
+        boolean caught = result.caught();
         if (ball == null) ball = pl.spawner.ball(wild.getLocation().add(0, 1, 0));
         Entity b = ball;
         capturing.add(wild.getUniqueId());
@@ -88,7 +90,6 @@ final class PokeBalls {
         }
         int end = land + SHAKE_GAP * shown;
         later(end, () -> {
-            boolean caught = shakes >= 4;
             Spawner.animate(b, caught ? "capture" : "break", ONCE);
             if (!caught) {
                 Spawner.hide(wild, false);
@@ -98,7 +99,7 @@ final class PokeBalls {
         later(end + 20, () -> { // Cobblemon: discard after 1 s (capture) / 1.2 s (break)
             b.remove();
             capturing.remove(wild.getUniqueId());
-            done.accept(shakes >= 4);
+            done.accept(caught);
         });
     }
 

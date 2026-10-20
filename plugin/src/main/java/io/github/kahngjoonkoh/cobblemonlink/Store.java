@@ -114,6 +114,7 @@ final class Store {
     /** Adds to the party, or the PC when the party is full. Returns true if it went to the party. */
     boolean give(UUID player, Mon mon) {
         Data d = get(player);
+        if (mon.trainer == null) mon.trainer = player.toString(); // Cobblemon's original trainer
         d.see(mon);
         d.caught.add(mon.species);
         boolean toParty = d.party.size() < PARTY;

@@ -39,13 +39,17 @@ for f in ../plugin/cobblemon-link.jar ../plugin/build/libs/cobblemon-link-*.jar;
 rm -f "$D"/plugins/cobblemon-link*.jar
 cp "$jar" "$D/plugins/cobblemon-link.jar"
 mkdir -p "$D/plugins/CobblemonLink"
-cp ../assets/gamedata.json "$D/plugins/CobblemonLink/"
+cp ../assets/gamedata.json ../assets/items.json "$D/plugins/CobblemonLink/"
 # Java battle-menu art; the pack server serves it next to BetterModel's build.zip
 cp ../assets/ui-pack.zip "$D/plugins/BetterModel/cobblemon-link-ui.zip"
 rm -f "$D"/plugins/BetterModel/cobblemon-link-pics-*.zip  # the Pokémon pictures, a pack a region
 cp ../assets/pics/cobblemon-link-pics-*.zip "$D/plugins/BetterModel/"
 mkdir -p "$D/plugins/Geyser-Spigot/packs" && cp ../assets/bedrock-ui.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-ui.mcpack"
 mkdir -p "$D/plugins/Geyser-Spigot/custom_mappings" && cp ../assets/geyser-mappings.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link.json"
+# Cobblemon's items (tools/build_items.py): Java art next to the UI pack, Bedrock icons and Geyser's item mappings
+cp ../assets/items-pack.zip "$D/plugins/BetterModel/cobblemon-link-items.zip"
+cp ../assets/items.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-items.mcpack"
+cp ../assets/geyser-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-items.json"
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
 cp -r ../assets/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"

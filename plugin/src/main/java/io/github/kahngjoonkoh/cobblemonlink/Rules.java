@@ -20,45 +20,73 @@ final class Rules {
         return Math.max(0, v);
     }
 
-    /** Gen 5+ experience for defeating a wild Pokémon (no trainer/item bonuses). */
-    static long expGain(int baseExp, int foeLevel, int ownLevel) {
-        double scale = Math.pow((2.0 * foeLevel + 10) / (foeLevel + ownLevel + 10), 2.5);
-        return (long) Math.floor(baseExp * foeLevel / 5.0 * scale) + 1;
-    }
+    static final double EXP_MULTIPLIER = 2; // Cobblemon's experienceMultiplier
+    static final double LUCKY_EGG = 1.5, EXP_SHARE = 0.5; // luckyEggMultiplier, experienceShareMultiplier
 
     /**
-     * Chance one Poké Ball catches: the gen 3-4 modified catch rate, as a single roll.
-     * ponytail: single roll instead of four shake checks; same expected odds within a few percent.
+     * Cobblemon's StandardExperienceCalculator: gen 5 scaled EXP times its multiplier. participation: 1 if it faced the
+     * foe, EXP_SHARE for an Exp. Share holder that didn't; bonus: traded (1.5) x Lucky Egg x can evolve by level (1.2)
+     * x friendship 220+ (1.2).
      */
-    static double catchChance(int catchRate, int hp, int maxHp, String status) {
-        double bonus = switch (status) {
+    static int expGain(int baseExp, int foeLevel, int ownLevel, double participation, double bonus) {
+        double scale = Math.pow((2.0 * foeLevel + 10) / (foeLevel + ownLevel + 10), 2.5);
+        return (int) Math.round((baseExp * foeLevel / 5.0 * participation * scale + 1) * bonus * EXP_MULTIPLIER);
+    }
+
+    /** One capture: how many of the four checks passed (the ball shakes that many, at most 3), and the result. */
+    record Capture(int shakes, boolean caught, boolean critical) {}
+
+    /**
+     * Cobblemon's CobblemonCaptureCalculator: gen 9 with gen 8's low-level bonus, x0.5 outside battle, critical captures
+     * from the Pokédex caught count, and four shake checks (counted, not stopped at the first fail).
+     * ballBonus: the ball's catch rate multiplier; foeTop: the highest level on the player's side in battle (0 = none).
+     */
+    static Capture capture(int catchRate, int hp, int maxHp, String status, int level, boolean inBattle, double ballBonus,
+                           int foeTop, int caughtCount, java.util.random.RandomGenerator rnd) {
+        double rate = (3.0 * maxHp - 2.0 * hp) * catchRate * (inBattle ? 1 : 0.5) * ballBonus / (3.0 * maxHp);
+        rate *= switch (status) {
             case "slp", "frz" -> 2.5;
             case "par", "brn", "psn", "tox" -> 1.5;
             default -> 1.0;
         };
-        double a = (3.0 * maxHp - 2.0 * hp) * catchRate * bonus / (3.0 * maxHp);
-        return Math.min(1.0, a / 255.0);
+        rate *= level < 13 ? Math.max((36 - 2 * level) / 10, 1) : 1;
+        if (foeTop > 0 && foeTop < level) rate *= Math.max(0.1, Math.min(1, 1 - (level - foeTop) / 50)); // Kotlin Int division, as Cobblemon
+        double dex = caughtCount <= 30 ? 0 : caughtCount <= 150 ? 0.5 : caughtCount <= 300 ? 1 : caughtCount <= 450 ? 1.5
+                : caughtCount <= 600 ? 2 : 2.5;
+        boolean critical = rnd.nextInt(256) < Math.round(rate * dex / 6);
+        long p = Math.round(65536 / Math.pow(255 / rate, 0.1875));
+        int shakes = 0;
+        for (int i = 0; i < 4; i++) {
+            if (rnd.nextInt(65537) < p) shakes++;
+            if (i == 0 && critical) return new Capture(1, shakes == 1, true);
+        }
+        return new Capture(shakes, shakes == 4, false);
     }
 
-    /**
-     * The main games' four shake checks for a catch of chance `chance`, each passed with chance^(1/4) (so all four,
-     * a catch, keep the same odds): how many pass before the first fail, 4 = caught. The ball shakes that many times.
-     */
-    static int shakes(double chance, java.util.random.RandomGenerator rnd) {
-        double each = Math.pow(chance, 0.25);
-        int n = 0;
-        while (n < 4 && rnd.nextDouble() < each) n++;
-        return n;
-    }
-
-    /** HP stat (no EVs, which this plugin doesn't award yet). */
-    static int maxHp(int base, int iv, int level) {
-        return (2 * base + iv) * level / 100 + level + 10;
+    /** HP stat. */
+    static int maxHp(int base, int iv, int ev, int level) {
+        return (2 * base + iv + ev / 4) * level / 100 + level + 10;
     }
 
     /** Non-HP stat, before nature. */
-    static int stat(int base, int iv, int level) {
-        return (2 * base + iv) * level / 100 + 5;
+    static int stat(int base, int iv, int ev, int level) {
+        return (2 * base + iv + ev / 4) * level / 100 + 5;
+    }
+
+    static final int EV_STAT_MAX = 252, EV_TOTAL_MAX = 510;
+
+    /** Adds EVs the way Cobblemon's EVs.add does: each stat up to 252, all of them up to 510. Returns what was added. */
+    static int addEv(int[] evs, int stat, int amount) {
+        int total = 0;
+        for (int e : evs) total += e;
+        int add = Math.max(0, Math.min(amount, Math.min(EV_STAT_MAX - evs[stat], EV_TOTAL_MAX - total)));
+        evs[stat] += add;
+        return add;
+    }
+
+    /** Cobblemon's SWORD_AND_SHIELD_LEVEL_UP friendship gain. */
+    static int levelUpFriendship(int friendship) {
+        return friendship <= 99 ? 3 : friendship <= 199 ? 2 : 0;
     }
 
     /**

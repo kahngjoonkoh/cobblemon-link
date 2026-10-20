@@ -1,20 +1,60 @@
-// Battle sidecar: one Pokémon Showdown battle per TCP connection, newline-delimited JSON.
-//   in : {"p1":[set...],"p2":[set...],"hp1":[hp|null...]}   then {"choose":"move 1"} / {"choose":"switch 2"}
+// Battle sidecar: one battle per TCP connection, newline-delimited JSON. Runs Cobblemon's own Showdown build
+// (data/cobblemon/showdown.zip, unpacked by tools/build.sh into assets/showdown and mounted at $SHOWDOWN), so HP,
+// status and PP carry in and out of battle and bag items work exactly like Cobblemon's.
+//   in : {"p1":[set...],"p2":[set...]}   then {"choose":"move 1" | "switch 2" | "pass" | "useitem <uuid> <name> <item> [data...]"}
 //   out: {"type":"request","request":{...}}  {"type":"log","lines":[...]}
 //        {"type":"state","p1":[...],"p2":[...]}  {"type":"end","winner":"p1"|"p2"|null}
-// p2 (the wild Pokémon) picks random legal moves. Sets use Showdown's PokemonSet shape.
+// A set is Showdown's PokemonSet plus Cobblemon's fields: uuid, hp (null = full), status, pp ([current...] or null),
+// happiness, ball. p2 (the wild Pokémon) picks random legal moves.
 'use strict';
+const fs = require('fs');
 const net = require('net');
-const { BattleStream, Dex, getPlayerStreams, Teams } = require('pokemon-showdown');
-const { RandomPlayerAI } = require('pokemon-showdown/dist/sim/tools/random-player-ai');
+const path = require('path');
+
+const SD = path.resolve(process.env.SHOWDOWN || '/showdown');
+const { BattleStream, getPlayerStreams } = require(`${SD}/sim/battle-stream`);
+const { Dex } = require(`${SD}/sim/dex`);
+const { Cobblemon } = require(`${SD}/sim/cobblemon/cobblemon`);
+const { RandomPlayerAI } = require(`${SD}/sim/tools/random-player-ai`);
 
 const PORT = +(process.env.PORT || 9000);
-const FORMAT = 'gen9customgame@@@!Team Preview';  // wild battles: no team preview
+// BattleFormat.GEN_9_SINGLES, as Cobblemon sends it (BattleFormat.toFormatJSON)
+const FORMAT = { mod: 'cobblemon', gameType: 'singles', gen: 9, ruleset: ['Obtainable', '+Past', '+Unobtainable'], effectType: 'Format' };
+const toID = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+// Cobblemon's bag item effects (data/cobblemon/bag_items/*.js: a JS object literal with use(battle, pokemon, itemId, data))
+const bagDir = `${SD}/bag_items`;
+if (fs.existsSync(bagDir)) for (const f of fs.readdirSync(bagDir).filter(f => f.endsWith('.js'))) {
+  const src = fs.readFileSync(path.join(bagDir, f), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//, '');
+  Cobblemon.registries.bagItem.register(eval(`(${src})`), f.slice(0, -3));
+}
+
+/** Cobblemon's BattleRegistry.packTeam: Showdown's packed format with the fork's uuid/HP/status/PP fields. */
+function pack(team) {
+  const clean = s => String(s || '').replace(/[|,\]]/g, '');
+  return team.map(set => {
+    // a Cobblemon form Showdown doesn't have (valencian) battles as its base species
+    const species = Dex.species.get(set.species).exists ? set.species : set.baseSpecies || set.species;
+    const moves = set.moves.map(toID).filter(m => Dex.moves.get(m).exists);
+    const pp = moves.map((m, i) => {
+      const max = Dex.moves.get(m).pp, cur = (set.pp || [])[set.moves.map(toID).indexOf(m)];
+      return `${cur == null ? max : Math.max(0, Math.min(cur, max))}/${max}`;
+    });
+    const st = s => ['hp', 'atk', 'def', 'spa', 'spd', 'spe'].map(k => (s || {})[k] ?? '').join(',');
+    const status = set.status || '';
+    return [clean(set.name), toID(species), set.uuid, set.hp == null ? '' : set.hp, status, ['slp', 'frz'].includes(status) ? 2 : -1,
+      toID(set.item), toID(set.ability), moves.join(','), pp.join(','), toID(set.nature), st(set.evs), set.gender || '', st(set.ivs),
+      set.shiny ? 'S' : '', set.level,
+      [set.happiness ?? 70, toID(set.ball || 'pokeball'), '', '', '', ''].join(',')].join('|');
+  }).join(']');
+}
 
 function state(side) {
   // reported in original party order (clSlot), not Showdown's switch-reordered order
-  return side.pokemon.slice().sort((a, b) => a.clSlot - b.clSlot)
-    .map(p => ({ hp: p.hp, maxhp: p.maxhp, status: p.status || '', fainted: !!p.fainted, active: !!p.isActive }));
+  return side.pokemon.slice().sort((a, b) => a.clSlot - b.clSlot).map(p => ({
+    hp: p.hp, maxhp: p.maxhp, status: p.status === 'fnt' ? '' : p.status || '', fainted: !!p.fainted, active: !!p.isActive,
+    pp: p.baseMoveSlots.map(m => m.pp), maxpp: p.baseMoveSlots.map(m => m.maxpp),
+  }));
 }
 
 function startBattle(sock, init) {
@@ -51,21 +91,16 @@ function startBattle(sock, init) {
     }
   })().catch(e => send({ type: 'error', message: String(e) }));
 
-  // Cobblemon forms battle as Showdown formes (raichualola); a form Showdown doesn't have (Cobblemon-only, e.g.
-  // valencian) battles as its base species
-  for (const set of [...init.p1, ...init.p2]) if (set.baseSpecies && !Dex.species.get(set.species).exists) set.species = set.baseSpecies;
-  streams.omniscient.write(`>start ${JSON.stringify({ formatid: FORMAT })}`);
-  streams.omniscient.write(`>player p1 ${JSON.stringify({ name: 'Player', team: Teams.pack(init.p1) })}`);
-  // persisted HP has to be in place before p2 joins, because joining starts the battle
-  stream.battle.p1.pokemon.forEach((p, i) => {
-    p.clSlot = i;
-    const hp = (init.hp1 || [])[i];
-    if (hp != null) { p.hp = Math.max(0, Math.min(hp, p.maxhp)); if (p.hp === 0) p.fainted = true; }
-  });
-  streams.omniscient.write(`>player p2 ${JSON.stringify({ name: 'Wild', team: Teams.pack(init.p2) })}`);
+  streams.omniscient.write(`>start ${JSON.stringify({ format: FORMAT })}`);
+  streams.omniscient.write(`>player p1 ${JSON.stringify({ name: 'Player', team: pack(init.p1) })}`);
+  stream.battle.p1.pokemon.forEach((p, i) => { p.clSlot = i; });
+  streams.omniscient.write(`>player p2 ${JSON.stringify({ name: 'Wild', team: pack(init.p2) })}`);
   stream.battle.p2.pokemon.forEach((p, i) => { p.clSlot = i; });
   return { choose: c => streams.omniscient.write(`>p1 ${c}`), end: () => stream.writeEnd() };
 }
+
+// useitem <pokemon uuid> <item name> <bag item id> [data...]: Cobblemon's BagItemActionResponse
+const CHOICE = /^(move [1-4]|switch [1-6]|pass|useitem [0-9a-f-]{36} [^\s|]+ [a-z_]+( [a-z0-9_.]+)*)$/;
 
 net.createServer(sock => {
   let battle = null, buf = '';
@@ -79,7 +114,7 @@ net.createServer(sock => {
       try {
         const msg = JSON.parse(line);
         if (!battle) battle = startBattle(sock, msg);
-        else if (typeof msg.choose === 'string' && /^(move [1-4]|switch [1-6])$/.test(msg.choose)) battle.choose(msg.choose);
+        else if (typeof msg.choose === 'string' && CHOICE.test(msg.choose)) battle.choose(msg.choose);
       } catch (e) {
         sock.write(JSON.stringify({ type: 'error', message: String(e) }) + '\n');
       }
@@ -88,4 +123,4 @@ net.createServer(sock => {
   const close = () => { if (battle) battle.end(); battle = null; };
   sock.on('close', close);
   sock.on('error', close);
-}).listen(PORT, () => console.log(`showdown sim listening on ${PORT}`));
+}).listen(PORT, () => console.log(`Cobblemon showdown sim listening on ${PORT}`));

@@ -1,0 +1,195 @@
+"""Cobblemon's items for the plugin: what each one does, and its art on both clients.
+
+usage: build_items.py COBBLEMON_RESOURCES OUT_DIR
+  OUT_DIR/items.json         id -> {name, kind, ...}: Items.java gives and uses them
+  OUT_DIR/items-pack.zip     Java: assets/cobblemon/items/<id>.json with Cobblemon's own item models and textures
+  OUT_DIR/items.mcpack       Bedrock: the icons
+  OUT_DIR/geyser-items.json  Geyser custom mappings: a Java item with item_model cobblemon:<id> -> cobblemonlink:<id>
+The Poké Ball itself stays in the UI packs (build_ui.py, build_bedrock_ui.py), which also give it its 3D model.
+"""
+import glob, hashlib, io, json, os, re, sys, uuid, zipfile
+
+from PIL import Image
+
+STATS = {'hp': 'hp', 'attack': 'atk', 'defence': 'def', 'special_attack': 'spa', 'special_defence': 'spd', 'speed': 'spe'}
+# PokeBalls.kt, in order; the plugin's Items.ballBonus knows each one's catch modifier
+BALLS = ['slate_ball', 'azure_ball', 'verdant_ball', 'roseate_ball', 'citrine_ball', 'great_ball', 'ultra_ball',
+         'master_ball', 'safari_ball', 'fast_ball', 'level_ball', 'lure_ball', 'heavy_ball', 'love_ball', 'friend_ball',
+         'moon_ball', 'sport_ball', 'net_ball', 'dive_ball', 'nest_ball', 'repeat_ball', 'timer_ball', 'luxury_ball',
+         'premier_ball', 'dusk_ball', 'heal_ball', 'quick_ball', 'cherish_ball', 'park_ball', 'dream_ball', 'beast_ball',
+         'ancient_poke_ball', 'ancient_citrine_ball', 'ancient_verdant_ball', 'ancient_azure_ball', 'ancient_roseate_ball',
+         'ancient_slate_ball', 'ancient_ivory_ball', 'ancient_great_ball', 'ancient_ultra_ball', 'ancient_heavy_ball',
+         'ancient_leaden_ball', 'ancient_gigaton_ball', 'ancient_feather_ball', 'ancient_wing_ball', 'ancient_jet_ball',
+         'ancient_origin_ball']
+PERSISTENT = ['par', 'brn', 'psn', 'tox', 'slp', 'frz']
+# CobblemonItems.kt: the medicine, battle items, candies, vitamins and feathers, with the numbers their classes use
+KINDS = {
+    'potion': {'kind': 'potion', 'heal': 20}, 'super_potion': {'kind': 'potion', 'heal': 60},
+    'hyper_potion': {'kind': 'potion', 'heal': 120}, 'max_potion': {'kind': 'potion', 'heal': -1},
+    'full_restore': {'kind': 'potion', 'heal': -1, 'cure': PERSISTENT},
+    'revive': {'kind': 'revive', 'ratio': 0.5}, 'max_revive': {'kind': 'revive', 'ratio': 1.0},
+    'full_heal': {'kind': 'cure', 'cure': PERSISTENT}, 'antidote': {'kind': 'cure', 'cure': ['psn', 'tox']},
+    'awakening': {'kind': 'cure', 'cure': ['slp']}, 'burn_heal': {'kind': 'cure', 'cure': ['brn']},
+    'ice_heal': {'kind': 'cure', 'cure': ['frz']}, 'paralyze_heal': {'kind': 'cure', 'cure': ['par']},
+    'ether': {'kind': 'ether', 'pp': 10}, 'max_ether': {'kind': 'ether', 'pp': -1},
+    'elixir': {'kind': 'elixir', 'pp': 10}, 'max_elixir': {'kind': 'elixir', 'pp': -1},
+    'x_attack': {'kind': 'x_stat', 'stat': 'atk'}, 'x_defence': {'kind': 'x_stat', 'stat': 'def'},
+    'x_special_attack': {'kind': 'x_stat', 'stat': 'spa'}, 'x_special_defence': {'kind': 'x_stat', 'stat': 'spd'},
+    'x_speed': {'kind': 'x_stat', 'stat': 'spe'}, 'x_accuracy': {'kind': 'x_stat', 'stat': 'accuracy'},
+    'dire_hit': {'kind': 'dire_hit'}, 'guard_spec': {'kind': 'guard_spec'},
+    'rare_candy': {'kind': 'candy', 'exp': -1}, 'exp_candy_xs': {'kind': 'candy', 'exp': 100},
+    'exp_candy_s': {'kind': 'candy', 'exp': 800}, 'exp_candy_m': {'kind': 'candy', 'exp': 3000},
+    'exp_candy_l': {'kind': 'candy', 'exp': 10000}, 'exp_candy_xl': {'kind': 'candy', 'exp': 30000},
+    **{v: {'kind': 'ev', 'stat': s, 'amount': 10} for v, s in (('hp_up', 'hp'), ('protein', 'atk'), ('iron', 'def'),
+                                                              ('calcium', 'spa'), ('zinc', 'spd'), ('carbos', 'spe'))},
+    **{f: {'kind': 'ev', 'stat': s, 'amount': 1} for f, s in (('health_feather', 'hp'), ('muscle_feather', 'atk'),
+       ('resist_feather', 'def'), ('genius_feather', 'spa'), ('clever_feather', 'spd'), ('swift_feather', 'spe'))},
+}
+NATURES = ['hardy', 'lonely', 'brave', 'adamant', 'naughty', 'bold', 'docile', 'relaxed', 'impish', 'lax', 'timid',
+           'hasty', 'serious', 'jolly', 'naive', 'modest', 'mild', 'quiet', 'bashful', 'rash', 'calm', 'gentle', 'sassy',
+           'careful', 'quirky']
+
+
+def evolution_items(res):
+    """Items an item_interact evolution asks for (stones, Link Cable, apples...)."""
+    out = set()
+    for f in glob.glob(f'{res}/data/cobblemon/species/**/*.json', recursive=True):
+        for e in json.load(open(f)).get('evolutions', []):
+            ctx = e.get('requiredContext') or ''
+            if e.get('variant') == 'item_interact' and ctx.startswith('cobblemon:'):
+                out.add(ctx.split(':', 1)[1])
+    return out
+
+
+def showdown_items(res):
+    """Item ids Cobblemon's Showdown knows (data/items.js in showdown.zip): those work when a Pokémon holds them."""
+    path = f'{res}/data/cobblemon/showdown.zip'
+    if not os.path.exists(path):
+        return set()
+    with zipfile.ZipFile(path) as z:
+        return set(re.findall(r'^  ([a-z0-9]+): \{', z.read('data/items.js').decode(), re.M))
+
+
+def table(res):
+    lang = json.load(open(f'{res}/assets/cobblemon/lang/en_us.json', encoding='utf-8'))
+    items = {b: {'kind': 'ball'} for b in BALLS}
+    items.update(KINDS)
+    items.update({f'{n}_mint': {'kind': 'mint', 'nature': n} for n in NATURES if os.path.exists(
+        f'{res}/assets/cobblemon/models/item/{n}_mint.json')})
+    for i in evolution_items(res):
+        items.setdefault(i, {'kind': 'evolution'})
+    # held items: anything else Showdown knows (Leftovers, Choice Band, berries, gems...); fossils wait for their machine
+    sd = showdown_items(res) | {'luckyegg', 'expshare', 'everstone', 'soothebell', 'amuletcoin', 'smokeball',
+                                'cleansetag'}  # Cobblemon's own held items (EXP, evolution, friendship)
+    for f in glob.glob(f'{res}/assets/cobblemon/models/item/*.json'):
+        i = os.path.basename(f)[:-5]
+        if i.replace('_', '') in sd and 'fossil' not in i:
+            items.setdefault(i, {'kind': 'held'})
+    out = {}
+    for i, d in sorted(items.items()):
+        if not os.path.exists(f'{res}/assets/cobblemon/models/item/{i}.json'):
+            continue
+        out[i] = {'name': lang.get(f'item.cobblemon.{i}', lang.get(f'block.cobblemon.{i}', i)), **d}
+    return out
+
+
+def model_files(res, mid, files):
+    """Copy model cobblemon:item/<mid> and, through its parents, every Cobblemon texture it draws. Returns layer0."""
+    path = f'{res}/assets/cobblemon/models/{mid}.json'
+    if not os.path.exists(path):
+        return None
+    m = json.load(open(path))
+    if 'particle' not in m.get('textures', {}) and 'layer0' in m.get('textures', {}):
+        m.setdefault('textures', {})['particle'] = m['textures']['layer0']  # the client warns without one
+    files[f'assets/cobblemon/models/{mid}.json'] = json.dumps(m).encode()
+    first = None
+    for t in m.get('textures', {}).values():
+        if isinstance(t, str) and t.startswith('cobblemon:'):
+            p = f'{res}/assets/cobblemon/textures/{t[10:]}.png'
+            if os.path.exists(p):
+                files[f'assets/cobblemon/textures/{t[10:]}.png'] = open(p, 'rb').read()
+                if os.path.exists(p + '.mcmeta'):
+                    files[f'assets/cobblemon/textures/{t[10:]}.png.mcmeta'] = open(p + '.mcmeta', 'rb').read()
+                first = first or p
+    parent = m.get('parent', '')
+    if parent.startswith('cobblemon:'):
+        first = model_files(res, parent[10:], files) or first
+    return first
+
+
+def write_zip(path, files):
+    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
+        for name in sorted(files):  # fixed order and timestamps: same input, same zip, same SHA-1
+            z.writestr(zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0)), files[name])
+
+
+def build(res, out):
+    items = table(res)
+    java, bedrock, textures, icons = {}, {}, {}, {}
+    model = lambda m: {'type': 'minecraft:model', 'model': m}
+    for i in items:
+        icons[i] = model_files(res, f'item/{i}', java)
+        d = model('cobblemon:item/' + i)
+        if items[i]['kind'] == 'ball' and model_files(res, f'item/{i}_model', java):
+            # in flight (a thrown item renders as "ground"): Cobblemon's 3D ball, like the Poké Ball's
+            d = {'type': 'minecraft:select', 'property': 'minecraft:display_context',
+                 'cases': [{'when': 'ground', 'model': model(f'cobblemon:item/{i}_model')}], 'fallback': d}
+        java[f'assets/cobblemon/items/{i}.json'] = json.dumps({'model': d}).encode()
+        if icons[i]:
+            buf = io.BytesIO()
+            Image.open(icons[i]).convert('RGBA').save(buf, 'PNG', optimize=True)
+            bedrock[f'textures/items/cobblemon/{i}.png'] = buf.getvalue()
+            textures[f'cobblemonlink:{i}'] = {'textures': [f'textures/items/cobblemon/{i}']}
+    java['pack.mcmeta'] = json.dumps({'pack': {'description': "Cobblemon's items (Cobblemon art, CC BY-NC 3.0)",
+                                               'pack_format': 97, 'supported_formats': [46, 999],
+                                               'min_format': 46, 'max_format': 999}}).encode()
+    write_zip(f'{out}/items-pack.zip', java)
+
+    bedrock['textures/item_texture.json'] = json.dumps({'resource_pack_name': 'cobblemon-link items',
+                                                        'texture_name': 'atlas.items', 'texture_data': textures}).encode()
+    digest = hashlib.sha1(b''.join(k.encode() + bedrock[k] for k in sorted(bedrock))).digest()
+    ver = [1, 0, int.from_bytes(digest[:3]) % 32768]  # Bedrock refuses a version part over 65535
+    ids = [str(uuid.uuid5(uuid.NAMESPACE_URL, f'cobblemon-link/items/{n}')) for n in ('header', 'resources')]
+    bedrock['manifest.json'] = json.dumps({'format_version': 2, 'header': {
+        'name': 'cobblemon-link items', 'description': "Cobblemon's item icons (CC BY-NC 3.0)", 'uuid': ids[0],
+        'version': ver, 'min_engine_version': [1, 21, 0]},
+        'modules': [{'type': 'resources', 'uuid': ids[1], 'version': ver}]}).encode()
+    write_zip(f'{out}/items.mcpack', bedrock)
+
+    mapping = lambda i: {'type': 'definition', 'model': f'cobblemon:{i}', 'bedrock_identifier': f'cobblemonlink:{i}',
+                         'display_name': items[i]['name'], 'bedrock_options': {'icon': f'cobblemonlink:{i}'}}
+    base = lambda i: 'minecraft:snowball' if items[i]['kind'] == 'ball' else 'minecraft:paper'  # Items.java's materials
+    maps = {}
+    for i in items:
+        if icons[i]:
+            maps.setdefault(base(i), []).append(mapping(i))
+    json.dump({'format_version': 2, 'items': maps}, open(f'{out}/geyser-items.json', 'w'), indent=1)
+    json.dump(items, open(f'{out}/items.json', 'w'), indent=1, ensure_ascii=False)
+    return items
+
+
+def demo():
+    import tempfile
+    with tempfile.TemporaryDirectory() as t:
+        for d in ('assets/cobblemon/models/item', 'assets/cobblemon/textures/item/medicine', 'assets/cobblemon/lang',
+                  'data/cobblemon/species/g1'):
+            os.makedirs(f'{t}/{d}')
+        json.dump({'item.cobblemon.potion': 'Potion'}, open(f'{t}/assets/cobblemon/lang/en_us.json', 'w'))
+        json.dump({'parent': 'minecraft:item/generated', 'textures': {'layer0': 'cobblemon:item/medicine/potion'}},
+                  open(f'{t}/assets/cobblemon/models/item/potion.json', 'w'))
+        Image.new('RGBA', (16, 16)).save(f'{t}/assets/cobblemon/textures/item/medicine/potion.png')
+        json.dump({'evolutions': [{'variant': 'item_interact', 'requiredContext': 'cobblemon:fire_stone'}]},
+                  open(f'{t}/data/cobblemon/species/g1/vulpix.json', 'w'))
+        items = build(t, t)
+        assert items == {'potion': {'name': 'Potion', 'kind': 'potion', 'heal': 20}}, items  # no model: no fire stone
+        z = zipfile.ZipFile(f'{t}/items-pack.zip')
+        assert 'assets/cobblemon/textures/item/medicine/potion.png' in z.namelist()
+        assert json.load(open(f'{t}/geyser-items.json'))['items']['minecraft:paper'][0]['model'] == 'cobblemon:potion'
+
+
+if __name__ == '__main__':
+    demo()
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    n = build(*sys.argv[1:])
+    print(len(n), 'items ->', sys.argv[2])

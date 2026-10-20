@@ -33,7 +33,20 @@ def fields(d):
         out['evolutions'] = [[e['requirements'][0]['minLevel'], e['result'].split()[0]] for e in d['evolutions']
                              if e.get('variant') == 'level_up' and len(e.get('requirements', [])) == 1
                              and e['requirements'][0].get('variant') == 'level']
-    for k, to in (('catchRate', 'catchRate'), ('maleRatio', 'maleRatio')):
+        # every other evolution as Cobblemon wrote it (Evolutions.java checks the requirements): stones, friendship,
+        # time, held items, trades...
+        evos = [{'variant': e['variant'], 'result': e['result'], 'requirements': e.get('requirements', []),
+                 **({'item': e['requiredContext'].split(':', 1)[-1]} if e.get('requiredContext') else {})}
+                for e in d['evolutions'] if not (e.get('variant') == 'level_up' and len(e.get('requirements', [])) == 1
+                                                 and e['requirements'][0].get('variant') == 'level')]
+        if evos:
+            out['evos'] = evos
+    if 'evYield' in d:  # Gen 8 EV gain for defeating it
+        out['evYield'] = {STATS[k]: v for k, v in d['evYield'].items() if v}
+    if 'ultra_beast' in d.get('labels', []):
+        out['ultraBeast'] = True  # Beast Ball
+    for k, to in (('catchRate', 'catchRate'), ('maleRatio', 'maleRatio'), ('baseFriendship', 'baseFriendship'),
+                  ('weight', 'weight')):  # weight in hectograms (Heavy Ball)
         if k in d:
             out[to] = d[k]
     return out

@@ -59,6 +59,6 @@ class MonTest {
         assertTrue(m.evolve(dex).contains("evolved into Charmeleon"));
         assertEquals("charmeleon", m.species);
         assertNull(m.evolution);
-        assertEquals(10 + (Rules.maxHp(39, m.ivs[0], 16) - before), m.hp);
+        assertEquals(10 + (Rules.maxHp(39, m.ivs[0], 0, 16) - before), m.hp);
     }
 }
