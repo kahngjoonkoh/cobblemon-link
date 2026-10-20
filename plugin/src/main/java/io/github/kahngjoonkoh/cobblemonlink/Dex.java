@@ -96,6 +96,7 @@ final class Dex {
     private final Map<String, Species> merged = new java.util.concurrent.ConcurrentHashMap<>();
     List<Spawn> spawns;
     Map<String, List<String>> fossils = Map.of(); // species -> the fossils it's revived from
+    Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle
     Map<String, Map<String, String>> names; // kind ("move", "ability", "type") -> id -> English name
 
     static Dex load(Path file) throws IOException {

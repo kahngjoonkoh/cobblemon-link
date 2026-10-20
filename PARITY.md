@@ -39,7 +39,7 @@ Counts: see [the summary at the end](#summary).
 | Singles vs wild | ✓ | ✓ | ✅ | ✅ |
 | Doubles, triples, multi, royal | ✓ | — | ⬜ | ⬜ |
 | PvP challenges, spectating | ✓ | `/challenge <player>` (32 blocks, clickable accept), singles with Fight / Switch / Forfeit, EXP for the winner; `/spectate <player>` (64 blocks) shows the battle's HP bars and log | ✅ | ✅ |
-| NPC trainers (`StrongBattleAI`) | ✓ | — | ⬜ | ⬜ |
+| NPC trainers (`StrongBattleAI`) | ✓ | `/spawnnpc <npc>` places Cobblemon's battling NPC classes (their pool parties) as player-shaped Mannequins; right-click to battle; the sim's TrainerAI picks the strongest move at the NPC's skill; NPC battle music, Forfeit, no Catch ([NPC](docs/evidence/m12-java-npc-trainer.png), [battle](docs/evidence/m12-java-npc-battle.png)); default skin, no dialogues or switching strategy | 🟡 | 🟡 |
 | Fleeing | Walk 32 blocks away | Run, or walk 24 blocks away | 🟡 | 🟡 |
 | Battle UI (fight / switch / bag / run, tiles, log) | Mod screen | Cobblemon's tile art (Java), Cobblemon-styled forms (Bedrock), HP bars | 🟡 | 🟡 |
 | Your Pokémon in the world during battle | ✓ | Sent out beside you from a 3D ball | ✅ | ✅ |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 48 | 32 | 14 | 1 |
-| Bedrock | 48 | 32 | 14 | 1 |
+| Java | 48 | 33 | 13 | 1 |
+| Bedrock | 48 | 33 | 13 | 1 |
 
 ## Suggested order
 

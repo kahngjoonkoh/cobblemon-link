@@ -36,15 +36,20 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 /**
- * One player's side of a battle: against a wild Pokémon, or (pvp) against another player, whose own Battle is the
- * rival. Showdown (sim/server.js) runs the rules; this class is the menu, the chat log and the bookkeeping.
+ * One player's side of a battle: against a wild Pokémon, an NPC trainer (Npcs), or (pvp) against another player,
+ * whose own Battle is the rival. Showdown (sim/server.js) runs the rules; this class is the menu, the chat log and the bookkeeping.
  * Socket reads happen on an async thread; everything else runs on the main thread.
  */
 final class Battle {
     private final CobblemonLink pl;
     final Player player;
     final Entity wildEntity; // the wild Pokémon, or in pvp the rival player
-    final Mon wild;          // null in pvp
+    final Mon wild;          // null in pvp and trainer battles
+    List<Mon> npcTeam;       // an NPC trainer's party (wildEntity is the NPC)
+    String npcName;
+    int skill;               // Cobblemon's StrongBattleAI skill, 0-5
+    private Entity foeOut;   // the NPC's active Pokémon, out in front of it
+    private int foeOutIndex = -1;
     final String side, foe;  // Showdown's p1 / p2
     Battle rival;            // pvp: the other player's side; the p1 side owns the sim connection
     private boolean forfeited;
@@ -96,7 +101,20 @@ final class Battle {
         return new Battle[] {x, y};
     }
 
-    boolean pvp() { return wild == null; }
+    /** Cobblemon's NPC battle: the trainer's party, picking its moves with the sim's TrainerAI. */
+    static Battle trainer(CobblemonLink pl, Player player, Entity npc, String name, List<Mon> team, int skill) {
+        Battle b = new Battle(pl, player, npc, null, "p1");
+        b.npcTeam = team;
+        b.npcName = name;
+        b.skill = skill;
+        return b;
+    }
+
+    boolean pvp() { return rival != null; }
+
+    boolean trainer() { return npcTeam != null; }
+
+    boolean wildBattle() { return wild != null; }
 
     /** The battle order (party indexes) of this side, for the rival's view. */
     private List<Mon> team() {
@@ -106,9 +124,9 @@ final class Battle {
 
     /** The opponent's Pokémon now in battle: the wild one, or the rival's active one. */
     Mon foeMon() {
-        if (!pvp()) return wild;
+        if (wildBattle()) return wild;
         JsonArray f = state == null ? null : state.getAsJsonArray(foe);
-        List<Mon> t = rival.team();
+        List<Mon> t = pvp() ? rival.team() : npcTeam;
         if (f != null) for (int i = 0; i < f.size() && i < t.size(); i++) if (f.get(i).getAsJsonObject().get("active").getAsBoolean()) return t.get(i);
         return t.isEmpty() ? null : t.getFirst();
     }
@@ -120,10 +138,10 @@ final class Battle {
         return f.get(0).getAsJsonObject();
     }
 
-    private Entity foeEntity() { return pvp() ? rival.ally : wildEntity; }
+    private Entity foeEntity() { return pvp() ? rival.ally : trainer() ? foeOut : wildEntity; }
 
     private String foeLabel(Mon m) {
-        return pvp() ? t("cobblemon.battle.owned_pokemon", rival.player.getName(), name(m)) : t("cobblemonlink.battle.wild_title", name(m));
+        return !wildBattle() ? t("cobblemon.battle.owned_pokemon", pvp() ? rival.player.getName() : npcName, name(m)) : t("cobblemonlink.battle.wild_title", name(m));
     }
 
     /** Returns false (with a message) if the player has nothing able to battle. */
@@ -147,6 +165,16 @@ final class Battle {
                 }
                 b.log.addAll(Ui.wrap(b.t("cobblemonlink.battle.challenged", b.rival.player.getName()), 146));
             }
+        } else if (trainer()) {
+            init.add("p2", Store.GSON.toJsonTree(npcTeam.stream().map(m -> m.set(pl.dex)).toList()));
+            init.addProperty("skill", skill);
+            for (Mon m : party) names.put(m.id, name(m));
+            for (Mon m : npcTeam) {
+                names.put(m.id, t("cobblemon.battle.owned_pokemon", npcName, name(m)));
+                pl.store.get(player.getUniqueId()).see(m);
+            }
+            Spawner.face(wildEntity, player.getLocation());
+            log.addAll(Ui.wrap(t("cobblemonlink.battle.challenged", npcName), 146));
         } else {
             wild.hp = -1;
             init.add("p2", Store.GSON.toJsonTree(List.of(wild.set(pl.dex))));
@@ -160,8 +188,8 @@ final class Battle {
             log.addAll(Ui.wrap(appeared, 146)); // Cobblemon keeps battle text out of chat
         }
 
-        Sounds.music(player, pvp());
-        if (pvp()) Sounds.music(rival.player, true);
+        Sounds.music(player, pvp() ? "pvp" : trainer() ? "pvn" : "pvw");
+        if (pvp()) Sounds.music(rival.player, "pvp");
         String host = pl.getConfig().getString("sim.host");
         int port = pl.getConfig().getInt("sim.port");
         Bukkit.getScheduler().runTaskAsynchronously(pl, () -> {
@@ -242,6 +270,18 @@ final class Battle {
                         }
                         sendOut(p.get("hp").getAsInt() > 0 ? order.get(i) : -1);
                     }
+                if (trainer()) { // the NPC's active Pokémon, out in front of it; fainted, it goes back
+                    JsonArray p2 = state.getAsJsonArray(foe);
+                    for (int i = 0; i < p2.size(); i++)
+                        if (p2.get(i).getAsJsonObject().get("active").getAsBoolean()) {
+                            boolean down = p2.get(i).getAsJsonObject().get("hp").getAsInt() <= 0;
+                            if (down && foeOut != null) {
+                                faint(foeOut);
+                                foeOut = null;
+                            }
+                            sendOutFoe(down ? -1 : i);
+                        }
+                }
                 updateBars();
             }
             case "end" -> finish(msg.get("winner").isJsonNull() ? null : msg.get("winner").getAsString(), false);
@@ -270,8 +310,8 @@ final class Battle {
         List<Opt> opts = new ArrayList<>(List.of(new Opt(t("cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
                 new Opt(t("cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
                 new Opt(t("cobblemon.battle.ui.capture"), "menu_bag", this::capture),
-                new Opt(t(pvp() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "menu_run", this::run)));
-        if (pvp()) { // Cobblemon: no Catch against a trainer
+                new Opt(t(!wildBattle() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "menu_run", this::run)));
+        if (!wildBattle()) { // Cobblemon: no Catch against a trainer
             art.remove(2);
             opts.remove(2);
         }
@@ -298,8 +338,8 @@ final class Battle {
         List<ActionButton> buttons = new ArrayList<>(List.of(
                 menuButton(0, t("cobblemon.battle.ui.fight"), "", this::openFight),
                 menuButton(1, t("cobblemon.battle.ui.switch"), trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true))));
-        if (!pvp()) buttons.add(menuButton(2, t("cobblemon.battle.ui.capture"), "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
-        buttons.add(menuButton(3, t(pvp() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "", this::run));
+        if (wildBattle()) buttons.add(menuButton(2, t("cobblemon.battle.ui.capture"), "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
+        buttons.add(menuButton(3, t(!wildBattle() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "", this::run));
         List<DialogBody> body = info();
         List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of(t("cobblemonlink.battle.what")) : turnLog);
         while (log.size() < 4) log.add(" "); // fixed height, so the buttons don't move between turns
@@ -309,8 +349,8 @@ final class Battle {
     }
 
     private void run() {
-        if (pvp()) { // Cobblemon's Forfeit
-            rival.out().println("{\"forfeit\":\"" + side + "\"}");
+        if (!wildBattle()) { // Cobblemon's Forfeit
+            out().println("{\"forfeit\":\"" + side + "\"}");
             return;
         }
         player.sendMessage(Component.text(t("cobblemonlink.battle.fled"), NamedTextColor.YELLOW));
@@ -707,6 +747,28 @@ final class Battle {
         Sounds.cry(ally, sent.species);
     }
 
+    /** The NPC trainer's Pokémon: 2.5 blocks from the NPC toward the player and 1.5 to its right, out of its Poké Ball. */
+    private void sendOutFoe(int i) {
+        if (i == foeOutIndex && (i < 0 || foeOut != null)) return;
+        if (foeOut != null) foeOut.remove();
+        foeOut = null;
+        foeOutIndex = i;
+        if (i < 0) return;
+        var pos = wildEntity.getLocation();
+        var dir = player.getLocation().toVector().subtract(pos.toVector()).setY(0);
+        if (dir.lengthSquared() < 0.01) dir = pos.getDirection().setY(0);
+        dir.normalize();
+        var at = pos.clone().add(dir.clone().multiply(2.5)).add(new org.bukkit.util.Vector(-dir.getZ(), 0, dir.getX()).multiply(1.5));
+        at.setDirection(player.getLocation().toVector().subtract(at.toVector()));
+        at.setPitch(0);
+        Mon m = npcTeam.get(i);
+        foeOut = pl.spawner.sendOut(at, m.model(pl.dex));
+        Spawner.animate(foeOut, "battle_idle", AnimationIterator.Type.LOOP);
+        pl.balls.sendOut((org.bukkit.entity.LivingEntity) wildEntity, foeOut, m.ball);
+        Sounds.play(foeOut, m.shiny ? "poke_ball.shiny_send_out" : "poke_ball.send_out");
+        Sounds.cry(foeOut, m.species);
+    }
+
     /**
      * Cobblemon's battle animations for one turn's log, a second apart in its order: the attacker's move ("physical",
      * else "special") and the target's "recoil" on damage.
@@ -754,7 +816,7 @@ final class Battle {
      * Cobblemon's capture sequence with the ball's model (PokeBalls.capture), then the result. A failed throw uses the turn.
      */
     void ballHit(Entity ball, String ballId) {
-        if (over || pvp()) return;
+        if (over || !wildBattle()) return;
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
         if (state != null) {
@@ -840,10 +902,10 @@ final class Battle {
         boolean won = side.equals(winner), lost = foe.equals(winner);
         // what was beaten: the wild Pokémon, or every rival Pokémon that fainted (Cobblemon awards the winner for each)
         List<Mon> beaten = new ArrayList<>();
-        if (won && !pvp()) beaten.add(wild);
-        if (won && pvp() && state != null) {
+        if (won && wildBattle()) beaten.add(wild);
+        if (won && !wildBattle() && state != null) {
             JsonArray f = state.getAsJsonArray(foe);
-            List<Mon> t = rival.team();
+            List<Mon> t = pvp() ? rival.team() : npcTeam;
             for (int i = 0; i < f.size() && i < t.size(); i++) if (f.get(i).getAsJsonObject().get("hp").getAsInt() == 0) beaten.add(t.get(i));
         }
         if (won) for (Mon foeMon : beaten) {
@@ -871,6 +933,11 @@ final class Battle {
         if (pvp()) {
             player.sendMessage(Component.text(won ? t("cobblemonlink.battle.won_pvp", rival.player.getName()) : lost
                     ? t("cobblemonlink.battle.lost_pvp", rival.player.getName()) : t("cobblemonlink.battle.over"), won ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+        } else if (trainer()) {
+            if (foeOut != null) foeOut.remove();
+            foeOut = null;
+            player.sendMessage(Component.text(won ? t("cobblemonlink.battle.won_pvp", npcName) : lost
+                    ? t("cobblemonlink.battle.lost_pvp", npcName) : t("cobblemonlink.battle.over"), won ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
         } else if (won) {
             wildEntity.getPersistentDataContainer().remove(pl.wildKey); // no longer wild while it faints
             faint(wildEntity);
@@ -889,7 +956,7 @@ final class Battle {
         pl.battles.remove(player.getUniqueId());
         var outcome = won ? WildBattleEndEvent.Outcome.WON : caught ? WildBattleEndEvent.Outcome.CAUGHT
                 : lost ? WildBattleEndEvent.Outcome.LOST : WildBattleEndEvent.Outcome.FLED;
-        if (pl.isEnabled() && !pvp()) new WildBattleEndEvent(player, wild.species, wild.level, wild.shiny, outcome).callEvent();
+        if (pl.isEnabled() && wildBattle()) new WildBattleEndEvent(player, wild.species, wild.level, wild.shiny, outcome).callEvent();
         if (pl.isEnabled()) pl.onMain(() -> MoveLearn.next(pl, player));
     }
 

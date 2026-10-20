@@ -21,6 +21,10 @@ final class AdminCommands {
     AdminCommands(CobblemonLink pl) { this.pl = pl; }
 
     void register() {
+        add("spawnnpc", "/spawnnpc <npc>", (s, a) -> {
+            if (!(s instanceof Player p)) throw new IllegalArgumentException("Players only.");
+            return pl.npcs.spawn(p.getLocation(), a[0]);
+        });
         add("stopbattle", "/stopbattle <player>", (s, a) -> {
             Battle b = pl.battles.get(player(a, 0).getUniqueId());
             if (b == null) return "Not in a battle.";
@@ -141,7 +145,7 @@ final class AdminCommands {
         pl.registerCommand(name, usage + " (admin)", List.of(), new BasicCommand() {
             @Override
             public void execute(CommandSourceStack src, String[] args) {
-                CommandSender s = src.getSender();
+                CommandSender s = src.getExecutor() instanceof Player p ? p : src.getSender(); // "execute as" too
                 try {
                     s.sendMessage(Component.text(run.apply(s, args), NamedTextColor.GREEN));
                 } catch (IllegalArgumentException | IndexOutOfBoundsException e) {

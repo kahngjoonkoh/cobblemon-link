@@ -78,6 +78,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     Evolutions evolutions;
     Lang lang = Lang.load(null);
     Machines machines;
+    Npcs npcs;
     final Trades trades = new Trades(this);
     final NamespacedKey companionKey = new NamespacedKey(this, "companion");
     private final Map<UUID, Input> lastInput = new HashMap<>();
@@ -106,6 +107,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         }
         evolutions = new Evolutions(this);
         machines = new Machines(this, dex.fossils);
+        npcs = new Npcs(this);
         try {
             getLogger().info(Recipes.register(this, getDataFolder().toPath().resolve("recipes.json")) + " of Cobblemon's recipes");
         } catch (IOException e) {
@@ -356,6 +358,11 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEntityEvent e) {
         if (spawner.isCompanion(e.getRightClicked())) e.setCancelled(true); // no saddles or leads on your Pokémon
+        if (npcs.isNpc(e.getRightClicked())) {
+            e.setCancelled(true);
+            if (e.getHand() == EquipmentSlot.HAND) npcs.challenge(e.getPlayer(), e.getRightClicked());
+            return;
+        }
         if (!spawner.isWild(e.getRightClicked())) return;
         e.setCancelled(true);
         Battle b = battles.get(e.getPlayer().getUniqueId());

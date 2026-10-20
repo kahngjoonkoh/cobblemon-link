@@ -110,7 +110,7 @@ final class PokeBalls {
     void sendOut(Player p, Entity mon) { sendOut(p, mon, "poke_ball"); }
 
     /** ball: the Pokémon's own ball (Mon.ball), whose model it comes out of. */
-    void sendOut(Player p, Entity mon, String ballId) {
+    void sendOut(org.bukkit.entity.LivingEntity p, Entity mon, String ballId) {
         Spawner.hide(mon, true);
         Location from = p.getEyeLocation(), to = mon.getLocation().add(0, 0.3, 0);
         Entity b = pl.spawner.ball(from, ballId);

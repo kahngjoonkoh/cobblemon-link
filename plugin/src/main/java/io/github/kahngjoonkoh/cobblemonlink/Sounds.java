@@ -22,12 +22,14 @@ final class Sounds {
     static void cry(Entity e, String species) { play(e, "pokemon." + species + ".cry"); }
 
     /** Cobblemon's battle music: wild (pvw) or against a player (pvp); stopped when the battle ends. */
-    static void music(Player p, boolean pvp) {
-        p.playSound(p.getLocation(), "cobblemon:battle." + (pvp ? "pvp" : "pvw") + ".default", SoundCategory.MUSIC, 0.8f, 1f);
+    /** kind: pvw (wild), pvn (NPC trainer), pvp. */
+    static void music(Player p, String kind) {
+        p.playSound(p.getLocation(), "cobblemon:battle." + kind + ".default", SoundCategory.MUSIC, 0.8f, 1f);
     }
 
     static void stopMusic(Player p) {
         p.stopSound("cobblemon:battle.pvw.default", SoundCategory.MUSIC);
         p.stopSound("cobblemon:battle.pvp.default", SoundCategory.MUSIC);
+        p.stopSound("cobblemon:battle.pvn.default", SoundCategory.MUSIC);
     }
 }

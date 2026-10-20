@@ -176,6 +176,28 @@ def datapack(res, out):
               open(f'{dp}/pack.mcmeta', 'w'), indent=1)
 
 
+def npcs(res, dex):
+    """Cobblemon's NPC classes that battle (their own fields over their presets'): name, skill, party pool (Npcs.java)."""
+    def load(kind, i):
+        p = f'{res}/data/cobblemon/{kind}/{i.split(":")[-1]}.json'
+        return json.load(open(p)) if os.path.exists(p) else {}
+    out = {}
+    for f in sorted(glob.glob(f'{res}/data/cobblemon/npcs/*.json')):
+        d = {}
+        for pr in json.load(open(f)).get('presets', []):
+            d.update(load('npc_presets', pr))
+        d.update(json.load(open(f)))
+        party = d.get('party') or {}
+        if party.get('type') != 'pool':
+            continue  # ponytail: only pool parties (Cobblemon's own NPCs use these); simple/script ones later
+        lv = lambda e: [int(x) for x in str(e.get('npcLevels') or e.get('level') or '5').split('-')][:2]
+        pool = [{'species': e['pokemon'].split()[0], 'weight': e.get('weight', 1), 'times': e.get('selectableTimes', 1),
+                 'levels': (lv(e) * 2)[:2]} for e in party['pool'] if e['pokemon'].split()[0] in dex]
+        out[os.path.basename(f)[:-5]] = {'name': (d.get('names') or [os.path.basename(f)[:-5]])[0], 'skill': d.get('skill', 0),
+                                         'min': party.get('minPokemon', 1), 'max': party.get('maxPokemon', 6), 'pool': pool}
+    return out
+
+
 def main(a):
     if len(a) != 2:
         sys.exit(__doc__)
@@ -188,7 +210,8 @@ def main(a):
     sp = spawns(res, dex)
     fossils = {json.load(open(f))['result']: [i.split(':')[1] for i in json.load(open(f))['fossils']]
                for f in glob.glob(f'{res}/data/cobblemon/fossils/*.json')}  # species -> fossils (Machines.java)
-    json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils},
+    json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
+               'npcs': npcs(res, dex)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
@@ -217,6 +240,12 @@ def demo():
         sp = spawns(t, dex)
         assert len(sp) == 2 and sp[0]['level'] == [3, 9] and sp[0]['cond']['timeRange'] == 'day'
         assert sp[1]['cond']['structures'] == ['y'] and sp[0]['type'] == 'grounded'
+        os.makedirs(f'{t}/data/cobblemon/npcs'); os.makedirs(f'{t}/data/cobblemon/npc_presets')
+        json.dump({'names': ['AI Man'], 'presets': ['cobblemon:p']}, open(f'{t}/data/cobblemon/npcs/ai.json', 'w'))
+        json.dump({'skill': 5, 'party': {'type': 'pool', 'minPokemon': 2, 'pool': [{'pokemon': 'bulbasaur', 'npcLevels': '1-8'}, {'pokemon': 'nope'}]}},
+                  open(f'{t}/data/cobblemon/npc_presets/p.json', 'w'))
+        assert npcs(t, dex) == {'ai': {'name': 'AI Man', 'skill': 5, 'min': 2, 'max': 6,
+                                       'pool': [{'species': 'bulbasaur', 'weight': 1, 'times': 1, 'levels': [1, 8]}]}}, npcs(t, dex)
 
 
 if __name__ == '__main__':
