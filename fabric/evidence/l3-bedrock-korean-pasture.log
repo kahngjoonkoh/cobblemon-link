@@ -1,0 +1,4 @@
+# Bedrock bot with LanguageCode ko_KR opens the pasture: Cobblemon's Korean (방목, 모두 불러오기) and ours (포켓몬 방목하기, ...)
+using 7n
+form 방목  0/16 | 포켓몬을 탭하면 PC로 돌려보냅니다. | 포켓몬 방목하기<textures/cobblemonlink/none> ; 모두 불러오기<textures/cobblemonlink/none>
+form 포켓몬 방목하기 | PC에 내보낼 포켓몬이 없습니다. | 

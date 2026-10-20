@@ -13,4 +13,14 @@ class LangTest {
         assertEquals("Back", Lang.lookup("de_de", "cobblemonlink.back")); // no such file / key: en_us
         assertEquals("no.such.key", Lang.lookup("de_de", "no.such.key"));
     }
+
+    @Test
+    void ourTranslationsCoverEveryKey() throws Exception {
+        for (String code : new String[]{"ko_kr"}) {
+            var path = "/assets/cobblemonlink/lang/";
+            var en = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(LangTest.class.getResourceAsStream(path + "en_us.json"), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject().keySet();
+            var other = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(LangTest.class.getResourceAsStream(path + code + ".json"), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject().keySet();
+            assertEquals(en, other, code);
+        }
+    }
 }
