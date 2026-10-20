@@ -1,5 +1,6 @@
 package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
+import com.cobblemon.mod.common.Cobblemon;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +35,7 @@ public final class Menus {
     /** A chest standing in for menu containerId: chest slot -> menu slot (-1 for filler / buttons). */
     record Remap(int containerId, int rows, int[] toServer, Map<Integer, Button> buttons) {}
 
-    record Button(ItemStack icon, Runnable action) {}
+    record Button(java.util.function.Supplier<ItemStack> icon, Runnable action) {}
 
     private static final Map<UUID, Remap> OPEN = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> PENDING = new ConcurrentHashMap<>();
@@ -101,7 +102,7 @@ public final class Menus {
             for (int i = 0; i < 9; i++) top[i / 3 * 9 + 1 + i % 3] = own.get(1 + i);
             for (int i = 0; i < 3 && 10 + i < own.size(); i++) top[i * 9 + 5] = own.get(10 + i);
             top[9 + 7] = own.get(0);
-            buttons.put(2 * 9 + 7, new Button(Chest.icon(Items.CAMPFIRE, Lang.t(p, "cobblemonlink.cooking.lid"), List.of()), () -> {
+            buttons.put(2 * 9 + 7, new Button(() -> Chest.icon(Items.CAMPFIRE, Lang.t(p, "cobblemonlink.cooking.lid"), List.of()), () -> {
                 boolean open = pot.getContainerData().get(com.cobblemon.mod.common.block.entity.CampfireBlockEntity.IS_LID_OPEN_INDEX) == 1;
                 com.cobblemon.mod.common.client.net.cooking.ToggleCookingPotLidHandler.INSTANCE.handle(
                         new com.cobblemon.mod.common.net.messages.client.cooking.ToggleCookingPotLidPacket(!open), p.server, p);
@@ -110,7 +111,32 @@ public final class Menus {
             rows = Math.max(1, Math.min(6, (own.size() + 8) / 9));
             top = own.stream().limit(rows * 9L).mapToInt(Integer::intValue).toArray();
         }
+        if (m instanceof com.cobblemon.mod.common.block.tmmachine.TMMachineMenu tm) tmButtons(p, tm, buttons);
         return new Remap(m.containerId, rows, layout(rows, top, inv), buttons);
+    }
+
+    /**
+     * The TM machine's own widgets: which TM to make (a click picks the next TM the player has unlocked, through
+     * Cobblemon's SetActiveTM handler), and Start (its container data, as Cobblemon's Start button sets it).
+     */
+    private static void tmButtons(ServerPlayer p, com.cobblemon.mod.common.block.tmmachine.TMMachineMenu tm, Map<Integer, Button> buttons) {
+        var learned = new ArrayList<>(Cobblemon.INSTANCE.getPlayerDataManager().getTMData(p).getLearnedTMs());
+        learned.sort(java.util.Comparator.comparing(Object::toString));
+        buttons.put(7, new Button(() -> {
+            var sel = tm.getCurrentlySelectedTM();
+            String name = sel == null ? Lang.t(p, "cobblemonlink.tm.none") : Lang.resolve(p, sel.translatedMoveName()).getString();
+            return Chest.icon(Items.BOOK, Lang.t(p, "cobblemonlink.tm.choose", name), List.of(Lang.t(p, "cobblemonlink.tm.choose_hint", learned.size())));
+        }, () -> {
+            if (learned.isEmpty()) return;
+            var sel = tm.getCurrentlySelectedTM();
+            int i = sel == null ? 0 : (learned.indexOf(sel.getId()) + 1) % learned.size();
+            var next = com.cobblemon.mod.common.api.tms.TechnicalMachines.INSTANCE.getByResourceLocation(learned.get(i));
+            if (next != null) com.cobblemon.mod.common.client.net.gui.SetActiveTMPacketHandler.INSTANCE.handle(
+                    new com.cobblemon.mod.common.net.messages.client.ui.SetActiveTMPacket(next), p.server, p);
+        }));
+        buttons.put(8, new Button(() -> Chest.icon(Items.LIME_DYE, Lang.t(p, "cobblemonlink.tm.start"), List.of()),
+                () -> com.cobblemon.mod.common.client.net.gui.SetTMMachineContainerDataPacketHandler.INSTANCE.handle(
+                        new com.cobblemon.mod.common.net.messages.client.ui.SetTMMachineContainerDataPacket(1, 1), p.server, p)));
     }
 
     private static final ItemStack FILLER = Chest.icon(Items.GRAY_STAINED_GLASS_PANE, " ", List.of());
@@ -131,7 +157,7 @@ public final class Menus {
             for (int i = 0; i < r.toServer.length; i++) {
                 int s = r.toServer[i];
                 Button b = r.buttons.get(i);
-                items.set(i, b != null ? b.icon : s < 0 ? (i < r.rows * 9 ? FILLER : ItemStack.EMPTY) : s < c.getItems().size() ? c.getItems().get(s) : ItemStack.EMPTY);
+                items.set(i, b != null ? b.icon.get() : s < 0 ? (i < r.rows * 9 ? FILLER : ItemStack.EMPTY) : s < c.getItems().size() ? c.getItems().get(s) : ItemStack.EMPTY);
             }
             return new ClientboundContainerSetContentPacket(id, c.getStateId(), items, c.getCarriedItem());
         }
