@@ -27,7 +27,7 @@ Built from Cobblemon `main` at commit [`910551e`](https://gitlab.com/cable-mc/co
 
 ### Gameplay (v0.3)
 
-How this compares with Cobblemon 1.8.2, feature by feature: [docs/COVERAGE.md](docs/COVERAGE.md).
+How this compares with Cobblemon 1.8.2, feature by feature: [PARITY.md](PARITY.md).
 
 Everything below was played through on a vanilla Java 26.3 client. Every screen is Cobblemon's: the battle screen, starter, PC, Summary and Pokédex. On vanilla Java the server draws them from a small resource pack (`assets/ui-pack.zip`) over chests, dialogs and the HUD. Bedrock players get the same screens as restyled forms through Geyser. Java players can also install the optional client mod (`client/`), which draws the screens itself, like Cobblemon does. See [Screens compared](#screens-compared). **The gameplay hasn't been tested on a Bedrock device yet.**
 
@@ -44,7 +44,7 @@ Everything below was played through on a vanilla Java 26.3 client. Every screen 
 | **Healing** | Lie down in a bed. |
 | **Poké Balls** | Crafted vertically from red dye, a stone button and an iron ingot (makes 4). |
 
-Not yet: trainers and gyms, items and held items, stone, trade and friendship evolutions, water, flying and cave spawns, and PvP battles. The full list of gaps is in [docs/COVERAGE.md](docs/COVERAGE.md).
+Not yet: trainers and gyms, items and held items, stone, trade and friendship evolutions, water, flying and cave spawns, and PvP battles. The full list of gaps is in [PARITY.md](PARITY.md).
 
 | Battle menu | Fight |
 |---|---|
@@ -78,7 +78,7 @@ Click an image for full size.
 
 ### How it differs from Cobblemon
 
-Vanilla clients can't run Cobblemon's own screens or models, so some things work differently. Gameplay gaps (missing features) are listed in [docs/COVERAGE.md](docs/COVERAGE.md); this list is about things that exist but look or behave differently.
+Vanilla clients can't run Cobblemon's own screens or models, so some things work differently. Gameplay gaps (missing features) are listed in [PARITY.md](PARITY.md); this list is about things that exist but look or behave differently.
 
 **Battle screen and controls**
 
@@ -211,7 +211,7 @@ python3 tools/geo2bb.py <geo.json> <animation.json> <texture.png> <name> \
 
 ## Roadmap
 
-Gameplay order follows [docs/COVERAGE.md](docs/COVERAGE.md#suggested-order):
+Gameplay order follows [PARITY.md](PARITY.md#suggested-order):
 
 1. Bedrock device test of the gameplay (menus, tapping to battle, throwing balls).
 2. Quick alignments with Cobblemon: EXP ×2, failed throws making the Pokémon flee, a ball in battle using a turn.
