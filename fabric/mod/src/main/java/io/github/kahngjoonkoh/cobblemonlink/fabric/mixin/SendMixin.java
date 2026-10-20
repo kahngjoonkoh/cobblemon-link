@@ -95,11 +95,13 @@ public class SendMixin {
             if (c.payload().type().id().getNamespace().equals("cobblemon")) return new ClientboundBundlePacket(List.of());
         }
         // Cobblemon's Poké Rod bobber is a vanilla fishing hook underneath: shown as one, with its line to the player
-        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.projectile.FishingHook)
-            return a.getType() == net.minecraft.world.entity.EntityType.FISHING_BOBBER ? a : new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
-                    net.minecraft.world.entity.EntityType.FISHING_BOBBER, a.getData(), new net.minecraft.world.phys.Vec3(a.getXa(), a.getYa(), a.getZa()), a.getYHeadRot());
+        // a Poké Rod's bobber as Minecraft's: the client keeps a hook only when its data is the angler's entity id
+        if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof net.minecraft.world.entity.projectile.FishingHook hook)
+            return new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
+                    net.minecraft.world.entity.EntityType.FISHING_BOBBER, hook.getOwner() != null ? hook.getOwner().getId() : a.getData(),
+                    new net.minecraft.world.phys.Vec3(a.getXa(), a.getYa(), a.getZa()), a.getYHeadRot());
         if (packet instanceof ClientboundSetEntityDataPacket d && h.player.level().getEntity(d.id()) instanceof net.minecraft.world.entity.projectile.FishingHook)
-            return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 10).toList()); // the hook's own fields
+            return new ClientboundSetEntityDataPacket(d.id(), d.packedItems().stream().filter(v -> v.id() < 10 && v.id() != 2 && v.id() != 3).toList()); // the hook's own fields, no name tag
         // ponytail: an empty bundle stands for "nothing"; moves etc. for an entity the client never saw are ignored by it
         if (packet instanceof ClientboundAddEntityPacket a && (modded(a.getId(), h) || !BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("minecraft")))
             return new ClientboundBundlePacket(List.of());
