@@ -12,6 +12,7 @@ c.on('start_game', p => {
   if (process.env.CMD) setTimeout(() => { console.log('command', process.env.CMD); c.queue('command_request', { command: process.env.CMD, origin: { type: 'player', uuid: '00000000-0000-0000-0000-000000000000', request_id: '', player_entity_id: 0n }, internal: false, version: '72' }) }, 6000)
 })
 c.on('move_player', p => { if (p.runtime_id == me) pos = p.position })
+c.on('add_player', p => { if (process.env.TARGET_PLAYER && p.username === process.env.TARGET_PLAYER) c.emit('add_entity', { entity_type: 'player:' + p.username, runtime_id: p.runtime_id }) })
 c.on('add_entity', p => {
   console.log('add_entity', p.entity_type, p.runtime_id)
   if (!target && p.entity_type.startsWith(process.env.TARGET || 'modelengine:')) { // TARGET: only use it, no hit
