@@ -96,6 +96,7 @@ public final class Pc {
         v.box = Math.floorMod(v.box, pc(p).getBoxes().size());
         if (v.selected != null && where(p, v.selected) == null) v.selected = null;
         if (Clients.bedrock(p)) bedrock(p, v);
+        else if (Ui.loaded && Config.vanillaJava().screenArt()) PcArt.open(p, v);
         else JavaScreens.pc(p, v);
     }
 
