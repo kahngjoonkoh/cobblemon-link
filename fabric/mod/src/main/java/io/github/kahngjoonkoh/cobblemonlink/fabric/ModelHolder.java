@@ -60,14 +60,25 @@ public class ModelHolder extends ElementHolder {
 
     public Entity entity() { return entity; }
 
+    /** The display entities of the head bones and what hangs off them (a rider's first-person camera sits there). */
+    public int[] headIds() {
+        var bones = model.bones();
+        boolean[] head = new boolean[bones.length];
+        java.util.List<Integer> ids = new java.util.ArrayList<>();
+        for (int i = 0; i < bones.length; i++) { // parents come before children
+            head[i] = bones[i].name().toLowerCase(java.util.Locale.ROOT).contains("head") || bones[i].parent() >= 0 && head[bones[i].parent()];
+            if (head[i] && displays[i] != null) ids.add(displays[i].getEntityId());
+        }
+        return ids.stream().mapToInt(Integer::intValue).toArray();
+    }
+
     /** Draw the model this far from the entity (x left, y up, z forward, blocks), e.g. on a shoulder. */
     public void offset(float x, float y, float z) { offset.set(x, y, z); }
 
     /** Only vanilla Java clients: Cobblemon players see Cobblemon's model, Bedrock players GeyserModelEngine's. */
     @Override
     public boolean startWatching(ServerGamePacketListenerImpl h) {
-        // a rider's first-person camera would sit inside the model: hidden from them while they ride (Riding)
-        return Clients.java(h) && h.player.getVehicle() != entity && super.startWatching(h);
+        return Clients.java(h) && super.startWatching(h);
     }
 
     public void setScale(float scale) { this.scale = scale; }

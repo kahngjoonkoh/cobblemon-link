@@ -20,11 +20,11 @@ final class Riding {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 if (p.getVehicle() instanceof PokemonEntity pe && pe.getControllingPassenger() == p && Clients.bridged(p.connection)) move(p, pe);
-                // the model hidden from its rider (ModelHolder.startWatching), back when they get off
+                // the head hidden from its Java rider (their camera sits in it), back when they get off
                 Integer was = RIDDEN.get(p.getUUID()), now = p.getVehicle() instanceof PokemonEntity pe && Clients.java(p.connection) ? pe.getId() : null;
                 if (java.util.Objects.equals(was, now)) continue;
-                if (was != null && Mons.holder(was) != null) Mons.holder(was).startWatching(p.connection);
-                if (now != null && Mons.holder(now) != null) Mons.holder(now).stopWatching(p.connection);
+                if (was != null && Mons.holder(was) != null && Mons.holder(was).stopWatching(p.connection)) Mons.holder(was).startWatching(p.connection);
+                if (now != null && Mons.holder(now) != null) p.connection.send(new net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket(Mons.holder(now).headIds()));
                 if (now == null) RIDDEN.remove(p.getUUID()); else RIDDEN.put(p.getUUID(), now);
             }
         });

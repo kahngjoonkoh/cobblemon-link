@@ -62,7 +62,7 @@ public final class BattleUi {
     /** Every second: HP bars and the prompt while the menu is closed. */
     static void tick() {
         for (var ui : new ArrayList<>(OPEN.values())) {
-            if (ui.player.hasDisconnected() || battle(ui.player) == null) {
+            if (ui.player.hasDisconnected() || over(ui.player)) {
                 ui.end();
                 continue;
             }
@@ -71,6 +71,16 @@ public final class BattleUi {
                 ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(Lang.t(ui.player, Clients.bedrock(ui.player)
                         ? "cobblemonlink.battle.choose_tap" : "cobblemonlink.battle.choose_click"))));
         }
+    }
+
+    /** No battle any more, Cobblemon has ended it, or the wild Pokémon was caught (the battle lingers ~2 s after). */
+    static boolean over(ServerPlayer p) {
+        PokemonBattle b = battle(p);
+        if (b == null || b.getEnded()) return true;
+        for (var a : b.getActors())
+            if (a instanceof com.cobblemon.mod.common.battles.actor.PokemonBattleActor wild)
+                for (var bp : wild.getPokemonList()) if (!bp.getEffectedPokemon().isWild()) return true;
+        return false;
     }
 
     /** The battle the player is in, or watching (Cobblemon's spectating). */
@@ -146,6 +156,10 @@ public final class BattleUi {
     }
 
     private void screenTick() {
+        if (over(player)) { // e.g. a catch: gone the moment Cobblemon ends the battle, not with the next second's check
+            end();
+            return;
+        }
         ticks++;
         boolean sneaking = player.isShiftKeyDown();
         if (sneaking && !wasSneaking) { // double-tap Shift: back to the battle
