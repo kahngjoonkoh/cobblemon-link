@@ -7,5 +7,11 @@ import net.minecraft.server.level.ServerPlayer;
 public final class Mixins {
     private Mixins() {}
 
+    /** An arm swing: a click on Java's battle screen. */
+    public static void swing(ServerPlayer p) {
+        var ui = BattleUi.get(p);
+        if (ui != null) ui.swing();
+    }
+
     public static void callbacks(ServerPlayer p, CustomPacketPayload payload) { Callbacks.packet(p, payload); }
 }

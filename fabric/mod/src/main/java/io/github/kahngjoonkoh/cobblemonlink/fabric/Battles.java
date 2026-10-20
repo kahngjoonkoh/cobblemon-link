@@ -19,7 +19,10 @@ public final class Battles {
     private Battles() {}
 
     static void register() {
-        ServerTickEvents.END_SERVER_TICK.register(s -> { if (s.getTickCount() % 20 == 0) BattleUi.tick(); });
+        ServerTickEvents.END_SERVER_TICK.register(s -> {
+            if (s.getTickCount() % 20 == 0) BattleUi.tick();
+            BattleUi.tickScreens();
+        });
         net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((d, ctx, env) -> d.register(
                 net.minecraft.commands.Commands.literal("battle").executes(c -> {
                     var ui = BattleUi.get(c.getSource().getPlayerOrException());
