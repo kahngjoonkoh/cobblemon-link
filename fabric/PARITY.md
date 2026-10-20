@@ -45,7 +45,7 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Battle forms (menu, moves, switch, catch, run) + HP boss bars, prompt, `/battle` | Floodgate forms with the Paper titles (MARK 1-3), answers sent as Cobblemon's Showdown responses | ✅ `b1-bedrock-battle-bot.log` (a won battle) |
 | Starter form, `/starter` | Cobblemon's StarterHandler (its starter packet opens the form, `chooseStarter` takes the pick) | ✅ `b3-bedrock-starter-bot.log` |
 | Summary form (tabs, nickname, move order + benched moves, send out, lead, to PC, Evolve), `/party` | Cobblemon Pokémon API | ✅ `b4-bedrock-summary-bot.log` |
-| PC form + box settings (move/swap, sort, filter, release, name, wallpaper) | Cobblemon `PCStore`, opened by Cobblemon (PC block or `/pc`) | ✅ `b5-bedrock-pc-bot.log` |
+| PC form + box settings (move/swap, sort, filter, release, name, wallpaper) | Cobblemon `PCStore`, opened by Cobblemon (PC block or `/pc`) | ✅ `b5-bedrock-pc-bot.log` (opened with `/pc`; the PC block path not tried) |
 | Pokédex form, `/pokedex` | Cobblemon Pokédex records | ✅ `b6-bedrock-pokedex-bot.log` |
 | Party HUD (title payload `|CL…`), EXP / level-up / move / evolution notices, `/partyhud` | Same payload from Cobblemon's party; Cobblemon's EXP chat lines dropped | ✅ `b2-bedrock-party-hud-bot.log` |
 | Starter prompt (action bar) | Until Cobblemon's `starterSelected` | ✅ |
@@ -94,6 +94,7 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 
 | | Fabric | Status |
 |---|---|---|
-| docker compose: Fabric + Geyser standalone + ViaProxy | `fabric/docker-compose.yml` | 🟡 |
-| Gradle build of the mod | `fabric/tools/build.sh` | ✅ |
-| README section, versions note | `fabric/README.md` | ⬜ |
+| docker compose: Fabric + Geyser standalone + ViaProxy, settings in `.env` | `fabric/docker-compose.yml` | ✅ (the toby test servers run it) |
+| Pinned, hash-checked downloads; PolyMc built from source; models and packs | `fabric/tools/setup.sh` | ✅ (run against a scratch data dir) |
+| Gradle build of the mod, unit tests | `fabric/tools/build.sh` (`ConfigTest`, `PartyHudTest`) | ✅ |
+| README, versions | `fabric/README.md` | ✅ |

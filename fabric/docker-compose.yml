@@ -1,49 +1,52 @@
-# Test servers: real Cobblemon on Fabric 1.21.1, Geyser standalone and ViaProxy. Data under $CLPOC_DATA
-# (default ~/.cache/cl-fabric-poc), models from tools/build_models.py under $CLPOC_MODELS; ports on $CLPOC_BIND.
-name: clpoc
+# cobblemon-link on Fabric: real Cobblemon (Minecraft 1.21.1) for Cobblemon-mod players, vanilla Java 1.21.1 and
+# Bedrock (Geyser standalone -> ViaProxy -> Fabric, Floodgate on the server). tools/setup.sh fills $DATA first.
+# Settings come from .env (see README.md); every one has a default.
 networks:
   default:
-    name: clpoc-net
+    name: ${PREFIX:-cobblemon-link-fabric}-net
 services:
   fabric:
     image: itzg/minecraft-server:java21
-    container_name: clpoc-fabric
+    container_name: ${PREFIX:-cobblemon-link-fabric}-mc
     environment:
       EULA: "TRUE"
       TYPE: FABRIC
       VERSION: "1.21.1"
-      ONLINE_MODE: "FALSE"   # PoC only: offline test clients
-      MEMORY: 3G
-      MODRINTH_PROJECTS: "fabric-api,fabric-language-kotlin,cobblemon:GJ2a1b8O"
+      ONLINE_MODE: ${ONLINE_MODE:-TRUE}   # Bedrock players come in through Floodgate either way
+      MEMORY: ${MEMORY:-4G}
+      MODRINTH_PROJECTS: "fabric-api,fabric-language-kotlin,cobblemon:GJ2a1b8O"   # Cobblemon 1.8.2
       MODRINTH_ALLOWED_VERSION_TYPE: release
-      MODE: creative
-      LEVEL_TYPE: flat
-      SPAWN_PROTECTION: 0
+      MODE: ${MODE:-survival}
+      LEVEL_TYPE: ${LEVEL_TYPE:-minecraft:normal}
+      MAX_PLAYERS: ${MAX_PLAYERS:-12}
       ENABLE_RCON: "true"
-      RCON_PASSWORD: poc-only
+      RCON_PASSWORD: ${RCON_PASSWORD:-}
     volumes:
-      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/fabric:/data
+      - ${DATA:-./data}/fabric:/data
       - ./mods-extra:/mods:ro
-      - ${CLPOC_MODELS:-${HOME}/.cache/cl-fabric/modelpack}:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
+      - ${MODELS:-./data/models}:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
     ports:
-      - "${CLPOC_BIND:-127.0.0.1}:25570:25565"
-  # Bedrock path: phone (latest Bedrock) -> Geyser standalone (latest, speaks Java 26.3) -> ViaProxy (26.3 -> 1.21.1) -> fabric
+      - "${JAVA_BIND:-127.0.0.1}:${JAVA_PORT:-25565}:25565"
+    stop_grace_period: 60s
+  # Bedrock: the phone (latest Bedrock) -> Geyser standalone (speaks the latest Java) -> ViaProxy (-> 1.21.1) -> fabric
   viaproxy:
     image: eclipse-temurin:25-jre
-    container_name: clpoc-viaproxy
+    container_name: ${PREFIX:-cobblemon-link-fabric}-viaproxy
     user: "1000:1000"
     working_dir: /w
-    command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1", "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE", "--rewrite-handshake-packet", "false"]  # keeps Floodgate's data in the handshake
+    # --rewrite-handshake-packet false keeps Floodgate's data in the handshake
+    command: ["java", "-jar", "ViaProxy.jar", "cli", "--target-address", "fabric:25565", "--target-version", "1.21.1",
+              "--bind-address", "0.0.0.0:25568", "--auth-method", "NONE", "--rewrite-handshake-packet", "false"]
     volumes:
-      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/viaproxy:/w
+      - ${DATA:-./data}/viaproxy:/w
   geyser:
     image: eclipse-temurin:25-jre
-    container_name: clpoc-geyser
+    container_name: ${PREFIX:-cobblemon-link-fabric}-geyser
     user: "1000:1000"
     working_dir: /w
     stdin_open: true
     command: ["java", "-jar", "Geyser-Standalone.jar", "--nogui"]
     volumes:
-      - ${CLPOC_DATA:-${HOME}/.cache/cl-fabric-poc}/geyser:/w
+      - ${DATA:-./data}/geyser:/w
     ports:
-      - "${CLPOC_BIND:-127.0.0.1}:19140:19132/udp"
+      - "${BEDROCK_BIND:-0.0.0.0}:${BEDROCK_PORT:-19132}:19132/udp"
