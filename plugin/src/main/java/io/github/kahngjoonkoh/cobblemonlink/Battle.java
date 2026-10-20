@@ -31,6 +31,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import kr.toxicity.model.api.animation.AnimationIterator;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -495,7 +496,7 @@ final class Battle {
     private boolean cursor() {
         if (screen == null && !Ui.bedrock(player) && !Mod.has(player) && !triedScreen) {
             triedScreen = true;
-            screen = Screen.open(pl, player, wildEntity.getLocation().add(0, wildEntity.getHeight() / 2, 0));
+            screen = Screen.open(pl, player, trainer() ? foeSpot().add(0, 0.5, 0) : wildEntity.getLocation().add(0, wildEntity.getHeight() / 2, 0));
         }
         return screen != null;
     }
@@ -683,9 +684,9 @@ final class Battle {
         o.fade = 0;
         if (screen != null) {
             screen.draw(o);
-            if (general || screen.idle()) hint(o, "Press Shift to move around.", 0.75); // BattleGUI hide_label
+            if (general || screen.idle()) hint(o, t("cobblemon.battle.ui.hide_label", "Shift"), 0.75); // BattleGUI hide_label
         } else if (hidden && request != null && !request.has("wait")) { // BattleOverlay actions_label, pulsing over 4 s
-            hint(o, "You need to choose an action. Double-tap Shift.", 0.5 + 0.5 * Math.sin(Math.PI / 2 * Bukkit.getCurrentTick() / 20.0));
+            hint(o, t("cobblemon.battle.ui.actions_label", "Shift ×2"), 0.5 + 0.5 * Math.sin(Math.PI / 2 * Bukkit.getCurrentTick() / 20.0));
         }
         return o.build();
     }
@@ -747,20 +748,31 @@ final class Battle {
         Sounds.cry(ally, sent.species);
     }
 
-    /** The NPC trainer's Pokémon: 2.5 blocks from the NPC toward the player and 1.5 to its right, out of its Poké Ball. */
+    /**
+     * Where the NPC trainer's Pokémon stands: in front of the NPC toward the player, at least 5 blocks from the player
+     * (so the battle camera sees it), 1.5 to the side away from the player's own Pokémon.
+     */
+    private Location foeSpot() {
+        var from = player.getLocation();
+        var dir = wildEntity.getLocation().toVector().subtract(from.toVector()).setY(0);
+        double d = dir.length();
+        if (d < 0.01) dir = from.getDirection().setY(0);
+        dir.normalize();
+        var at = from.clone().add(dir.clone().multiply(Math.max(5, d - 1))).add(new org.bukkit.util.Vector(dir.getZ(), 0, -dir.getX()).multiply(1.5));
+        at.setY(wildEntity.getLocation().getY());
+        at.setDirection(from.toVector().subtract(at.toVector()));
+        at.setPitch(0);
+        return at;
+    }
+
+    /** The NPC trainer's Pokémon, out of its Poké Ball (thrown from the NPC) at foeSpot. */
     private void sendOutFoe(int i) {
         if (i == foeOutIndex && (i < 0 || foeOut != null)) return;
         if (foeOut != null) foeOut.remove();
         foeOut = null;
         foeOutIndex = i;
         if (i < 0) return;
-        var pos = wildEntity.getLocation();
-        var dir = player.getLocation().toVector().subtract(pos.toVector()).setY(0);
-        if (dir.lengthSquared() < 0.01) dir = pos.getDirection().setY(0);
-        dir.normalize();
-        var at = pos.clone().add(dir.clone().multiply(2.5)).add(new org.bukkit.util.Vector(-dir.getZ(), 0, dir.getX()).multiply(1.5));
-        at.setDirection(player.getLocation().toVector().subtract(at.toVector()));
-        at.setPitch(0);
+        Location at = foeSpot();
         Mon m = npcTeam.get(i);
         foeOut = pl.spawner.sendOut(at, m.model(pl.dex));
         Spawner.animate(foeOut, "battle_idle", AnimationIterator.Type.LOOP);
