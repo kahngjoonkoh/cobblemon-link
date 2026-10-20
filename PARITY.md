@@ -72,7 +72,7 @@ Counts: see [the summary at the end](#summary).
 | Level-up moves, the 5th-move prompt | ✓ | ✓ | ✅ | ✅ |
 | Benched moves, relearning | ✓ | Moves skipped or replaced go to the bench; Summary → Moves → Relearn swaps one of them, or any level-up move up to its level, back in ([learn](docs/evidence/m10-java-learn-prompt.png), [relearned](docs/evidence/m10-java-relearn-feint.png)) | ✅ | ✅ |
 | TMs, TM Machine, Type Gems | 334 TMs | All 334 TMs (type art), taught to Pokémon whose TM learnset has them; the TM Machine block makes them from a Blank TM and Cobblemon's ingredients; gems from amethyst clusters; no unlocking | 🟡 | 🟡 |
-| Egg and tutor moves | ✓ | — | ⬜ | ⬜ |
+| Egg and tutor moves | In the species data only: 1.8 has no breeding or move tutors (relearnable = level-up up to its level, evolution moves, benched; alphas get TM moves) | The same: the relearner offers level-up, evolution and benched moves; alphas' last two moves are TM moves (Cobblemon's alpha moveset builder) | ✅ | ✅ |
 | Natures, mints | ✓ | Random nature; 21 mints change the effective nature | ✅ | ✅ |
 | IVs | ✓ | ✓ | ✅ | ✅ |
 | Hidden abilities | From snacks / Ability Patch | The Ability Patch gives the hidden ability, the Ability Capsule swaps the standard two (verified live on Java: "Pikachu's ability changed to Lightning Rod!"); no Poké Snacks | 🟡 | 🟡 |
@@ -145,8 +145,8 @@ Counts: see [the summary at the end](#summary).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 50 | 36 | 8 | 1 |
-| Bedrock | 50 | 36 | 8 | 1 |
+| Java | 51 | 36 | 7 | 1 |
+| Bedrock | 51 | 36 | 7 | 1 |
 
 ## Suggested order
 

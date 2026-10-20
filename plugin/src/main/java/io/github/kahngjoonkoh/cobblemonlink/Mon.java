@@ -63,7 +63,7 @@ final class Mon {
         if (move != null && !benched.contains(move) && !moves.contains(move)) benched.add(move);
     }
 
-    /** Cobblemon's relearnable moves: the benched ones and every level-up move up to its level, not known now. */
+    /** Cobblemon's relearnable moves: the benched ones and every level-up move up to its level (level 0: evolution moves), not known now. */
     List<String> relearnable(Dex dex) {
         var out = new java.util.LinkedHashSet<String>(benched == null ? List.of() : benched);
         for (List<String> lm : dex.of(this).moves) if (Integer.parseInt(lm.get(0)) <= level) out.add(lm.get(1));
@@ -92,6 +92,7 @@ final class Mon {
     static Mon create(Dex dex, String species, int level, List<String> props) {
         var r = ThreadLocalRandom.current();
         Mon m = new Mon();
+        boolean alphaMoves = false;
         m.species = species;
         m.shiny = props.contains("shiny") || r.nextInt(shinyRate) == 0;
         m.aspects = featureAspects(dex, species, props);
@@ -112,12 +113,22 @@ final class Mon {
             m.scale = 1;
             m.mark = "mark_alpha";
             for (int i = 0, set = 0; set < 3 && i < 30; i++) { int k = r.nextInt(6); if (m.ivs[k] != 31) { m.ivs[k] = 31; set++; } }
+            alphaMoves = true;
         }
         // the four most recent level-up moves, like a wild Pokémon in the main games
         for (List<String> lm : s.moves) {
             if (Integer.parseInt(lm.get(0)) > m.level || m.moves.contains(lm.get(1))) continue;
             m.moves.add(lm.get(1));
             if (m.moves.size() > 4) m.moves.removeFirst();
+        }
+        if (alphaMoves) { // Cobblemon's alpha moveset builder: slots 3 and 4 are TM moves it could learn
+            List<String> tms = new ArrayList<>(s.tmMoves);
+            tms.removeAll(m.moves);
+            java.util.Collections.shuffle(tms, r);
+            for (int k = 2; k < 4 && !tms.isEmpty(); k++) {
+                if (k < m.moves.size()) m.moves.set(k, tms.removeFirst());
+                else m.moves.add(tms.removeFirst());
+            }
         }
         return m;
     }

@@ -32,7 +32,7 @@ def fields(d):
         out['hidden'] = next((a[2:] for a in d['abilities'] if a.startswith('h:')), None)  # the Ability Patch's
     if 'moves' in d:
         out['moves'] = sorted([int(lvl), move] for lvl, _, move in (m.partition(':') for m in d['moves']) if lvl.isdigit())
-        for kind in ('tm', 'egg', 'tutor'):  # TMs teach these; egg and tutor moves come back through the relearner
+        for kind in ('tm', 'egg', 'tutor'):  # TMs teach these; egg and tutor: data only (Cobblemon 1.8 has no breeding or tutors)
             ms = sorted({m.split(':', 1)[1] for m in d['moves'] if m.startswith(kind + ':')})
             if ms:
                 out[kind + 'Moves'] = ms
