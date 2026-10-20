@@ -114,10 +114,10 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Cobblemon's particles (Snowstorm: moves, evolutions, healing) | ⬜ | ⬜ | client-side Bedrock particle files; could map to vanilla particles |
 | Items in hand and inventory | ✅ | ✅ | PolyMc stand-ins; Bedrock icons via `tools/bedrock_items.py` (`b7`) |
 | Using items on a Pokémon (potions, candies, stones, Ethers, PP Up) | ✅ | ✅ | Cobblemon's party / move pickers (`Callbacks`, `c1-bedrock-potion-party-select-bot.log`) |
-| Evolution | ✅ | ✅ | Summary's Evolve; ⬜ Cobblemon's evolution animation |
+| Evolution | ✅ | ✅ | Summary's Evolve (`c9-java-held-item-evolution.log`); ⬜ Cobblemon's evolution animation |
 | Move learning, benched moves, move relearning | 🟡 | 🟡 | Summary swaps benched moves; TM machine's slots open as a chest (`Menus`, generic layout, `c5-java-tm-machine-chest.png`); ⬜ choosing the move to make a TM |
-| Held items (give / take) | 🟡 | 🟡 | `Wheel`: Shift + right-click (tap) your Pokémon → Cobblemon's InteractPokemonHandler; built, not yet tried in a client |
-| Pokémon interaction wheel (shoulder, ride, held item, cosmetic) | 🟡 | 🟡 | `Wheel` (form / chest) → Cobblemon's handler; not yet tried in a client |
+| Held items (give / take) | 🟡 | ✅ | `Wheel`: Shift + right-click (tap) your Pokémon → Give / Take held item through Cobblemon's InteractPokemonHandler; Java done (`c9-java-held-item-evolution.log`); Bedrock same code, not yet tried with a sneaking client |
+| Pokémon interaction wheel (shoulder, ride, held item, cosmetic) | 🟡 | 🟡 | `Wheel` (form / chest) → Cobblemon's handler; opens on Java (`c9-java-interaction-wheel.png`); shoulder and ride need their visuals (rows below) |
 | Riding Pokémon (1.7+) | ⬜ | ⬜ | driver input packets; the ridden entity is hidden from these clients |
 | Pokémon on your shoulder | ⬜ | ⬜ | vanilla parrot data with a Pokémon id |
 | Sending out / recalling (R key) | 🟡 | 🟡 | Summary's Send out / Recall; ⬜ a key for it |
