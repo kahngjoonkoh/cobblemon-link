@@ -221,7 +221,7 @@ final class PartyPanel {
                     "L" + (g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.level), ascii(m.name(pl.dex)),
                     "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n", "h" + two(h), "x" + two(Math.round(BAR * expRatio(m, g, t))),
                     "s" + two(Integer.parseInt(scroll)), ev, mv, ea, et,
-                    Ui.portraits.containsKey(model) ? "items/portrait/" + model : "cobblemonlink/none"};
+                    Ui.portraits.containsKey(model) ? "items/portrait/" + Ui.bedrockName(model) : "cobblemonlink/none"};
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
                 b.append(x).append("~".repeat(FIELDS[k] - x.length()));

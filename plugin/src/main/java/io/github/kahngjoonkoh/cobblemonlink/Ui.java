@@ -105,6 +105,17 @@ final class Ui {
         return i == null ? null : Component.text(Character.toString(0xF0000 + 2 * i + (mirrored ? 1 : 0))).font(PORTRAIT);
     }
 
+    /** A look's name in Bedrock texture paths: long ones shortened like build_bedrock_ui.py's short() (paths under 80). */
+    static String bedrockName(String name) {
+        if (name.length() <= 40) return name;
+        try {
+            byte[] h = java.security.MessageDigest.getInstance("SHA-1").digest(name.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return name.substring(0, 31) + "_" + java.util.HexFormat.of().formatHex(h).substring(0, 8);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     /** Floodgate gives Bedrock players UUIDs with the top 64 bits zero. ponytail: breaks if Floodgate's uuid prefix is changed. */
     static boolean bedrock(Player p) { return p.getUniqueId().getMostSignificantBits() == 0; }
 

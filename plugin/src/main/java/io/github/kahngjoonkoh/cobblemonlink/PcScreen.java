@@ -401,7 +401,7 @@ final class PcScreen {
         o.add(new Battle.Opt(sel != null && v.confirm ? "No" : "", "none", () -> release(p, false)));
         o.add(new Battle.Opt("", "pc/wall/" + WALLPAPERS.get(box.wallpaper < 0 ? 4 : box.wallpaper), stay));
         Integer body = sel == null ? null : Ui.bodies.get(sel.model(pl.dex));
-        o.add(new Battle.Opt(sel == null ? "" : "Lv. " + sel.level, body == null ? "none" : "body/" + sel.model(pl.dex), stay));
+        o.add(new Battle.Opt(sel == null ? "" : "Lv. " + sel.level, body == null ? "none" : "body/" + Ui.bedrockName(sel.model(pl.dex)), stay));
         o.add(new Battle.Opt(sel == null ? "" : sel.nature, "none", stay));
         o.add(new Battle.Opt(sel == null ? "" : pl.dex.label("ability", sel.ability), "none", stay));
         for (int k = 0; k < 4; k++)
@@ -427,7 +427,7 @@ final class PcScreen {
         List<String> types = pl.dex.of(m).types;
         for (int j = 0; j < types.size() && j < 2; j++) t.append('~').append(types.get(j)).append(j + 1);
         if (m == v.selected) t.append('*');
-        return new Battle.Opt(t.toString(), Ui.bodies.containsKey(m.model(pl.dex)) ? "body/" + m.model(pl.dex) : "none", click);
+        return new Battle.Opt(t.toString(), Ui.bodies.containsKey(m.model(pl.dex)) ? "body/" + Ui.bedrockName(m.model(pl.dex)) : "none", click);
     }
 
     // ---- the picture ----

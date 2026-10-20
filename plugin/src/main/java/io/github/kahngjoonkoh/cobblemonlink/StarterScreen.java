@@ -89,7 +89,7 @@ final class StarterScreen {
                 }
                 String s = r.species().get(j);
                 opts.add(new Battle.Opt((j == 0 ? r.name() : "") + (s.equals(selected) ? "*" : ""),
-                        Ui.tiles.containsKey(s) ? "tile/" + s : "textures/items/portrait/" + s,
+                        Ui.tiles.containsKey(s) ? "tile/" + s : "textures/items/portrait/" + Ui.bedrockName(s),
                         () -> bedrock(pl, p, regions, page, s, choose)));
             }
         }

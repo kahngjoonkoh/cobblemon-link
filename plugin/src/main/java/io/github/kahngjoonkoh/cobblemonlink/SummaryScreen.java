@@ -70,7 +70,7 @@ final class SummaryScreen {
             open(pl, p, Math.max(0, i - 1), tab);
         }));
         Dex.Species s = pl.dex.of(m);
-        o.add(new Battle.Opt("Lv. " + m.level, Ui.bodies.containsKey(m.model(pl.dex)) ? "body/" + m.model(pl.dex) : "none", stay));
+        o.add(new Battle.Opt("Lv. " + m.level, Ui.bodies.containsKey(m.model(pl.dex)) ? "body/" + Ui.bedrockName(m.model(pl.dex)) : "none", stay));
         o.add(new Battle.Opt("M".equals(m.gender) ? "♂" : "F".equals(m.gender) ? "♀" : "", "none", stay));
         for (int k = 0; k < 2; k++)
             o.add(new Battle.Opt("", k < s.types.size() ? "pc/type/" + s.types.get(k) : "none", stay));
@@ -79,7 +79,7 @@ final class SummaryScreen {
             int kk = k;
             Mon pm = k < d.party.size() ? d.party.get(k) : null;
             o.add(pm == null ? new Battle.Opt("", "none", stay) : new Battle.Opt("Lv" + pm.level + (k == i ? "*" : ""),
-                    Ui.bodies.containsKey(pm.model(pl.dex)) ? "body/" + pm.model(pl.dex) : "none", () -> open(pl, p, kk, tab)));
+                    Ui.bodies.containsKey(pm.model(pl.dex)) ? "body/" + Ui.bedrockName(pm.model(pl.dex)) : "none", () -> open(pl, p, kk, tab)));
         }
         for (String[] row : rows(pl, p, m, tab)) {
             o.add(new Battle.Opt(row[0], "none", stay));

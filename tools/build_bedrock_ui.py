@@ -12,6 +12,12 @@ import hashlib, io, json, os, sys, zipfile
 from PIL import Image
 from build_ui import TYPES, TYPE_RGB, tint, hp_colour
 
+
+def short(name):
+    """A look's name in a Bedrock texture path: Bedrock warns about paths of 80+ characters (some platforms fail), so
+    long ones are cut to 31 characters plus 8 of their SHA-1 (Ui.bedrockName does the same)."""
+    return name if len(name) <= 40 else name[:31] + "_" + hashlib.sha1(name.encode()).hexdigest()[:8]
+
 MARK = "§r§l§"
 TEX = "textures/cobblemonlink/"
 UUIDS = ("1e1a2f23-3752-4900-890c-329d1964bb52", "1c47e405-4544-41e2-bcd1-c94a6b420207")  # pack, module
@@ -305,7 +311,7 @@ def pc_art(gui, png, out):
         png("pc/wall/" + os.path.basename(f)[len("wallpaper_"):-4], Image.open(f).convert("RGBA"))
     d = os.path.join(os.path.dirname(out), "bodies")
     for n in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        png("body/" + n[:-4], Image.open(f"{d}/{n}").convert("RGBA"))
+        png("body/" + short(n[:-4]), Image.open(f"{d}/{n}").convert("RGBA"))
 
 
 # ---- the Summary (SummaryScreen.java): Cobblemon's Summary at its own positions (331 x 161) ----
@@ -729,8 +735,8 @@ def build(gui, out):
         icon = Image.open(f"{os.path.dirname(out)}/portraits/{name}.png").convert("RGBA").resize((28, 28), Image.NEAREST)
         buf = io.BytesIO()
         icon.save(buf, "PNG", optimize=True)
-        files[f"textures/items/portrait/{name}.png"] = buf.getvalue()  # 28 px, as on Java: the item atlas stays small
-        textures[f"cobblemonlink:portrait_{name}"] = {"textures": [f"textures/items/portrait/{name}"]}
+        files[f"textures/items/portrait/{short(name)}.png"] = buf.getvalue()  # 28 px, as on Java: the item atlas stays small
+        textures[f"cobblemonlink:portrait_{name}"] = {"textures": [f"textures/items/portrait/{short(name)}"]}
     files["textures/item_texture.json"] = json.dumps({"resource_pack_name": "cobblemon-link UI", "texture_name": "atlas.items",
         "texture_data": textures}, indent=1).encode()
 
@@ -755,7 +761,8 @@ if __name__ == "__main__":
     g = f["cl_starter"]["controls"][-1]["list"]
     assert g["offset"][1] + 44 == 27 and g["grid_dimensions"] == [3, 4], "first tile row at the list's top (27)"
     assert HUD_SLOT == 119 and hud_field(1, "lv") == (5 + 119 + 1, 4), "PartyPanel.FIELDS' layout"
-    assert all(len("items/portrait/" + n) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
+    assert all(len("items/portrait/" + short(n)) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
+    assert short("a" * 40) == "a" * 40 and len(short("a" * 41)) == 40
     files = build(sys.argv[1], sys.argv[2])
     print(f"bedrock ui pack: {len(files)} files -> {sys.argv[2]}")
     mappings = os.path.join(os.path.dirname(sys.argv[2]), "geyser-mappings.json")  # -> Geyser's custom_mappings/

@@ -85,7 +85,7 @@ final class PokedexScreen {
     }
 
     private static String picture(String species) {
-        return Ui.bodies.containsKey(species) ? "body/" + species : "pokedex/unknown";
+        return Ui.bodies.containsKey(species) ? "body/" + Ui.bedrockName(species) : "pokedex/unknown";
     }
 
     /** Vanilla Java without the UI pack: 45 a page as portraits (unseen: "???"), arrows on the last row. */

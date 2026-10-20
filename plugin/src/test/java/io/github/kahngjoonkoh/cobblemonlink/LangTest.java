@@ -26,4 +26,11 @@ class LangTest {
         assertEquals(24, Ui.width("피카츄"));
         assertEquals(25.5, Ui.uniWidth("피카츄", true), 1e-9);
     }
+
+    /** Bedrock texture paths: the same shortening as tools/build_bedrock_ui.py's short(). */
+    @Test
+    void bedrockNames() {
+        assertEquals("pikachu", Ui.bedrockName("pikachu"));
+        assertEquals("magikarp__female__magikarp_jump_ac391226", Ui.bedrockName("magikarp__female__magikarp_jump_calico_orange_white_black"));
+    }
 }
