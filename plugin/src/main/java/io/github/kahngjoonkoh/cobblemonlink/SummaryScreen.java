@@ -433,8 +433,11 @@ final class SummaryScreen {
                     PcScreen.text(t, "pc_bold", px + 7, ry + 3, rows[k][0], false);
                     PcScreen.text(t, "pc_bold", px + 44, ry + 3, PcScreen.fit("pc_bold", rows[k][1], k == 0 ? 28 : 56), false);
                 }
-                if (m.mark != null) // under the ability, where its box has room: Cobblemon's title
-                    PcScreen.text(t, "pc_text", px + 44, py + 5 + 15 * rows.length + 3, PcScreen.fit("pc_text", m.titled(pl.dex, loc), 60), false);
+                if (m.mark != null) { // under the ability, where its box has room: the mark's icon and Cobblemon's title
+                    int icon = pl.dex.markIcons.indexOf(m.mark), my = py + 5 + 15 * rows.length + 3;
+                    if (icon >= 0) PcScreen.put(t, px + 32, my - 2, Ui.glyphs(Character.toString(0xF7000 + icon)), 11, 8);
+                    PcScreen.text(t, "pc_text", px + 44, my, PcScreen.fit("pc_text", m.titled(pl.dex, loc), 60), false);
+                }
                 PcScreen.text(t, "pc_text", px + 48, py + 118, Ui.tr(p, "cobblemon.ui.info.experience_points", "Exp. Points"), false);
                 PcScreen.text(t, "pc_text", px + 101 - PcScreen.width("pc_text", String.valueOf(m.exp)), py + 118, String.valueOf(m.exp), false);
                 PcScreen.text(t, "pc_text", px + 48, py + 128, Ui.tr(p, "cobblemon.ui.info.to_next_level", "To Next Lv."), false);

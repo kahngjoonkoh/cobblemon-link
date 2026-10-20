@@ -54,6 +54,7 @@ final class Mon {
         float baby = level <= 1 ? 0.9f : level >= 9 ? 1 : 0.9f + 0.1f * (level - 1) / 8f;
         return baby * (scale == 0 ? 1 : scale);
     }
+    List<String> marks; // every mark and ribbon it has (/givemark); mark is the one shown
     String mark;  // Cobblemon's mark (mark_time_dawn...): its title is the Pokémon's ("Pikachu the Peckish")
     List<String> benched = new ArrayList<>(); // Cobblemon's benched moves: known before, can be swapped back in
 

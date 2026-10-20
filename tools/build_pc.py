@@ -9,7 +9,7 @@ pc_text: Unifont (tools/unifont_ascii.hex, GNU Unifont 17, SIL OFL 1.1) shrunk t
 DEFAULT_LARGE, its shadow baked in, at half a GUI px a pixel; cobblemonlink:body / body_big: build_bodies.py's pictures
 at 16 / 44 px, U+F9000+i (sorted by name). Every glyph's advance goes to assets/cobblemonlink/pc_widths.json.
 """
-import json, os
+import glob, json, os
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw
 
@@ -219,6 +219,12 @@ def advance(img, scale):
     return int(0.5 + w * scale) + 1
 
 
+def mark_glyphs(gui):
+    """Cobblemon's mark icons (gui/mark/*.png, 32 px) at 10 px, U+F7000 on in name order (SummaryScreen.MARK)."""
+    return [(f"mark_{os.path.basename(p)[:-4]}", Image.open(p).convert("RGBA"), chr(0xF7000 + i), 10, 8)
+            for i, p in enumerate(sorted(glob.glob(f"{gui}/mark/*.png")))]
+
+
 def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
     """Adds the PC's glyphs (through glyph()) and fonts to files; writes pc_widths.json (every advance PcScreen needs)."""
     import build_dex  # PokedexScreen.java's art, U+E400 on, in the same font and widths
@@ -226,7 +232,7 @@ def pc(files, gui, cob, glyph, png_bytes, helpers, out_dir):
     import build_summary  # SummaryScreen.java's art, U+E480 on
     plate = Image.open(f"{gui}/pc/pc_release_button.png").convert("RGBA").crop((0, 0, 58, 16))
     for name, img, char, height, ascent in (pc_glyphs(gui, cob, *helpers) + build_dex.dex_glyphs(gui, helpers[3])
-                                            + build_summary.sum_glyphs(gui, plate)):
+                                            + build_summary.sum_glyphs(gui, plate) + mark_glyphs(gui)):
         img = img.copy()
         p = img.getpixel((img.width - 1, 0))
         img.putpixel((img.width - 1, 0), p[:3] + (max(p[3], 1),))  # advance = full width (scaled) + 1

@@ -92,7 +92,7 @@ Counts: see [the summary at the end](#summary).
 | Pasture | ✓ | The Pasture block: party Pokémon put out roam around it, taken back from its chest menu (up to 16) | 🟡 | 🟡 |
 | Breeding, eggs | Not in 1.8.2 | — | ➖ | ➖ |
 | Size variation | ✓ | Cobblemon's Pokemon.scale: each Pokémon is born 0.95-1.05x, the young grow from 0.9x at level 1 to full size at level 9, alphas by Cobblemon's formula; wild, sent out, in battle and in the pasture, on both clients (the tracker's scale) ([alpha, adult, level 1](docs/evidence/m17-java-sizes.png)) | ✅ | ✅ |
-| Marks (1.7+) | 168 | Wild Pokémon roll Cobblemon's chance marks as the main games do (Rare, Personality, Uncommon, time of day, weather, Fishing, Revival); the title shows when it appears ("A wild Rattata the Peckish", [evidence](docs/evidence/m13-java-marked-wild.png)) and in the Summary ([Summary](docs/evidence/m13-java-marked-summary.png)); no ribbons, mark icons or choosing the shown mark | 🟡 | 🟡 |
+| Marks (1.7+) | 168 | Wild Pokémon roll Cobblemon's chance marks as the main games do (Rare, Personality, Uncommon, time of day, weather, Fishing, Revival); the title shows when it appears ("A wild Rattata the Peckish", [evidence](docs/evidence/m13-java-marked-wild.png)) and in the Summary with Cobblemon's icon ([Summary](docs/evidence/m13-java-marked-summary.png)); all 168 marks and ribbons can be given with `/givemark` ([Kalos Champion Ribbon](docs/evidence/m27-java-ribbon-summary.png)); no ribbon-earning events or choosing the shown mark in a menu | 🟡 | 🟡 |
 | Cosmetic items | 30 | Cobblemon's 30 cosmetic item sets on the 24 species that wear them (284 extra converted looks, base and shiny): Shift + right-click your sent-out Pokémon with the item to put it on (the old one comes back), right-click with an empty hand to take it off ([Squirtle in Black Glasses](docs/evidence/m20-java-cosmetic-glasses.png)); worn in the world and in battle; portraits keep the plain look | 🟡 | 🟡 |
 
 ## Interaction and world
@@ -135,7 +135,7 @@ Counts: see [the summary at the end](#summary).
 | `/stopbattle` | `/stopbattle <player>` | ✅ | ✅ |
 | `/pokemonedit`, `/levelup`, `/teach`, `/held_item`, `/friendship`, `/takepokemon`, `/pctake` | All, for a named player (`/pokemonedit` takes level, shiny, nature, ability, gender, nickname, held_item, friendship) | ✅ | ✅ |
 | `/pokebox`, `/boxcount`, `/renamebox`, `/clearparty`, `/clearpc`, `/pcsearch` | `/pokebox`, `/pokeboxall`, `/boxcount`, `/clearparty`, `/clearpc`; box names from the PC screen; no `/pcsearch` | 🟡 | 🟡 |
-| `/givetm`, marks, NPC commands | `/pokeitem tm:<move>` gives a TM; no marks or NPCs | 🟡 | 🟡 |
+| `/givetm`, marks, NPC commands | `/pokeitem tm:<move>` gives a TM; `/givemark`, `/spawnnpc`, `/spawnherd` | 🟡 | 🟡 |
 | `/checkspawn` | `/checkspawn <player> [position type]`: what can spawn there now, by bucket | ✅ | ✅ |
 | (`/give` of Cobblemon items) | `/pokeitem <item> [amount]` (admin) | ✅ | ✅ |
 

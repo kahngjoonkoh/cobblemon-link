@@ -28,6 +28,15 @@ final class AdminCommands {
             pl.spawner.herd(p, p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(4)), h, new java.util.Random());
             return pl.t(p, "cobblemonlink.herd.spawned", pl.dex.name(a[0], CobblemonLink.loc(p)));
         });
+        add("givemark", "/givemark <player> <slot> <mark>: Cobblemon's marks and ribbons; it becomes the shown one", (s, a) -> {
+            Mon m = mon(a);
+            String mark = a[2].replace("cobblemon:", "");
+            if (!pl.dex.markIcons.contains(mark)) throw new IllegalArgumentException("Unknown mark.");
+            if (m.marks == null) m.marks = new java.util.ArrayList<>();
+            if (!m.marks.contains(mark)) m.marks.add(mark);
+            m.mark = mark;
+            return save(a, m.name(pl.dex) + " now has the " + pl.lang.getOr("en_us", "cobblemon.mark." + mark, mark) + ".");
+        });
         add("spawnnpc", "/spawnnpc <npc>", (s, a) -> {
             if (!(s instanceof Player p)) throw new IllegalArgumentException("Players only.");
             return pl.npcs.spawn(p.getLocation(), a[0]);

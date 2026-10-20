@@ -126,6 +126,7 @@ final class Dex {
     Map<String, Npcs.Npc> npcs = Map.of();          // Cobblemon's NPC classes that battle or talk
     Map<String, Map<String, Object>> dialogues = Map.of(); // Cobblemon's dialogues (Dialogues.java)
     Map<String, Mark> marks = Map.of();             // Cobblemon's marks with a chance on wild Pokémon
+    List<String> markIcons = List.of();             // every mark with an icon, in the UI font's order (U+F7000 on)
     Map<String, List<Bait>> baits = Map.of();       // Cobblemon's bait (spawn_bait_effects): item -> effects
     List<Cosmetic> cosmetics = List.of();
 

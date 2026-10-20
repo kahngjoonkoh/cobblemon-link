@@ -283,7 +283,7 @@ def main(a):
     json.dump({'species': dex, 'spawns': sp, 'features': feats, 'names': names(res, dex), 'fossils': fossils,
                'npcs': npcs(res, dex), 'dialogues': {os.path.basename(f)[:-5]: json.load(open(f))
                                                      for f in glob.glob(f'{res}/data/cobblemon/dialogues/*.json')},
-               'marks': marks(res), 'baits': baits(res), 'cosmetics': cosmetic_items(res)},
+               'marks': marks(res), 'markIcons': sorted(os.path.basename(p)[:-4] for p in glob.glob(f'{res}/assets/cobblemon/textures/gui/mark/*.png')), 'baits': baits(res), 'cosmetics': cosmetic_items(res)},
               open(f'{out}/gamedata.json', 'w'), separators=(',', ':'))
     datapack(res, out)
     print(len(dex), 'species,', len(sp), 'spawn entries,', len({s['species'] for s in sp}), 'spawnable species')
