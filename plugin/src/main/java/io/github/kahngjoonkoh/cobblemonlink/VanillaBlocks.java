@@ -166,11 +166,11 @@ final class VanillaBlocks implements Listener {
         if (hook.getType() != Material.TRIPWIRE_HOOK) return;
         TripwireHook h = (TripwireHook) hook.getBlockData();
         BlockFace f = h.getFacing();
-        List<Block> line = new ArrayList<>(); // as calculateState collects it: the string up to the first other block
+        List<Block> line = new ArrayList<>(); // as calculateState goes: every string up to the hook facing back
         for (int i = 1; i < 42; i++) {
             Block x = hook.getRelative(f, i);
-            if (!realString(x)) break;
-            line.add(x);
+            if (x.getType() == Material.TRIPWIRE_HOOK) break;
+            if (realString(x)) line.add(x);
         }
         for (Block s : line) {
             Tripwire d = (Tripwire) s.getBlockData();
@@ -243,15 +243,18 @@ final class VanillaBlocks implements Listener {
         if (!realString(s)) return;
         armed(s).remove(s.getBlockKey());
         recheck.remove(s);
-        List<Block> hooks = List.of();
-        if (!shears) {
+        if (!shears) { // shears: vanilla disarms it first, so its hooks let go without firing
             Tripwire d = (Tripwire) s.getBlockData();
             d.setPowered(true);
             s.setBlockData(d, false);
-            hooks = source(s);
         }
+        List<Block> hooks = source(s);
         List<Block> later = hooks;
         Bukkit.getScheduler().runTask(cb.pl, () -> { for (BlockFace f : SIDES) connect(s.getRelative(f), f.getOppositeFace()); });
+        // vanilla's hook looks again 10 ticks after its string went (the scheduled tick calculateState asks for)
+        Bukkit.getScheduler().runTaskLater(cb.pl, () -> later.forEach(h -> {
+            if (h.getType() == Material.TRIPWIRE_HOOK) h.tick();
+        }), 10);
         Bukkit.getScheduler().runTaskLater(cb.pl, () -> later.forEach(this::sync), 11);
     }
 

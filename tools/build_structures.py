@@ -62,6 +62,13 @@ def fix_json(x):
     if isinstance(x, dict):
         if 'processor_type' in x and not VANILLA_PROCESSORS.match(x['processor_type']):
             return None
+        mod = x.get('block_entity_modifier')
+        if isinstance(mod, dict) and mod.get('type') == 'minecraft:append_loot':  # a gilded chest's loot: kept for the plugin
+            chest = [s.get('Name', '') for s in (x.get('output_state'), (x.get('input_predicate') or {}).get('block_state')) if isinstance(s, dict)]
+            chest = next((c for c in chest if re.fullmatch(r'cobblemon:.*(gilded|gimmighoul)_chest', c)), None)
+            if chest:
+                x = {**x, 'block_entity_modifier': {'type': 'minecraft:append_static', 'data': {'PublicBukkitValues': {
+                    'cobblemonlink:gilded': chest.split(':')[1] + '|' + mod['loot_table']}}}}
         if isinstance(x.get('Name'), str):  # a block state: 26.x writes {"id", "properties"} (or just the id)
             c = custom(x['Name'], x.get('Properties') or {}) if x['Name'].startswith('cobblemon:') else None
             if c: return {'id': c[0], 'properties': c[1]}
@@ -231,6 +238,9 @@ def demo():
     TABLE['moon_stone_ore'] = 'brown_mushroom_block[down=true,east=false]'
     assert custom('cobblemon:moon_stone_ore', {}) == ('minecraft:brown_mushroom_block', {'down': 'true', 'east': 'false'})
     assert fix_json({'Name': 'cobblemon:moon_stone_ore'}) == {'id': 'minecraft:brown_mushroom_block', 'properties': {'down': 'true', 'east': 'false'}}
+    r = fix_json({'block_entity_modifier': {'type': 'minecraft:append_loot', 'loot_table': 'cobblemon:x'},
+                  'output_state': {'Name': 'cobblemon:gimmighoul_chest'}})
+    assert r['block_entity_modifier']['data']['PublicBukkitValues']['cobblemonlink:gilded'] == 'gimmighoul_chest|cobblemon:x', r
     TABLE.clear()
 
 

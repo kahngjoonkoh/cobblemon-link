@@ -339,10 +339,10 @@ final class CustomBlocks implements Listener {
         var r = ThreadLocalRandom.current();
         boolean silk = tool != null && tool.containsEnchantment(Enchantment.SILK_TOUCH);
         if (base.endsWith("_ore")) {
-            if (!like(name).createBlockData().isPreferredTool(tool)) return out; // a pickaxe or nothing
+            if (tool != null && !like(name).createBlockData().isPreferredTool(tool)) return out; // a pickaxe or nothing (explosions: no tool)
             if (silk) add(out, item(base, 1));
             else { // one stone, minecraft:ore_drops with Fortune
-                int fortune = tool.getEnchantmentLevel(Enchantment.FORTUNE), bonus = r.nextInt(fortune + 2) - 1;
+                int fortune = tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.FORTUNE), bonus = r.nextInt(fortune + 2) - 1;
                 add(out, pl.items == null ? null : pl.items.create(drops.get(base), 1 + Math.max(0, bonus)));
             }
         } else if (base.equals("apricorn_leaves")) {
@@ -350,7 +350,7 @@ final class CustomBlocks implements Listener {
             else if (r.nextDouble() < new double[]{0.02, 0.022222223, 0.025, 0.033333335, 0.1}[Math.min(4, tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.FORTUNE))])
                 out.add(new ItemStack(Material.STICK, 1 + r.nextInt(2)));
         } else if (base.endsWith("_stone_block")) {
-            if (like(name).createBlockData().isPreferredTool(tool)) add(out, item(base, 1));
+            if (tool == null || like(name).createBlockData().isPreferredTool(tool)) add(out, item(base, 1));
         } else add(out, item(base, 1)); // wood
         return out;
     }
