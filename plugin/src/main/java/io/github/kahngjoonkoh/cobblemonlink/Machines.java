@@ -325,6 +325,26 @@ final class Machines {
         return true;
     }
 
+    /** A gilded chest a structure placed (CustomBlocks): Cobblemon's model over a barrier, holding its loot in random slots. */
+    void placeGilded(Block b, String type, float yaw, List<ItemStack> loot) {
+        Machine m = new Machine();
+        m.type = type;
+        m.world = b.getWorld().getName();
+        m.x = b.getX();
+        m.y = b.getY();
+        m.z = b.getZ();
+        m.yaw = yaw;
+        List<String> slots = new ArrayList<>(java.util.Collections.nCopies(27, ""));
+        List<Integer> free = new ArrayList<>();
+        for (int i = 0; i < 27; i++) free.add(i);
+        java.util.Collections.shuffle(free);
+        for (int i = 0; i < loot.size() && i < 27; i++) slots.set(free.get(i), java.util.Base64.getEncoder().encodeToString(loot.get(i).serializeAsBytes()));
+        m.stored = slots;
+        b.setType(Material.BARRIER, false);
+        machines.put(m.key(), m);
+        save();
+    }
+
     /** Shift + left-click: the machine comes back as its item (a pasture's Pokémon go home to their owners first). */
     void pickUp(Player p, Machine m) {
         World w = Bukkit.getWorld(m.world);

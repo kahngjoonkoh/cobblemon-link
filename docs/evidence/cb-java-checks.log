@@ -1,0 +1,16 @@
+oran berry planted on farmland, bone-mealed 14x: tripwire there: Test failed
+oran berry planted on farmland, bone-mealed (Cobblemon's 56% a try) to age 5 with fruit drawn at its growth points; right-click (on the soil under it) harvested; bush still there: Test passed; inventory: count: 1 ; count: 24 ; ; 
+oran berry: planted on farmland, bone-mealed (Cobblemon's 56% a try) to age 5 with fruit drawn at its growth points; right-click harvested: bush back to mature (age 3): Test passed; inventory: count: 3 ; count: 24 ; ; ; 
+naturally generated apricorn tree (taiga; ores and a berry grove generated in the same chunks): a ripe green apricorn right-clicked: back to its first stage (still a plant: Test passed); the player picked up: 
+tripwire trap (player-placed string between two hooks, a lamp behind one hook): string and hooks attached; a pig in the string: string powered, hook powered, lamp lit (all Test passed); the pig killed: its porkchop dropped on the string kept it powered (as vanilla: items set off string); porkchop removed, 2 s later: hook unpowered Test passed, lamp off Test passed
+string broken by hand: gone Test failed; hook fired right after: Test failed; 2 s later hook detached and off: Test failed, the remaining string detached: Test failed
+string re-placed in the gap: line attached again (hook Test passed, string Test passed); string broken by hand: gone Test passed; hook fired right after: Test passed; 2 s later hook detached and off: Test passed, the remaining string detached: Test passed
+string cut with shears (line attached and quiet first: Test passed; block drops off so no string item lands on the line): gone Test passed; hook fired: Test failed (vanilla: no); 2 s later hooks detached Test passed, string detached Test passed
+two brown mushroom blocks placed side by side by hand: the faces between them hidden (west one: Test passed, east one: Test passed; their bottom faces hidden too, the reserved states being down=true but not all six)
+a third beside them: Test passed
+note block untouched by the plugin (Cobblemon's blocks don't use it): right-click tuned it to note 1: Test passed; an observer facing it lit a lamp behind it: yes (lamp lit before: Test failed)
+piston pushed an ore: it moved as the same ore: Test passed
+TNT on a 3x3 patch of moon stone ore: each ore broke as the world breaks it (no tool) and dropped its Moon Stone (the dropped items were Moon Stones)
+fresh world, old garden ruins (a Cobblemon structure) generated: its 2 gilded chests became the plugin's gilded chests (Cobblemon's model, -793 66 25 and -801 64 43), each filled from its Cobblemon loot table (3 item stacks each, machines.json)
+fresh world, a berry patch habitat (Cobblemon structure) at 64 -288: its berry bushes came up as real bushes with their flowers (the markers it placed made into bushes when the chunk loaded)
+pink mint: seeds planted on farmland, bone-mealed to full (age 7, Test passed), broken by hand: picked up 2 x "cobblemon:pink_mint_seeds" and 1 x "cobblemon:pink_mint_leaf"

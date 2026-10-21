@@ -160,7 +160,12 @@ def recipes(res, items):
             return tag(x)
         return [x] if isinstance(x, str) else [None]
 
+    import build_custom_blocks
+    custom = set(build_custom_blocks.custom_items())  # CustomBlocks.java's (placeable blocks, seeds)
+
     def has_model(i):  # an item, not a block (blocks would need placing) or a boat/sign/door
+        if i in custom:
+            return True
         path = f'{res}/assets/cobblemon/models/item/{i}.json'
         if i in MACHINES or i.startswith(('campfire_pot_', 'pokedex_')) or i in ('poke_snack', 'gilded_chest') or i.endswith('_gilded_chest'):
             return os.path.exists(path)
@@ -182,7 +187,7 @@ def recipes(res, items):
                or i.startswith('cobblemon:') and not has_model(i[10:]) for i in used):
             continue
         for i in used:
-            if i.startswith('cobblemon:') and i[10:] != 'poke_ball':
+            if i.startswith('cobblemon:') and i[10:] != 'poke_ball' and i[10:] not in custom:
                 items.setdefault(i[10:], {'kind': 'material'})
         norm = lambda v: [x for x in ids(v)]
         out.append({'id': os.path.basename(f)[:-5], 'type': kind, 'result': rid, 'count': count,

@@ -1,0 +1,25 @@
+# Bedrock bot (bedrock-protocol, Bedrock 26.52) through Geyser on the clblocks test server, toby 2026-10-21
+# node tools/testclient/bedblocks.js 100.106.192.12 19140 55 2,70,3 ... 7,70,3; then by rcon at y 70, z 3:
+#   x=2 moon stone ore, 3 a real brown mushroom block, 4 a ripe red apricorn, 5 real string, 6 a fruiting berry bush, 7 an apricorn log
+packs offered: 4057036a-99fc-76f5-0483-1a664b4d5788 4c581c0f-bd83-bf96-5f20-7870c0889fba b0453084-3d39-5422-65c7-287839bd8a83 00495237-232f-1a1e-52bb-64199d320c89 1849a6a4-41b3-db02-852e-7c118d4cb2bc 6058bc84-1a7f-3eb3-ac0f-f82702be6a88
+custom blocks registered: 108 - ours: 3 geyser_custom:cl_red_mushroom_block geyser_custom:cl_brown_mushroom_block geyser_custom:cl_tripwire
+in the world at {"x":0,"y":69,"z":0} block_network_ids_are_hashes: false
+text "§r§6Type /starter to choose your first Pokémon and begin your journey!"
+text "§r§e.BotBlocks joined the game"
+update_block 2,70,3 runtime 16192
+update_block 2,70,3 runtime 17272
+update_block 3,70,3 runtime 2678
+update_block 3,70,3 runtime 17272
+update_block 4,70,3 runtime 21233
+update_block 4,70,3 runtime 17272
+update_block 5,70,3 runtime 19918
+update_block 5,70,3 runtime 17272
+update_block 6,70,3 runtime 21203
+update_block 6,70,3 runtime 17272
+update_block 7,70,3 runtime 13642
+update_block 7,70,3 runtime 17272
+still connected after 55 s
+# reading: Geyser registered our three custom blocks (cl_brown_mushroom_block, cl_red_mushroom_block, cl_tripwire).
+# Each Cobblemon block reached the client as its own custom runtime id (16192 ore, 21233 apricorn, 21203 berry bush,
+# 13642 log); the real mushroom block (2678) and real string (19918) came as vanilla's. 17272 = the empty water layer.
+# The blocks pack is offered (1849a6a4-... is cobblemon-link-blocks; the bot prints UUIDs in two swapped halves).

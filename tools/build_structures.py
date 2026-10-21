@@ -2,7 +2,10 @@
 and structure NBT go into the datapack, with Cobblemon's own blocks swapped for vanilla look-alikes (BLOCKS) and its
 own processor types (height_range, random_pooled_states) left out. The server generates them in new chunks.
   python3 tools/build_structures.py RES_DIR OUT_DIR   ->  OUT_DIR/datapack/cobblemon-link/data/cobblemon/{structure,worldgen}
-ponytail: Cobblemon's village houses (added to vanilla villages by code) are left out; gilded chests become chests.
+Blocks the plugin draws as Cobblemon's (build_custom_blocks.py: ores, stone blocks, apricorn wood) go in as their
+states; berry bushes as markers the plugin makes into bushes; gilded chests as chests the plugin makes into gilded
+chests, filled from their loot table (CustomBlocks.java).
+ponytail: Cobblemon's village houses (added to vanilla villages by code) are left out.
 """
 import glob
 import gzip
@@ -12,6 +15,18 @@ import os
 import re
 import struct
 import sys
+
+
+TABLE = {}  # build_custom_blocks.table(): Cobblemon block -> the state that draws it (main() fills it)
+
+
+def custom(block, props):
+    """A Cobblemon block's custom state as (name, {property: value}), or None."""
+    b = block.split(':', 1)[1]
+    s = TABLE.get(b) or TABLE.get(f"{b}[axis={props.get('axis', 'y')}]") or TABLE.get(f'marker/{b}')
+    if not s: return None
+    name, _, p = s.partition('[')
+    return 'minecraft:' + name.split(':')[-1], dict(kv.split('=') for kv in p.rstrip(']').split(',')) if p else {}
 
 
 def vanilla(block):
@@ -47,7 +62,16 @@ def fix_json(x):
     if isinstance(x, dict):
         if 'processor_type' in x and not VANILLA_PROCESSORS.match(x['processor_type']):
             return None
+        mod = x.get('block_entity_modifier')
+        if isinstance(mod, dict) and mod.get('type') == 'minecraft:append_loot':  # a gilded chest's loot: kept for the plugin
+            chest = [s.get('Name', '') for s in (x.get('output_state'), (x.get('input_predicate') or {}).get('block_state')) if isinstance(s, dict)]
+            chest = next((c for c in chest if re.fullmatch(r'cobblemon:.*(gilded|gimmighoul)_chest', c)), None)
+            if chest:
+                x = {**x, 'block_entity_modifier': {'type': 'minecraft:append_static', 'data': {'PublicBukkitValues': {
+                    'cobblemonlink:gilded': chest.split(':')[1] + '|' + mod['loot_table']}}}}
         if isinstance(x.get('Name'), str):  # a block state: 26.x writes {"id", "properties"} (or just the id)
+            c = custom(x['Name'], x.get('Properties') or {}) if x['Name'].startswith('cobblemon:') else None
+            if c: return {'id': c[0], 'properties': c[1]}
             name = vanilla(x['Name']) if x['Name'].startswith('cobblemon:') else RENAMED.get(x['Name'], x['Name'])
             return {'id': name, 'properties': x['Properties']} if x.get('Properties') else name
         out = {}
@@ -118,18 +142,34 @@ def fix_nbt(data):
     assert f.read(1)[0] == COMPOUND
     name = read(f, STRING)
     root = read(f, COMPOUND)
-    swapped = set()
+    swapped, gilded = set(), {}
     palettes = [root['palette'][1][2]] if 'palette' in root else [p[2] for p in root.get('palettes', (0, (0, 0, [])))[1][2]]
     for pal in palettes:
         for i, st in enumerate(pal):
             if st['Name'][1] in RENAMED:
                 st['Name'] = (STRING, RENAMED[st['Name'][1]])
-            if st['Name'][1].startswith('cobblemon:'):
-                st['Name'] = (STRING, vanilla(st['Name'][1]))
-                swapped.add(i)
-    if 'blocks' in root:  # a swapped block keeps no block entity data (a gilded chest's isn't a chest's)
+            if not st['Name'][1].startswith('cobblemon:'): continue
+            block = st['Name'][1]
+            props = {k: v[1] for k, v in st.get('Properties', (COMPOUND, {}))[1].items()}
+            c = custom(block, props)
+            if c:  # drawn as Cobblemon's by the plugin
+                st['Name'] = (STRING, c[0])
+                st['Properties'] = (COMPOUND, {k: (STRING, v) for k, v in c[1].items()})
+            elif re.fullmatch(r'.*(gilded|gimmighoul)_chest', block):  # a chest the plugin makes a gilded chest
+                st['Name'] = (STRING, 'minecraft:chest')
+                st['Properties'] = (COMPOUND, {'facing': (STRING, props.get('facing', 'north')), 'type': (STRING, 'single'),
+                                               'waterlogged': (STRING, props.get('waterlogged', 'false'))})
+                gilded[i] = block.split(':')[1]
+            else:
+                st['Name'] = (STRING, vanilla(block))
+            swapped.add(i)
+    if 'blocks' in root:  # a swapped block keeps no block entity data (a Cobblemon block's isn't the stand-in's)
         for b in root['blocks'][1][2]:
-            if b['state'][1] in swapped:
+            if b['state'][1] in gilded:  # the plugin reads which chest and its loot from here (PublicBukkitValues)
+                loot = b.get('nbt', (COMPOUND, {}))[1].get('LootTable', (STRING, ''))[1]
+                b['nbt'] = (COMPOUND, {'id': (STRING, 'minecraft:chest'), 'PublicBukkitValues': (COMPOUND, {
+                    'cobblemonlink:gilded': (STRING, gilded[b['state'][1]] + '|' + loot)})})
+            elif b['state'][1] in swapped:
                 b.pop('nbt', None)
     if 'entities' in root:
         ents = root['entities'][1]
@@ -142,6 +182,8 @@ def fix_nbt(data):
 
 
 def main(res, out):
+    import build_custom_blocks
+    TABLE.update(build_custom_blocks.table(res)[0])
     src, dst = f'{res}/data/cobblemon', f'{out}/datapack/cobblemon-link/data/cobblemon'
     n = 0
     for p in glob.glob(f'{src}/structure/**/*.nbt', recursive=True):
@@ -191,7 +233,15 @@ def demo():
     fixed.read(1)
     read(fixed, STRING)
     back = read(fixed, COMPOUND)
-    assert back['palette'][1][2][0]['Name'][1] == 'minecraft:chest' and 'nbt' not in back['blocks'][1][2][0]
+    assert back['palette'][1][2][0]['Name'][1] == 'minecraft:chest'
+    assert back['blocks'][1][2][0]['nbt'][1]['PublicBukkitValues'][1]['cobblemonlink:gilded'][1] == 'gilded_chest|'
+    TABLE['moon_stone_ore'] = 'brown_mushroom_block[down=true,east=false]'
+    assert custom('cobblemon:moon_stone_ore', {}) == ('minecraft:brown_mushroom_block', {'down': 'true', 'east': 'false'})
+    assert fix_json({'Name': 'cobblemon:moon_stone_ore'}) == {'id': 'minecraft:brown_mushroom_block', 'properties': {'down': 'true', 'east': 'false'}}
+    r = fix_json({'block_entity_modifier': {'type': 'minecraft:append_loot', 'loot_table': 'cobblemon:x'},
+                  'output_state': {'Name': 'cobblemon:gimmighoul_chest'}})
+    assert r['block_entity_modifier']['data']['PublicBukkitValues']['cobblemonlink:gilded'] == 'gimmighoul_chest|cobblemon:x', r
+    TABLE.clear()
 
 
 if __name__ == '__main__':
