@@ -29,12 +29,13 @@ def build(src, out):
             f = f'assets/{ns}/sounds/{p}.ogg'
             if f not in names: continue
             files[f'sounds/cobblemon/{p}.ogg'] = read(f)
-            sounds.append({'name': f'sounds/cobblemon/{p}', 'volume': s.get('volume', 1.0) if isinstance(s, dict) else 1.0})
+            # stream: read from the file when played, not decoded into memory as the pack loads (phones ran out of memory)
+            sounds.append({'name': f'sounds/cobblemon/{p}', 'volume': s.get('volume', 1.0) if isinstance(s, dict) else 1.0, 'stream': True})
         if sounds:
             d = {'category': 'neutral', 'sounds': sounds}
             defs[name] = d
             defs['cobblemon:' + name] = d
-    digest = hashlib.sha1(json.dumps(sorted(defs)).encode()).digest()
+    digest = hashlib.sha1(json.dumps(defs, sort_keys=True).encode()).digest()  # any change bumps the version, so phones refetch
     ver = [1, 0, int.from_bytes(digest[:3]) % 32768]  # a version part over 65535 makes Bedrock refuse the pack
     manifest = {'format_version': 2, 'header': {'name': 'cobblemon-link sounds', 'description': "Cobblemon's sounds (CC BY-NC 3.0)",
                 'uuid': str(uuid.uuid5(uuid.NAMESPACE_URL, 'cobblemon-link-sounds')), 'version': ver, 'min_engine_version': [1, 20, 0]},
@@ -59,6 +60,7 @@ def demo():
         z = zipfile.ZipFile(t + '/s.mcpack')
         d = json.loads(z.read('sounds/sound_definitions.json'))['sound_definitions']
         assert n == 1 and 'cobblemon:pokemon.pikachu.cry' in d and d['pokemon.pikachu.cry']['sounds'][0]['name'] == 'sounds/cobblemon/pokemon/pikachu/pikachu_cry'
+        assert d['pokemon.pikachu.cry']['sounds'][0]['stream']
 
 
 if __name__ == '__main__':

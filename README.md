@@ -99,7 +99,7 @@ docker compose down && ./setup.sh && docker compose up -d
 ```bash
 tools/build.sh                     # fetch the pinned Cobblemon, convert models/data/packs into assets/, build the plugin
 fabric/tools/setup.sh              # build the Fabric mod and PolyMc, and its models and packs
-tools/build.sh --zip-only v1.1.1   # the two release zips in dist/
+tools/build.sh --zip-only v1.1.2   # the two release zips in dist/
 ```
 
 Needs `bash`, `curl`, `python3` (Pillow, NumPy), `zip` and Docker. Gradle and the JDKs run inside Docker images. To move
@@ -154,9 +154,10 @@ bench/     load benchmarks          docs/     screenshots, evidence, the Fabric 
   - The Paper plugin comes from our public fork
     ([`1.0.9-cl.2`](https://github.com/kahngjoonkoh/GeyserModelEngine/releases/tag/1.0.9-cl.2)): upstream plus its open
     [PR #76](https://github.com/GeyserExtensionists/GeyserModelEngine/pull/76).
-  - The Geyser extension is patched to write its Bedrock pack as compact JSON, so phones load less
-    ([`deps-2026-10-21`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-21),
-    `server/patches/geysermodelengineextension-1.0.9-compact-json.patch`).
+  - The Geyser extension is patched so phones load a much smaller Bedrock pack: compact JSON, identical animations and
+    geometry shared between models, and no bone-tint layers
+    ([`deps-2026-10-22`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-22),
+    `server/patches/geysermodelengineextension-1.0.9-cl.patch`).
 - **[PokeDemo](https://modrinth.com/plugin/pokedemo)** ([source](https://github.com/nn2048/PokedemoProject),
   GPL-3.0) inspired the Paper approach and was studied for ideas only. No PokeDemo code or assets are included.
 - **[Paper](https://papermc.io)**, **[Fabric](https://fabricmc.net)** and

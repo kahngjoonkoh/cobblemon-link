@@ -1,0 +1,14 @@
+# v1.1.2 Bedrock bot: a wild battle on the shrunk pack (tap, Fight, move, win, EXP)
+add_entity modelengine:rattata 411n
+using 411n
+sound cobblemon:poke_ball.throw
+bossbar §rCharmander  Lv.30   70/70 HP 0
+bossbar §rWild Rattata  Lv.3 0
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+sound cobblemon:pokemon.rattata.cry
+form Battle§r§l§2 | Go! Charmander! / It is now turn 1 | Flame Burst           15/15<textures/cobblemonlink/move_fire> ; Flamethrower           15/15<textures/cobblemonlink/move_fire> ; Slash           20/20<textures/cobblemonlink/move_normal> ; Fire Fang  
+title set_title "§r|CLn1bL30~Charmander~~mh18x00s00-~-~y+9 EXP~~~~~items/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+sound step.grass
+sound damage.fallsmall
+sound random.hurt
+levelsound takeoff -1

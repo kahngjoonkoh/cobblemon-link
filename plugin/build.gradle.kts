@@ -1,7 +1,7 @@
 plugins { java }
 
 group = "io.github.kahngjoonkoh"
-version = "1.1.1"
+version = "1.1.2"
 
 repositories {
     mavenCentral()

@@ -1,0 +1,11 @@
+# v1.1.2 Bedrock bot on a test server (toby, online mode off): packs, then base/shiny/female/form Pokémon spawned next to the bot
+add_entity modelengine:eevee__shiny {"x":20.5,"y":79,"z":82.5}
+add_entity modelengine:gimmighoul__roaming {"x":70.5,"y":78,"z":70.5}
+add_entity modelengine:magikarp {"x":20.5,"y":79,"z":82.5}
+add_entity modelengine:pikachu {"x":20.5,"y":79,"z":82.5}
+add_entity modelengine:pikachu__female__shiny {"x":20.5,"y":79,"z":82.5}
+add_entity modelengine:vulpix__alolan {"x":20.5,"y":79,"z":82.5}
+add_entity modelengine:yamask__galarian {"x":-1.5,"y":79,"z":65.5}
+packs offered: 4
+start_game: in the world at {"x":0,"y":69,"z":0}
+still connected after 75 s; packets: {"network_settings":1,"server_to_client_handshake":1,"play_status":2,"resource_packs_info":1,"jigsaw_structure_data":1,"voxel_shapes":1,"start_game":1,"sync_entity_property":3242,"item_registry":1,"level_chunk":454,"biome_definition_list":1,"available_entity_identifiers":1,"camera_presets":1,"creative_content":1,"set_commands_enabled":1,"update_attributes":712,
