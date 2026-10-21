@@ -1,7 +1,9 @@
 package io.github.kahngjoonkoh.cobblemonlink;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.papermc.paper.event.player.PlayerPickBlockEvent;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.tag.TagKey;
@@ -9,9 +11,12 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.SoundGroup;
 import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -20,21 +25,26 @@ import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockDamageAbortEvent;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.block.NotePlayEvent;
-import org.bukkit.event.entity.EntityInteractEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.WorldInitEvent;
 import org.bukkit.generator.BlockPopulator;
 import org.bukkit.generator.LimitedRegion;
@@ -42,6 +52,7 @@ import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.BoundingBox;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,30 +64,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Cobblemon's own blocks as real blocks for players without the mod (docs/custom-blocks.md, tools/build_custom_blocks.py):
- * each is a note block or tripwire state that vanilla never shows here, drawn as Cobblemon's block by our Java pack and,
- * through Geyser's custom block mappings, on Bedrock. Paper's block-updates flags keep the world from changing those
- * states on its own; this class keeps players from doing it (real note blocks stay at harp/0, real string all-false).
+ * Cobblemon's own blocks as real blocks for players without the mod (docs/custom-blocks.md, tools/build_custom_blocks.py).
+ * Each is a mushroom block state (full cubes) or a tripwire state (plants) that the plugin holds back from vanilla; our
+ * Java pack and Geyser's custom block mappings draw it as Cobblemon's block. VanillaBlocks keeps real mushroom blocks
+ * and string working as vanilla; Plants grows the plants; this class places, breaks and generates them.
  */
 final class CustomBlocks implements Listener {
-    static final BlockData NOTE = Bukkit.createBlockData("minecraft:note_block[instrument=harp,note=0,powered=false]");
-    static final BlockData STRING = Bukkit.createBlockData("minecraft:tripwire[attached=false,disarmed=false,east=false,north=false,powered=false,south=false,west=false]");
-    private static final NamespacedKey FAST = new NamespacedKey("cobblemonlink", "ore_mining");
+    private static final NamespacedKey FAST = new NamespacedKey("cobblemonlink", "block_mining");
 
-    private final CobblemonLink pl;
-    private final NamespacedKey itemKey;
+    final CobblemonLink pl;
+    final NamespacedKey itemKey;
+    final NamespacedKey gildedKey = new NamespacedKey("cobblemonlink", "gilded");
     final Map<String, BlockData> byName = new HashMap<>();
     final Map<String, String> byState = new HashMap<>(); // BlockData.getAsString() -> name
-    private final Map<String, String> drops = new HashMap<>();
-    private final List<Vein> veins = new ArrayList<>();
+    final Map<String, String> drops = new HashMap<>();
+    final Map<String, JsonObject> itemDefs = new HashMap<>();
+    final Map<String, JsonObject> loot = new HashMap<>();
+    final List<Vein> veins = new ArrayList<>();
+    final Plants plants;
+    final VanillaBlocks vanilla;
+    /** The interaction this class handled (CobblemonLink.onUse leaves it alone). */
+    PlayerInteractEvent handled;
 
     record Vein(String feature, int count, int size, int min, int max, boolean trapezoid, Set<Key> biomes, Map<String, String> ores) {}
 
     CustomBlocks(CobblemonLink pl, Path table) throws IOException {
         this.pl = pl;
-        itemKey = new NamespacedKey(pl, "block");
+        itemKey = new NamespacedKey(pl, "item"); // Items.java's: its id() reads ours too
         JsonObject t = JsonParser.parseString(Files.readString(table)).getAsJsonObject();
         int bad = 0;
         for (var e : t.getAsJsonObject("blocks").entrySet()) {
@@ -85,147 +102,97 @@ final class CustomBlocks implements Listener {
                 byName.put(e.getKey(), d);
                 byState.put(d.getAsString(), e.getKey());
             } catch (IllegalArgumentException ex) {
-                bad++; // a state this Minecraft doesn't have (build_custom_blocks.py's instrument list is out of date)
+                bad++; // a state this Minecraft doesn't have
             }
         }
         if (bad > 0) pl.getLogger().warning(bad + " custom block states don't exist in this Minecraft version");
         t.getAsJsonObject("drops").entrySet().forEach(e -> drops.put(e.getKey(), e.getValue().getAsString()));
-        var biomes = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
+        t.getAsJsonObject("items").entrySet().forEach(e -> itemDefs.put(e.getKey(), e.getValue().getAsJsonObject()));
+        if (t.has("loot")) t.getAsJsonObject("loot").entrySet().forEach(e -> loot.put(e.getKey(), e.getValue().getAsJsonObject()));
         for (var el : t.getAsJsonArray("veins")) {
             JsonObject v = el.getAsJsonObject();
-            TagKey<Biome> tag = TagKey.create(RegistryKey.BIOME, Key.key(v.get("biomes").getAsString()));
-            Set<Key> in = new HashSet<>();
-            if (biomes.hasTag(tag)) biomes.getTagValues(tag).forEach(b -> in.add(b.key()));
             Map<String, String> ores = new HashMap<>();
             v.getAsJsonObject("ores").entrySet().forEach(e -> ores.put(e.getKey(), e.getValue().getAsString()));
-            veins.add(new Vein(v.get("feature").getAsString(), v.get("count").getAsInt(), v.get("size").getAsInt(),
-                    v.get("min").getAsInt(), v.get("max").getAsInt(), v.get("shape").getAsString().equals("trapezoid"), in, ores));
+            veins.add(new Vein(v.get("feature").getAsString(), v.get("count").getAsInt(), v.get("size").getAsInt(), v.get("min").getAsInt(),
+                    v.get("max").getAsInt(), v.get("shape").getAsString().equals("trapezoid"), biomes(v.get("biomes").getAsString()), ores));
         }
+        plants = new Plants(this, t);
+        vanilla = new VanillaBlocks(this);
         Bukkit.getWorlds().forEach(this::addPopulator);
-        pl.getServer().getPluginManager().registerEvents(this, pl);
-        pl.getLogger().info(byName.size() + " custom block states, " + veins.size() + " ore features");
+        Bukkit.getScheduler().runTaskTimer(pl, this::aim, 1, 2);
+        var pm = pl.getServer().getPluginManager();
+        pm.registerEvents(this, pl);
+        pm.registerEvents(plants, pl);
+        pm.registerEvents(vanilla, pl);
+        pl.getLogger().info(byName.size() + " custom block states, " + veins.size() + " ore features, " + plants.berries.size() + " berries");
     }
 
-    /** The custom block a block is, or null. */
-    String name(Block b) {
-        Material m = b.getType();
-        return m == Material.NOTE_BLOCK || m == Material.TRIPWIRE ? byState.get(b.getBlockData().getAsString()) : null;
+    /** The biomes in a biome tag (empty when the server doesn't have it). */
+    static Set<Key> biomes(String tag) {
+        var reg = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
+        Set<Key> in = new HashSet<>();
+        TagKey<Biome> key = TagKey.create(RegistryKey.BIOME, Key.key(tag.replace("#", "")));
+        if (reg.hasTag(key)) reg.getTagValues(key).forEach(b -> in.add(b.key()));
+        return in;
     }
 
-    /** A placeable ore (shown as the block in hand; Java pack's items/<ore>.json). */
-    ItemStack item(String name, int amount) {
-        if (!byName.containsKey(name) || name.contains("[")) return null;
-        ItemStack it = new ItemStack(Material.NOTE_BLOCK, amount);
+    /** The custom block a block is ("moon_stone_ore", "apricorn_log[axis=y]", "red_apricorn[age=3,facing=north]"), or null. */
+    String name(Block b) { return name(b.getBlockData()); }
+
+    String name(BlockData d) {
+        Material m = d.getMaterial();
+        return m == Material.BROWN_MUSHROOM_BLOCK || m == Material.RED_MUSHROOM_BLOCK || m == Material.MUSHROOM_STEM || m == Material.TRIPWIRE
+                ? byState.get(d.getAsString()) : null;
+    }
+
+    static String base(String name) { return name == null ? null : name.contains("[") ? name.substring(0, name.indexOf('[')) : name; }
+
+    boolean isPlant(String name) { return name != null && byName.containsKey(name) && byName.get(name).getMaterial() == Material.TRIPWIRE; }
+
+    /** One of our items: a placeable block or a seed (Items.create falls back here). */
+    ItemStack item(String id, int amount) {
+        JsonObject d = itemDefs.get(id);
+        if (d == null) return null;
+        ItemStack it = new ItemStack(Material.PAPER, amount);
         it.editMeta(m -> {
-            m.customName(Component.translatable("block.cobblemon." + name).decoration(TextDecoration.ITALIC, false));
-            m.setItemModel(new NamespacedKey("cobblemon", name));
-            m.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, name);
+            String kind = d.get("kind").getAsString();
+            m.customName(Component.translatable((kind.equals("block") ? "block" : "item") + ".cobblemon." + id, d.get("name").getAsString())
+                    .decoration(TextDecoration.ITALIC, false));
+            m.setItemModel(new NamespacedKey("cobblemon", id));
+            m.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
         });
         return it;
     }
 
-    /** Admin check: how many of each custom block the chunks around a spot hold, and the nearest one. */
-    String scan(org.bukkit.Location at, int radius) {
-        Map<String, Integer> n = new java.util.TreeMap<>();
-        Block near = null;
-        World w = at.getWorld();
-        for (int cx = (at.getBlockX() >> 4) - radius; cx <= (at.getBlockX() >> 4) + radius; cx++)
-            for (int cz = (at.getBlockZ() >> 4) - radius; cz <= (at.getBlockZ() >> 4) + radius; cz++) {
-                var snap = w.getChunkAt(cx, cz).getChunkSnapshot(false, false, false);
-                for (int y = w.getMinHeight(); y < w.getMaxHeight(); y++)
-                    for (int x = 0; x < 16; x++)
-                        for (int z = 0; z < 16; z++) {
-                            Material m = snap.getBlockType(x, y, z);
-                            if (m != Material.NOTE_BLOCK && m != Material.TRIPWIRE) continue;
-                            String name = byState.get(snap.getBlockData(x, y, z).getAsString());
-                            if (name == null) continue;
-                            n.merge(name.replaceAll("\\[.*", ""), 1, Integer::sum);
-                            Block b = w.getBlockAt((cx << 4) + x, y, (cz << 4) + z);
-                            if (near == null || b.getLocation().distanceSquared(at) < near.getLocation().distanceSquared(at)) near = b;
-                        }
-            }
-        return n + (near == null ? "" : " nearest: " + name(near) + " at " + near.getX() + " " + near.getY() + " " + near.getZ());
+    /** The block an item places, or null. */
+    String placeable(ItemStack it) {
+        String id = it == null || !it.hasItemMeta() ? null : it.getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
+        JsonObject d = id == null ? null : itemDefs.get(id);
+        return d != null && d.get("kind").getAsString().equals("block") ? id : null;
     }
 
-    // ---- keeping the states still ----
+    // ---- what a block is like: hardness, tool, sounds ----
 
-    @EventHandler(ignoreCancelled = true)
-    void onPlace(BlockPlaceEvent e) {
-        Block b = e.getBlockPlaced();
-        String name = e.getItemInHand().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
-        if (name != null && byName.containsKey(name)) b.setBlockData(byName.get(name), false);
-        else if (b.getType() == Material.NOTE_BLOCK) b.setBlockData(NOTE, false); // a real note block
-        else if (b.getType() == Material.TRIPWIRE) b.setBlockData(STRING, false); // real string
+    /** The vanilla block a custom block mines and sounds like. */
+    static Material like(String name) {
+        String b = base(name);
+        if (b.startsWith("deepslate_")) return Material.DEEPSLATE_IRON_ORE;
+        if (b.startsWith("nether_")) return Material.NETHER_QUARTZ_ORE;
+        if (b.endsWith("_ore")) return Material.IRON_ORE;
+        if (b.endsWith("_stone_block")) return Material.AMETHYST_BLOCK;
+        if (b.endsWith("leaves")) return Material.OAK_LEAVES;
+        if (b.endsWith("planks")) return Material.OAK_PLANKS;
+        if (b.contains("apricorn_log") || b.contains("apricorn_wood")) return Material.OAK_LOG;
+        if (b.contains("sapling")) return Material.OAK_SAPLING;
+        if (b.endsWith("apricorn")) return Material.COCOA;
+        if (b.equals("berry")) return Material.SWEET_BERRY_BUSH;
+        return Material.WHEAT;
     }
 
-    @EventHandler(priority = EventPriority.LOW)
-    void onInteract(PlayerInteractEvent e) {
-        Block b = e.getClickedBlock();
-        if (b == null) return;
-        if (e.getAction() == Action.PHYSICAL && b.getType() == Material.TRIPWIRE) { e.setCancelled(true); return; } // no powered=true
-        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getHand() != EquipmentSlot.HAND) return;
-        String name = name(b);
-        Player p = e.getPlayer();
-        if (b.getType() == Material.NOTE_BLOCK && !p.isSneaking()) {
-            // ponytail: real note blocks can't be tuned (a new note is a custom block's state); a per-block note in
-            // the chunk's PDC would bring tuning back
-            e.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
-            if (name == null) b.getWorld().playSound(b.getLocation().add(.5, .5, .5), org.bukkit.Sound.BLOCK_NOTE_BLOCK_HARP, 1, 1);
-            return;
-        }
-        if (name != null && name.contains("_apricorn[")) { pick(e, b, name); return; }
-        // planting: an apricorn on the side of leaves (Cobblemon grows them on apricorn trees; leaves stand in here)
-        String held = pl.items == null ? null : pl.items.id(e.getItem());
-        BlockFace f = e.getBlockFace();
-        if (held != null && held.endsWith("_apricorn") && Tag.LEAVES.isTagged(b.getType()) && f.getModY() == 0) {
-            Block at = b.getRelative(f);
-            BlockData d = byName.get(held + "[age=0,facing=" + f.getOppositeFace().name().toLowerCase() + "]");
-            if (at.getType().isAir() && d != null) {
-                at.setBlockData(d, false);
-                if (p.getGameMode() != GameMode.CREATIVE) e.getItem().subtract();
-                at.getWorld().playSound(at.getLocation(), org.bukkit.Sound.BLOCK_CROP_BREAK, 1, 1);
-                e.setCancelled(true);
-            }
-        }
-    }
-
-    /** Right-click a ripe apricorn to pick it (back to age 0); bone meal grows it a stage, as Cobblemon's. */
-    private void pick(PlayerInteractEvent e, Block b, String name) {
-        e.setCancelled(true);
-        int age = name.charAt(name.indexOf("age=") + 4) - '0';
-        String colour = name.substring(0, name.indexOf("_apricorn"));
-        String facing = name.substring(name.indexOf("facing=") + 7, name.length() - 1);
-        ItemStack hand = e.getItem();
-        if (hand != null && hand.getType() == Material.BONE_MEAL && age < 3) {
-            b.setBlockData(byName.get(colour + "_apricorn[age=" + (age + 1) + ",facing=" + facing + "]"), false);
-            if (e.getPlayer().getGameMode() != GameMode.CREATIVE) hand.subtract();
-            b.getWorld().spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, b.getLocation().add(.5, .5, .5), 8, .3, .3, .3);
-        } else if (age == 3) {
-            b.setBlockData(byName.get(colour + "_apricorn[age=0,facing=" + facing + "]"), false);
-            dropApricorn(b, colour);
-        }
-    }
-
-    private void dropApricorn(Block b, String colour) {
-        ItemStack it = pl.items == null ? null : pl.items.create(colour + "_apricorn", 1);
-        if (it != null) b.getWorld().dropItemNaturally(b.getLocation().add(.5, .5, .5), it);
-        b.getWorld().playSound(b.getLocation(), org.bukkit.Sound.BLOCK_SWEET_BERRY_BUSH_PICK_BERRIES, 1, 1);
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    void onNote(NotePlayEvent e) { if (name(e.getBlock()) != null) e.setCancelled(true); }
-
-    @EventHandler(ignoreCancelled = true)
-    void onEntityStep(EntityInteractEvent e) { if (e.getBlock().getType() == Material.TRIPWIRE) e.setCancelled(true); }
-
-    @EventHandler(ignoreCancelled = true)
-    void onFlow(BlockFromToEvent e) { if (name(e.getToBlock()) != null) e.setCancelled(true); } // water would wash string away
-
-    // ---- breaking: an ore's own mining time and drops ----
-
-    /** Vanilla's ore this one mines like: its hardness, its tool. */
-    private static Material like(String ore) {
-        return ore.startsWith("deepslate_") ? Material.DEEPSLATE_IRON_ORE : ore.startsWith("nether_") ? Material.NETHER_QUARTZ_ORE : Material.IRON_ORE;
+    /** The block's own sound (the client plays the mushroom block's or string's for the player who did it). */
+    void sound(Block b, String name, boolean place) {
+        SoundGroup g = like(name).createBlockData().getSoundGroup();
+        b.getWorld().playSound(b.getLocation().add(.5, .5, .5), place ? g.getPlaceSound() : g.getBreakSound(), (g.getVolume() + 1) / 2, g.getPitch() * 0.8f);
     }
 
     /** Fraction of a block broken a tick, vanilla's formula without the player's own factors (they cancel out). */
@@ -236,60 +203,266 @@ final class CustomBlocks implements Listener {
         return d.getDestroySpeed(tool, true) / hard / (harvest ? 30 : 100);
     }
 
-    @EventHandler(ignoreCancelled = true)
-    void onDamage(BlockDamageEvent e) {
-        String name = name(e.getBlock());
-        clearSpeed(e.getPlayer());
-        if (name == null || name.contains("[")) return;
-        // the client times the break from the note block's (0.8, axe); this attribute makes it the ore's
-        ItemStack tool = e.getItemInHand();
-        double m = progress(like(name).createBlockData(), tool) / progress(NOTE, tool);
-        AttributeInstance a = e.getPlayer().getAttribute(Attribute.BLOCK_BREAK_SPEED);
-        if (a != null) a.addTransientModifier(new AttributeModifier(FAST, m - 1, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+    // ---- placing ----
+
+    @EventHandler(priority = EventPriority.LOW)
+    void onInteract(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getHand() != EquipmentSlot.HAND || e.getClickedBlock() == null) return;
+        Player p = e.getPlayer();
+        Block clicked = e.getClickedBlock();
+        if (clicked.getType().isInteractable() && !p.isSneaking() && name(clicked) == null) return; // a chest, a door: use it
+        ItemStack hand = p.getInventory().getItemInMainHand();
+        String block = placeable(hand);
+        if (block != null) {
+            handled = e;
+            e.setCancelled(true);
+            Block at = (clicked.getType().isAir() || clicked.isReplaceable()) && name(clicked) == null ? clicked : clicked.getRelative(e.getBlockFace());
+            if (!(at.getType().isAir() || at.isReplaceable() && name(at) == null)) return;
+            if (!at.getWorld().getNearbyEntities(BoundingBox.of(at), x -> x instanceof LivingEntity && !(x instanceof Player q && q.getGameMode() == GameMode.SPECTATOR)).isEmpty()) return;
+            String name = byName.containsKey(block) ? block : block + "[axis=" + switch (e.getBlockFace()) {
+                case EAST, WEST -> "x";
+                case NORTH, SOUTH -> "z";
+                default -> "y";
+            } + "]";
+            if (place(p, at, clicked, hand, name)) {
+                if (name.equals("apricorn_leaves")) plants.setPersistent(at, true); // placed leaves never decay
+                if (p.getGameMode() != GameMode.CREATIVE) hand.subtract();
+            }
+            return;
+        }
+        if (plants.onInteract(e, aimed(clicked, e.getBlockFace()), hand)) {
+            handled = e;
+            e.setCancelled(true);
+        }
     }
 
-    @EventHandler
-    void onAbort(BlockDamageAbortEvent e) { clearSpeed(e.getPlayer()); }
+    /**
+     * The block a player means: Java draws a plant over string's small outline, so a click on it lands on the block
+     * behind (the leaves an apricorn hangs from, the ground under a bush); a plant on the clicked face is the one.
+     */
+    Block aimed(Block clicked, BlockFace face) {
+        if (isPlant(name(clicked)) || face == null) return clicked;
+        Block in = clicked.getRelative(face);
+        return isPlant(name(in)) ? in : clicked;
+    }
+
+    /** Puts a custom block down for a player (a BlockPlaceEvent first, so protection plugins can say no). */
+    boolean place(Player p, Block at, Block against, ItemStack hand, String name) {
+        BlockData d = byName.get(name);
+        if (d == null) return false;
+        BlockState before = at.getState();
+        at.setBlockData(d, true);
+        BlockPlaceEvent ev = new BlockPlaceEvent(at, before, against, hand, p, true, EquipmentSlot.HAND);
+        Bukkit.getPluginManager().callEvent(ev);
+        if (ev.isCancelled() || !ev.canBuild()) {
+            before.update(true, false);
+            return false;
+        }
+        sound(at, name, true);
+        return true;
+    }
+
+    // ---- breaking: mining time, drops, sounds ----
+
+    /**
+     * The client times a break from the mushroom block's (0.2, axe: an iron axe breaks it at once); a break-speed
+     * modifier makes it the block's own. It's set while the player looks at one of ours, so it's there before the
+     * first hit (a block broken at once never sends a damage event to set it).
+     */
+    private void aim() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == GameMode.CREATIVE || p.getGameMode() == GameMode.SPECTATOR) continue;
+            Block b = p.getTargetBlockExact(6);
+            String name = b == null ? null : name(b);
+            if (name == null || isPlant(name)) { clearSpeed(p); continue; }
+            ItemStack tool = p.getInventory().getItemInMainHand();
+            speed(p, progress(like(name).createBlockData(), tool) / progress(b.getBlockData(), tool));
+        }
+    }
+
+    private static void speed(Player p, double ratio) {
+        AttributeInstance a = p.getAttribute(Attribute.BLOCK_BREAK_SPEED);
+        if (a == null) return;
+        AttributeModifier old = a.getModifier(FAST);
+        if (old != null && Math.abs(old.getAmount() - (ratio - 1)) < 1e-9) return;
+        if (old != null) a.removeModifier(FAST);
+        a.addTransientModifier(new AttributeModifier(FAST, ratio - 1, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onDamage(BlockDamageEvent e) {
+        Block aimed = aimed(e.getBlock(), e.getBlockFace());
+        if (aimed != e.getBlock()) { // a hit on the plant drawn there breaks the plant (they break at once)
+            e.setCancelled(true);
+            BlockBreakEvent ev = new BlockBreakEvent(aimed, e.getPlayer()); // onBreak below does the drops
+            Bukkit.getPluginManager().callEvent(ev);
+            if (!ev.isCancelled()) aimed.setType(Material.AIR, true);
+            return;
+        }
+        String name = name(e.getBlock());
+        if (name == null || isPlant(name)) { clearSpeed(e.getPlayer()); return; }
+        ItemStack tool = e.getItemInHand();
+        speed(e.getPlayer(), progress(like(name).createBlockData(), tool) / progress(e.getBlock().getBlockData(), tool));
+        if (e.getInstaBreak() && progress(like(name).createBlockData(), tool) < 1) e.setCancelled(true); // the first hit came before aim()
+    }
 
     private static void clearSpeed(Player p) {
         AttributeInstance a = p.getAttribute(Attribute.BLOCK_BREAK_SPEED);
-        if (a != null) a.removeModifier(FAST);
+        if (a != null && a.getModifier(FAST) != null) a.removeModifier(FAST);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     void onBreak(BlockBreakEvent e) {
         Block b = e.getBlock();
         String name = name(b);
-        clearSpeed(e.getPlayer());
-        if (name == null) return;
-        e.setDropItems(false);
-        e.setExpToDrop(0);
-        if (e.getPlayer().getGameMode() == GameMode.CREATIVE) return;
-        if (name.contains("_apricorn[")) {
-            if (name.contains("age=3")) dropApricorn(b, name.substring(0, name.indexOf("_apricorn")));
+        if (name == null) {
+            Bukkit.getScheduler().runTask(pl, () -> supports(b));
             return;
         }
+        e.setDropItems(false);
+        e.setExpToDrop(0);
+        sound(b, name, false);
         ItemStack tool = e.getPlayer().getInventory().getItemInMainHand();
-        if (!like(name).createBlockData().isPreferredTool(tool)) return; // Cobblemon: a pickaxe or nothing
-        ItemStack drop;
-        if (tool.containsEnchantment(Enchantment.SILK_TOUCH)) drop = item(name, 1);
-        else { // Cobblemon's loot table: one stone, minecraft:ore_drops with Fortune
-            int fortune = tool.getEnchantmentLevel(Enchantment.FORTUNE), bonus = new Random().nextInt(fortune + 2) - 1;
-            drop = pl.items == null ? null : pl.items.create(drops.get(name), 1 + Math.max(0, bonus));
-        }
-        if (drop != null) b.getWorld().dropItemNaturally(b.getLocation().add(.5, .5, .5), drop);
+        List<ItemStack> out = e.getPlayer().getGameMode() == GameMode.CREATIVE ? List.of() : drops(b, name, tool);
+        removed(b, name);
+        Bukkit.getScheduler().runTask(pl, () -> {
+            out.forEach(it -> b.getWorld().dropItemNaturally(b.getLocation().add(.5, .5, .5), it));
+            supports(b);
+        });
     }
 
-    // ---- world generation: Cobblemon's ore features, in new chunks ----
+    /** What a custom block drops when broken with a tool (Cobblemon's loot tables). */
+    List<ItemStack> drops(Block b, String name, ItemStack tool) {
+        if (isPlant(name)) return plants.drops(b, name, tool);
+        String base = base(name);
+        List<ItemStack> out = new ArrayList<>();
+        var r = ThreadLocalRandom.current();
+        boolean silk = tool != null && tool.containsEnchantment(Enchantment.SILK_TOUCH);
+        if (base.endsWith("_ore")) {
+            if (!like(name).createBlockData().isPreferredTool(tool)) return out; // a pickaxe or nothing
+            if (silk) add(out, item(base, 1));
+            else { // one stone, minecraft:ore_drops with Fortune
+                int fortune = tool.getEnchantmentLevel(Enchantment.FORTUNE), bonus = r.nextInt(fortune + 2) - 1;
+                add(out, pl.items == null ? null : pl.items.create(drops.get(base), 1 + Math.max(0, bonus)));
+            }
+        } else if (base.equals("apricorn_leaves")) {
+            if (silk || tool != null && tool.getType() == Material.SHEARS) add(out, item(base, 1));
+            else if (r.nextDouble() < new double[]{0.02, 0.022222223, 0.025, 0.033333335, 0.1}[Math.min(4, tool == null ? 0 : tool.getEnchantmentLevel(Enchantment.FORTUNE))])
+                out.add(new ItemStack(Material.STICK, 1 + r.nextInt(2)));
+        } else if (base.endsWith("_stone_block")) {
+            if (like(name).createBlockData().isPreferredTool(tool)) add(out, item(base, 1));
+        } else add(out, item(base, 1)); // wood
+        return out;
+    }
+
+    private static void add(List<ItemStack> out, ItemStack it) { if (it != null) out.add(it); }
+
+    /** A custom block is gone: its plant data and models; the leaves around a log or leaf may now decay. */
+    void removed(Block b, String name) {
+        if (isPlant(name)) plants.remove(b);
+        String base = base(name);
+        if (base.contains("apricorn_log") || base.contains("apricorn_wood") || base.equals("apricorn_leaves")) plants.leavesMayDecay(b);
+        if (base.equals("apricorn_leaves")) plants.setPersistent(b, false);
+    }
+
+    /** After a block went: the plants it held (a bush on top, apricorns on its sides) go with it. */
+    void supports(Block gone) {
+        plants.checkSupport(gone.getRelative(BlockFace.UP));
+        for (BlockFace f : new BlockFace[]{BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST}) plants.checkSupport(gone.getRelative(f));
+    }
+
+    /** Breaks a custom block as the world would: its drops (each kept with this chance), its sound. */
+    void breakNaturally(Block b, String name, ItemStack tool, double chance) {
+        List<ItemStack> out = drops(b, name, tool);
+        sound(b, name, false);
+        removed(b, name);
+        b.setType(Material.AIR, true);
+        for (ItemStack it : out) if (ThreadLocalRandom.current().nextDouble() < chance) b.getWorld().dropItemNaturally(b.getLocation().add(.5, .5, .5), it);
+        supports(b);
+    }
+
+    // ---- creative pick-block: the Cobblemon item ----
+
+    @EventHandler(ignoreCancelled = true)
+    void onPick(PlayerPickBlockEvent e) {
+        String name = name(e.getBlock());
+        if (name == null) return;
+        e.setCancelled(true);
+        if (e.getPlayer().getGameMode() != GameMode.CREATIVE) return;
+        String id = isPlant(name) ? plants.seedOf(e.getBlock(), name) : base(name);
+        ItemStack it = id == null ? null : pl.items != null ? pl.items.create(id, 1) : item(id, 1);
+        if (it != null) e.getPlayer().getInventory().setItemInMainHand(it);
+    }
+
+    // ---- the world: explosions, pistons, water, endermen ----
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    void onExplode(EntityExplodeEvent e) { explode(e.blockList(), e.getYield()); }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    void onExplode(BlockExplodeEvent e) { explode(e.blockList(), e.getYield()); }
+
+    private void explode(List<Block> blocks, float yield) {
+        for (var it = blocks.iterator(); it.hasNext(); ) {
+            Block b = it.next();
+            String name = name(b);
+            if (name != null) {
+                it.remove();
+                Bukkit.getScheduler().runTask(pl, () -> { if (name.equals(name(b))) breakNaturally(b, name, null, yield); });
+            } else Bukkit.getScheduler().runTask(pl, () -> supports(b));
+        }
+    }
+
+    /** Pistons push cubes as they are (their state is what they are); a plant in the way breaks, as a crop does. */
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    void onPiston(BlockPistonExtendEvent e) { pistoned(e.getBlocks(), e.getDirection()); }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
+    void onPiston(BlockPistonRetractEvent e) { pistoned(e.getBlocks(), e.getDirection()); }
+
+    private void pistoned(List<Block> blocks, BlockFace dir) {
+        List<Block> moved = new ArrayList<>();
+        for (Block b : blocks) {
+            String name = name(b);
+            if (name != null && isPlant(name)) breakNaturally(b, name, null, 1);
+            else {
+                if (name != null && name.equals("apricorn_leaves")) plants.setPersistent(b, false);
+                moved.add(b.getRelative(dir));
+            }
+        }
+        Bukkit.getScheduler().runTaskLater(pl, () -> {
+            for (Block b : blocks) supports(b);
+            for (Block to : moved) {
+                vanilla.mushroomMoved(to);
+                if ("apricorn_leaves".equals(name(to))) plants.leavesMayDecay(to);
+            }
+        }, 3);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onFlow(BlockFromToEvent e) {
+        String name = name(e.getToBlock());
+        if (name != null && isPlant(name)) {
+            e.setCancelled(true);
+            breakNaturally(e.getToBlock(), name, null, 1); // washed away, as crops are
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityChange(EntityChangeBlockEvent e) {
+        if (name(e.getBlock()) != null) e.setCancelled(true); // endermen, ravagers
+    }
+
+    // ---- world generation: Cobblemon's ores, trees, berry groves and mints in new chunks ----
 
     @EventHandler
     void onWorld(WorldInitEvent e) { addPopulator(e.getWorld()); }
 
     private void addPopulator(World w) {
-        if (w.getPopulators().stream().noneMatch(p -> p instanceof Ores)) w.getPopulators().add(new Ores());
+        if (w.getPopulators().stream().noneMatch(p -> p instanceof Generator)) w.getPopulators().add(new Generator());
     }
 
-    private final class Ores extends BlockPopulator {
+    private final class Generator extends BlockPopulator {
         @Override
         public void populate(WorldInfo info, Random r, int cx, int cz, LimitedRegion region) {
             for (Vein v : veins) {
@@ -302,6 +475,7 @@ final class CustomBlocks implements Listener {
                     vein(v, r, x, y, z, region);
                 }
             }
+            plants.populate(info, r, cx, cz, region);
         }
 
         /** ponytail: a random walk of `size` steps, close to vanilla's OreFeature blob for its small sizes (3-5). */
@@ -324,11 +498,114 @@ final class CustomBlocks implements Listener {
                 case "minecraft:stone_ore_replaceables" -> Tag.STONE_ORE_REPLACEABLES.isTagged(m);
                 case "minecraft:deepslate_ore_replaceables" -> Tag.DEEPSLATE_ORE_REPLACEABLES.isTagged(m);
                 case "cobblemon:dripstone_replaceables" -> m == Material.DRIPSTONE_BLOCK;
-                case "minecraft:base_stone_nether", "minecraft:netherrack" -> m == Material.NETHERRACK;
-                default -> m.name().endsWith("TERRACOTTA") && e.getKey().contains("terracotta");
+                case "minecraft:netherrack", "?" -> m == Material.NETHERRACK;
+                case "minecraft:terracotta" -> Tag.TERRACOTTA.isTagged(m);
+                default -> false;
             };
             if (hit) return e.getValue();
         }
         return null;
+    }
+
+    /** A new chunk: its structures' markers become berry bushes, their chests gilded chests (build_structures.py). */
+    @EventHandler
+    void onChunk(ChunkLoadEvent e) {
+        if (!e.isNewChunk()) return;
+        Chunk c = e.getChunk();
+        var snap = c.getChunkSnapshot(false, false, false);
+        if (byName.entrySet().stream().anyMatch(x -> x.getKey().startsWith("marker/") && snap.contains(x.getValue()))) {
+            World w = c.getWorld();
+            for (int y = w.getMinHeight(); y < w.getMaxHeight(); y++)
+                for (int x = 0; x < 16; x++)
+                    for (int z = 0; z < 16; z++) {
+                        String n = name(snap.getBlockData(x, y, z));
+                        if (n != null && n.startsWith("marker/"))
+                            plants.plantBerry(c.getBlock(x, y, z), n.substring(7), 3 + ThreadLocalRandom.current().nextInt(3));
+                    }
+        }
+        for (BlockState s : c.getTileEntities()) {
+            if (!(s instanceof org.bukkit.block.Chest chest)) continue;
+            String g = chest.getPersistentDataContainer().get(gildedKey, PersistentDataType.STRING);
+            if (g == null || pl.machines == null) continue;
+            String[] kind = g.split("\\|", 2);
+            String type = kind[0].equals("gimmighoul_chest") ? "gilded_chest" : kind[0];
+            float yaw = switch (((org.bukkit.block.data.Directional) s.getBlockData()).getFacing()) {
+                case EAST -> 270;
+                case NORTH -> 180;
+                case WEST -> 90;
+                default -> 0;
+            };
+            chest.getInventory().clear();
+            pl.machines.placeGilded(s.getBlock(), type, yaw, roll(kind.length > 1 ? kind[1] : ""));
+        }
+    }
+
+    /** A Cobblemon loot table rolled (pools, uniform or constant rolls, weighted item entries, set_count). */
+    List<ItemStack> roll(String table) {
+        List<ItemStack> out = new ArrayList<>();
+        JsonObject t = loot.get(table);
+        if (t == null) return out;
+        var r = ThreadLocalRandom.current();
+        for (var pe : t.getAsJsonArray("pools")) {
+            JsonObject pool = pe.getAsJsonObject();
+            int rolls = number(pool.get("rolls"), r);
+            var entries = pool.getAsJsonArray("entries");
+            int total = 0;
+            for (var en : entries) total += weight(en.getAsJsonObject());
+            for (int i = 0; i < rolls && total > 0; i++) {
+                int pick = r.nextInt(total);
+                for (var en : entries) {
+                    JsonObject entry = en.getAsJsonObject();
+                    pick -= weight(entry);
+                    if (pick >= 0) continue;
+                    if (!entry.has("name")) break;
+                    int count = 1;
+                    if (entry.has("functions")) for (var f : entry.getAsJsonArray("functions"))
+                        if (f.getAsJsonObject().get("function").getAsString().endsWith("set_count")) count = number(f.getAsJsonObject().get("count"), r);
+                    String id = entry.get("name").getAsString();
+                    Material m = id.startsWith("cobblemon:") ? null : Material.matchMaterial(id);
+                    ItemStack it = id.startsWith("cobblemon:") ? (pl.items == null ? null : pl.items.create(id.substring(10), count))
+                            : m == null ? null : new ItemStack(m, count);
+                    if (it != null && count > 0) out.add(it);
+                    break;
+                }
+            }
+        }
+        return out;
+    }
+
+    private static int weight(JsonObject entry) { return entry.has("weight") ? entry.get("weight").getAsInt() : 1; }
+
+    static int number(JsonElement n, Random r) {
+        if (n == null) return 1;
+        if (n.isJsonPrimitive()) return (int) n.getAsDouble();
+        JsonObject o = n.getAsJsonObject();
+        if (o.has("min")) {
+            int lo = (int) Math.floor(o.get("min").getAsDouble()), hi = (int) Math.floor(o.get("max").getAsDouble());
+            return lo + r.nextInt(Math.max(1, hi - lo + 1));
+        }
+        return o.has("value") ? o.get("value").getAsInt() : 1;
+    }
+
+    /** Admin check: how many of each custom block the chunks around a spot hold, and the nearest one (whose name has `only`). */
+    String scan(Location at, int radius, String only) {
+        Map<String, Integer> n = new java.util.TreeMap<>();
+        Block near = null;
+        World w = at.getWorld();
+        for (int cx = (at.getBlockX() >> 4) - radius; cx <= (at.getBlockX() >> 4) + radius; cx++)
+            for (int cz = (at.getBlockZ() >> 4) - radius; cz <= (at.getBlockZ() >> 4) + radius; cz++) {
+                var snap = w.getChunkAt(cx, cz).getChunkSnapshot(false, false, false);
+                for (int y = w.getMinHeight(); y < w.getMaxHeight(); y++)
+                    for (int x = 0; x < 16; x++)
+                        for (int z = 0; z < 16; z++) {
+                            String name = name(snap.getBlockData(x, y, z));
+                            if (name == null) continue;
+                            n.merge(base(name), 1, Integer::sum);
+                            if (only != null && !name.contains(only)) continue;
+                            Block b = w.getBlockAt((cx << 4) + x, y, (cz << 4) + z);
+                            if (near == null || b.getLocation().distanceSquared(at) < near.getLocation().distanceSquared(at)) near = b;
+                        }
+            }
+        return n + (near == null ? "" : " nearest: " + name(near) + " at " + near.getX() + " " + near.getY() + " " + near.getZ());
     }
 }

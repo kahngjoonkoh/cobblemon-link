@@ -60,6 +60,7 @@ if [ -f ../assets/custom-blocks.json ]; then
   cp ../assets/blocks-pack.zip "$D/plugins/BetterModel/cobblemon-link-blocks.zip"
   cp ../assets/blocks.mcpack "$D/plugins/Geyser-Spigot/packs/cobblemon-link-blocks.mcpack"
   cp ../assets/geyser-blocks.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-blocks.json"
+  cp ../assets/geyser-blocks-items.json "$D/plugins/Geyser-Spigot/custom_mappings/cobblemon-link-block-items.json"
 fi
 # models: Java side (BetterModel) and Bedrock side (GeyserModelEngine extension)
 cp ../assets/java/*.bbmodel "$D/plugins/BetterModel/models/"
@@ -82,9 +83,11 @@ if [ -f "$G" ]; then
 else
   echo "first run: start the server once, stop it, then run setup.sh again"
 fi
-# the note block and tripwire states custom blocks use stay as placed (Paper's own switches for this)
+# Cobblemon's blocks are mushroom block and string states: the game leaves those to the plugin, which does vanilla's
+# part for real mushroom blocks and string (VanillaBlocks.java)
 P="$D/config/paper-global.yml"
-for k in disable-noteblock-updates disable-tripwire-updates; do set_key "$P" "$k" true 2>/dev/null || true; done
+for k in disable-mushroom-block-updates disable-tripwire-updates; do set_key "$P" "$k" true 2>/dev/null || true; done
+set_key "$P" disable-noteblock-updates false 2>/dev/null || true
 # CPU (see README "Performance"): nothing a player can see changes
 B="$D/plugins/BetterModel/config.yml"
 set_key "$B" lerp-frame-time 0          # converter keyframes are already linear; no frames to insert

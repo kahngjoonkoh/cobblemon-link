@@ -115,7 +115,7 @@ final class Items {
     ItemStack create(String id, int amount) {
         if (id.equals("poke_ball")) return pl.ball(amount);
         Def d = defs.get(id);
-        if (d == null) return null;
+        if (d == null) return pl.blocks == null ? null : pl.blocks.item(id, amount); // Cobblemon's blocks and seeds (CustomBlocks)
         boolean ball = d.kind.equals("ball");
         ItemStack it = new ItemStack(ball ? Material.SNOWBALL : d.kind.equals("rod") ? Material.FISHING_ROD : Material.PAPER, amount); // build_items.py maps these
         it.editMeta(m -> {

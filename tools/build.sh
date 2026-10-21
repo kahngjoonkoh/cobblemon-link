@@ -20,7 +20,7 @@ cp -r "$src/data/cobblemon/bag_items" assets/showdown/
 rm -rf assets/lang && cp -r "$src/assets/cobblemon/lang" assets/lang  # Cobblemon's languages, for Lang.java
 python3 tools/build_items.py "$src" assets
 python3 tools/build_blocks.py "$src" assets  # Cobblemon's machine blocks as models
-python3 tools/build_custom_blocks.py "$src" assets  # Cobblemon's ores and apricorns as real blocks
+python3 tools/build_custom_blocks.py "$src" assets  # Cobblemon's ores, wood and plants as real blocks
 python3 tools/build_balls.py "$src" assets   # every Poké Ball's own 3D model
 python3 tools/build_npcs.py "$src" assets    # Cobblemon's NPC models
 python3 tools/build_sounds.py "$src" assets  # Cobblemon's sounds for both clients   # Cobblemon's items: what they do, Java and Bedrock art

@@ -454,6 +454,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onUse(PlayerInteractEvent e) {
+        if (blocks != null && blocks.handled == e) return; // a Cobblemon block placed, a plant planted or picked
         Battle b = battles.get(e.getPlayer().getUniqueId());
         if (b != null && b.screen() != null) e.setCancelled(true);
         // Cobblemon's machine blocks: use, pick up (Shift + left-click), place (right-click with the item)
@@ -549,16 +550,17 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         var r = ThreadLocalRandom.current();
         Material t = e.getBlock().getType();
         String id = null;
-        if (Tag.LEAVES.isTagged(t) && r.nextInt(40) == 0) id = APRICORNS[r.nextInt(APRICORNS.length)] + "_apricorn";
+        boolean plants = blocks != null; // Cobblemon's apricorn trees and mints grow for real (CustomBlocks)
+        if (!plants && Tag.LEAVES.isTagged(t) && r.nextInt(40) == 0) id = APRICORNS[r.nextInt(APRICORNS.length)] + "_apricorn";
         else if ((t == Material.SHORT_GRASS || t == Material.TALL_GRASS) && r.nextInt(60) == 0)
-            id = r.nextInt(4) == 0 ? "medicinal_leek" : MINT_LEAVES[r.nextInt(MINT_LEAVES.length)] + "_mint_leaf";
+            id = r.nextInt(4) == 0 || plants ? "medicinal_leek" : MINT_LEAVES[r.nextInt(MINT_LEAVES.length)] + "_mint_leaf";
         else if (t == Material.AMETHYST_CLUSTER && r.nextInt(3) == 0) { // type gems, for the TM Machine
             var gems = items.defs.keySet().stream().filter(k -> k.endsWith("_gem")).sorted().toList();
             id = gems.isEmpty() ? null : gems.get(r.nextInt(gems.size()));
         } else if ((t == Material.STONE || t == Material.DEEPSLATE || t == Material.SANDSTONE) && r.nextInt(400) == 0) { // fossils
             var fossils = items.defs.entrySet().stream().filter(x -> x.getValue().kind.equals("fossil")).map(Map.Entry::getKey).sorted().toList();
             id = fossils.isEmpty() ? null : fossils.get(r.nextInt(fossils.size()));
-        } else if (t == Material.SWEET_BERRY_BUSH && r.nextInt(8) == 0) {
+        } else if (!plants && t == Material.SWEET_BERRY_BUSH && r.nextInt(8) == 0) {
             var berries = items.defs.keySet().stream().filter(k -> k.endsWith("_berry")).sorted().toList();
             id = berries.isEmpty() ? null : berries.get(r.nextInt(berries.size()));
         }
@@ -876,10 +878,10 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             else b.reveal();
         });
         new AdminCommands(this).register();
-        playerCommand("clblock", "/clblock <ore> [amount]: one of Cobblemon's ores, placeable; /clblock scan: the custom blocks around you", "cobblemonlink.admin", (p, a) -> {
-            if (blocks != null && a.length == 1 && a[0].equals("scan")) { p.sendMessage(Component.text(blocks.scan(p.getLocation(), 3), NamedTextColor.GRAY)); return; }
+        playerCommand("clblock", "/clblock <block or seed> [amount]: one of Cobblemon's blocks; /clblock scan: the custom blocks around you", "cobblemonlink.admin", (p, a) -> {
+            if (blocks != null && a.length >= 1 && a[0].equals("scan")) { p.sendMessage(Component.text(blocks.scan(p.getLocation(), 3, a.length > 1 ? a[1] : null), NamedTextColor.GRAY)); return; }
             ItemStack it = blocks == null || a.length == 0 ? null : blocks.item(a[0], a.length > 1 ? Integer.parseInt(a[1]) : 1);
-            if (it == null) p.sendMessage(Component.text("Usage: /clblock <ore> [amount], e.g. moon_stone_ore", NamedTextColor.RED));
+            if (it == null) p.sendMessage(Component.text("Usage: /clblock <block or seed> [amount], e.g. moon_stone_ore, red_apricorn_seed", NamedTextColor.RED));
             else p.getInventory().addItem(it);
         });
         playerCommand("challenge", "/challenge <player> [singles|doubles|triples]: a Pokémon battle; /challenge accept <player>", null, this::challenge);
