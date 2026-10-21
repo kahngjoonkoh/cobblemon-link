@@ -13,3 +13,4 @@ piston pushed an ore: it moved as the same ore: Test passed
 TNT on a 3x3 patch of moon stone ore: each ore broke as the world breaks it (no tool) and dropped its Moon Stone (the dropped items were Moon Stones)
 fresh world, old garden ruins (a Cobblemon structure) generated: its 2 gilded chests became the plugin's gilded chests (Cobblemon's model, -793 66 25 and -801 64 43), each filled from its Cobblemon loot table (3 item stacks each, machines.json)
 fresh world, a berry patch habitat (Cobblemon structure) at 64 -288: its berry bushes came up as real bushes with their flowers (the markers it placed made into bushes when the chunk loaded)
+pink mint: seeds planted on farmland, bone-mealed to full (age 7, Test passed), broken by hand: picked up 2 x "cobblemon:pink_mint_seeds" and 1 x "cobblemon:pink_mint_leaf"

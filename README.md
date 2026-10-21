@@ -51,6 +51,11 @@ On both products, from Bedrock and vanilla Java:
   - cook in the Campfire Pot; use the healing machine, pasture, fossils and the TM machine; talk to NPCs.
 - **Language:** each player sees the game in their own language (Cobblemon's 29).
 
+**Paper: Cobblemon's blocks borrow some vanilla block states.** Cobblemon's ores, apricorn wood, apricorns, berry
+bushes and mints are drawn on states of mushroom blocks and string that the plugin keeps for them
+([docs/custom-blocks.md](docs/custom-blocks.md)). Normal mushroom blocks, string and tripwire hooks still work as usual,
+but a mushroom block can't show its bottom face unless all six faces show (those face combinations are reserved).
+
 What's still partial, row by row, is in the two PARITY files. The Fabric product shows Cobblemon itself, so its gaps
 are about looks; the Paper product rebuilds Cobblemon, so some rules are simplified.
 

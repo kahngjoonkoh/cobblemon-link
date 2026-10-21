@@ -61,7 +61,7 @@ Counts: see [the summary at the end](#summary).
 | Out-of-battle throw | Direct capture at ×0.5; a sleeping Pokémon wakes on a miss | ×0.5; it stays | ✅ | ✅ |
 | Ball in battle | A miss uses your turn | Same (a forced pass) | ✅ | ✅ |
 | Ball types (Great, Ultra, Quick, Dusk, Net, Heal… and ancient balls) | 48 | All 48 with `PokeBalls.kt`'s modifiers and effects (the Lure Ball on fished Pokémon), each thrown, opened and sent out as its own 3D model | ✅ | ✅ |
-| Apricorn trees and ball crafting | ✓ | Cobblemon's ball recipes; apricorns drop from leaves instead of growing on apricorn trees | 🟡 | 🟡 |
+| Apricorn trees and ball crafting | ✓ | Cobblemon's ball recipes; apricorn trees generate (Cobblemon's tree feature and biome rates) and grow from apricorn seeds, their apricorns ripen and are picked ([custom blocks](docs/custom-blocks.md), [natural tree](docs/evidence/cb-java-apricorn-tree-natural.png), [grown](docs/evidence/cb-java-apricorn-tree-grown.png)) | ✅ | ✅ |
 | Can't catch owned or busy Pokémon | ✓ | ✓ | ✅ | ✅ |
 
 ## Pokémon data and progression
@@ -105,16 +105,16 @@ Counts: see [the summary at the end](#summary).
 | Pokémon interactions (feeding, items on Pokémon) | 167 | Items used from the hand on a party Pokémon: medicine, candies, vitamins, feathers, mints, stones, Ability Capsule / Patch, berries (Oran, Sitrus, status berries, Leppa, EV-lowering berries; [evidence](docs/evidence/m11-java-ev-berries.png)), held items; not on the Pokémon out in the world | 🟡 | 🟡 |
 | Cries and emotes | ✓ | Cobblemon's sounds on both clients (a Java pack, a Bedrock pack through Geyser): cries on battle start and send-out, wild / PvP battle music, Poké Ball hit / open / shake / capture / break, evolution, Healing Machine, PC; no emotes | 🟡 | 🟡 |
 | Fossils, Fossil Analyzer, Restoration Tank | 15 | The 15 fossils (from mining stone) revive in the Restoration Tank block after 12 minutes, one or a pair, and come out wild; the Analyzer is decoration | 🟡 | 🟡 |
-| Berries and berry trees | 70 | Held berries work in battle; healing, status, Leppa and EV-lowering berries can be fed out of battle (and healing ones used from the bag); berries drop from sweet berry bushes; no berry trees or mulch | 🟡 | 🟡 |
-| Apricorns | ✓ | The 7 apricorns, from leaves; on branch `paper-custom-blocks`, planted on leaves they hang as Cobblemon's apricorn blocks, grow with bone meal and are picked ripe ([custom blocks](docs/custom-blocks.md)); no apricorn trees yet | 🟡 | 🟡 |
+| Berries and berry trees | 70 | Held berries work in battle; healing, status, Leppa and EV-lowering berries can be fed out of battle (and healing ones used from the bag); the 70 berry bushes generate in groves by Cobblemon's biome preferences and weights, grow from a berry planted on farmland through Cobblemon's stages and timers, flower and fruit at their growth points, and are harvested back to mature ([planted](docs/evidence/cb-java-berry-planted.png), [fruiting](docs/evidence/cb-java-berry-fruiting.png), [grove](docs/evidence/cb-java-berry-grove-natural.png)); no mulch or mutations; on Bedrock every bush has the Oran look | 🟡 | 🟡 |
+| Apricorns | ✓ | The 7 apricorns hang on apricorn trees, ripen (Cobblemon's 1-in-5 random tick, bone meal) and are picked, with Cobblemon's 10% seed drop ([ripe](docs/evidence/cb-java-natural-apricorn-ripe.png), [picked](docs/evidence/cb-java-natural-apricorn-picked.png)) | ✅ | ✅ |
 | Campfire pot cooking, seasonings, Poké Snacks | 84 seasonings | The seven Campfire Pots go on a lit campfire; their menu (3x3 grid, three seasonings, Cook) makes Cobblemon's pot recipes (112 of 118: those whose ingredients exist here) at once; bait seasonings go into a Poké Snack, which placed draws a wild Pokémon within 8 blocks about once a minute for 8 bites ([pot](docs/evidence/m19-java-campfire-pot.png), [cooked](docs/evidence/m19-java-campfire-pot-cooked.png), [snack](docs/evidence/m19-java-poke-snack.png), [log](docs/evidence/m19-poke-snack.log)); no cooking time or food colours; the campfire's own flame shows through the pot | 🟡 | 🟡 |
 | Medicine (potions, revives, status cures, ethers) | ✓ | All of them, in and out of battle, with Cobblemon's art | ✅ | ✅ |
 | Vitamins, EXP candies, Rare Candy | ✓ | Vitamins (+10 EVs), feathers (+1), EXP candies, Rare Candy | ✅ | ✅ |
-| Evolution stones and ores | ✓ | The items work; on branch `paper-custom-blocks`, Cobblemon's 23 ores generate as real blocks with its textures on both clients, mined with a pickaxe for the stone ([custom blocks](docs/custom-blocks.md), [Java](docs/evidence/cb-java-ores-and-apricorns.png), [Bedrock](docs/evidence/cb-bedrock-bot.log)) | 🟡 | 🟡 |
+| Evolution stones and ores | ✓ | Cobblemon's 23 ores generate by its ore features (counts, heights, vein sizes, biome tags), mine like Minecraft's ores with a pickaxe for the stone (Fortune, Silk Touch), drop to explosions; the 10 stone blocks craft and place ([mined](docs/evidence/cb-java-ore-mined-pickaxe.png), [Bedrock](docs/evidence/cb-bedrock-bot.log)) | ✅ | ✅ |
 | Held items | ~80 | Given by right-click (the old one comes back); no taking without a swap | 🟡 | 🟡 |
 | Display Case, Gilded Chests, Pokédex items | ✓ | The Display Case shows one item ([Java](docs/evidence/m15-java-display-case.png), [Bedrock](docs/evidence/m15-bedrock-display-case-bot.log)); the seven Gilded Chests are 27-slot chests with Cobblemon's model and sounds ([placed](docs/evidence/m26-java-gilded-chest.png), [contents kept](docs/evidence/m26-java-gilded-chest-kept.png)); the seven Pokédex items open your Pokédex ([evidence](docs/evidence/m26-java-pokedex-item.png)); no lid animation or Gimmighoul in chests, no Pokédex scanner | 🟡 | 🟡 |
-| Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 347 of them (every one whose ingredients are items: balls, medicine, held items, mints, rods); mint leaves and leeks drop from grass | 🟡 | 🟡 |
-| Structures (ruins, shipwrecks, habitats, villages) | ✓ | Cobblemon's 67 structures (29 ruins incl. Gimmighoul towers, 32 habitats, 3 shipwreck coves, 3 fishing boats; 1,165 pieces) in the datapack, generating in new chunks; its blocks swapped for vanilla look-alikes (Gilded Chests become chests, ores stone), its own processors left out ([Lush Gimmighoul tower](docs/evidence/m22-java-lush-gimmi-tower.png)); no village houses | 🟡 | 🟡 |
+| Recipes (crafting, furnace, smithing, brewing stand) | ~700 | 542 of them: every one whose ingredients are items, plus the ones that use Cobblemon's blocks and seeds (apricorn planks, stone blocks, apricorn and mint seeds); leeks drop from grass | 🟡 | 🟡 |
+| Structures (ruins, shipwrecks, habitats, villages) | ✓ | Cobblemon's 67 structures (29 ruins incl. Gimmighoul towers, 32 habitats, 3 shipwreck coves, 3 fishing boats; 1,165 pieces) generate in new chunks with Cobblemon's own ores, stone blocks, apricorn wood and berry bushes ([berry patch](docs/evidence/cb-java-structure-berry-patch.png)); their Gilded Chests are the plugin's, filled from Cobblemon's loot tables ([garden ruins](docs/evidence/cb-java-structure-gilded-chest.png)); Cobblemon's own processors are left out; no village houses | 🟡 | 🟡 |
 
 ## Languages
 
@@ -141,12 +141,12 @@ Counts: see [the summary at the end](#summary).
 
 ## Summary
 
-95 rows; Java and Bedrock are level; nothing is ⬜. Last full regression pass: a fresh world on 2026-10-21 ([notes](docs/evidence/m28-regression.md)).
+95 rows; Java and Bedrock are level; nothing is ⬜. Last full regression pass: a fresh world on 2026-10-21 ([notes](docs/evidence/m28-regression.md)); Cobblemon's blocks checked in a fresh world the same day ([checks](docs/evidence/cb-java-checks.log)).
 
 | | ✅ | 🟡 | ⬜ | ➖ |
 |---|---|---|---|---|
-| Java | 52 | 42 | 0 | 1 |
-| Bedrock | 52 | 42 | 0 | 1 |
+| Java | 55 | 39 | 0 | 1 |
+| Bedrock | 55 | 39 | 0 | 1 |
 
 ## Suggested order
 

@@ -39,71 +39,98 @@ technique itself is simple enough to do in ~400 lines, so the PoC does it direct
 
 | Family | Examples | Technique |
 |---|---|---|
-| Full cubes | the 23 evolution-stone ores, apricorn planks and logs, gilded chests' wood | **note block states** (574 free: enough for every Cobblemon full cube) |
-| Plants and fruit | apricorns (7 colours × 4 ages × 4 facings = 112), berry bushes, mints, revival herbs, medicinal leeks | **tripwire states** (127 free, so only the apricorns fit; the rest need a second source of states) |
-| Crops on farmland | mints, leeks, berry bushes' growth stages | the spare states of vanilla crops that never occur (e.g. `beetroots` ages with a hidden marker) or more tripwire-like states; a follow-up |
+| Full cubes | the 23 evolution-stone ores, stone blocks, apricorn logs, planks and leaves | **mushroom block states**: 93 kept (the bottom face shown, not all six), so note blocks stay vanilla |
+| Plants and fruit | apricorns, saplings, berry bushes, mints | **tripwire states**: the 64 with `disarmed=true`; one look per stage, with what a state can't say (colour, which berry) in chunk data |
 | Containers | Gilded Chests (7) | a vanilla chest with the item model swapped: the block stays a real chest (contents, hoppers); its look comes from a display entity, as now |
 | Machines | healing machine, PC, pasture, fossil machines, TM machine, campfire pot | **display entities**, as the plugin already does: they need animation and states no block state gives |
 
-## The proof of concept (branch `paper-custom-blocks`)
+## What shipped (v1.1.0)
 
-- `tools/build_custom_blocks.py` reads Cobblemon's own blockstates, models, textures, lang and ore features and writes:
-  - `blocks-pack.zip`: the Java pack (note block and tripwire blockstates pointing at Cobblemon's models and textures);
-  - `blocks.mcpack` and `geyser-blocks.json`: Bedrock textures and geometry, and Geyser's state overrides;
-  - `custom-blocks.json`: the plugin's table (block → state, drops, ore veins).
+Way A: real vanilla blocks keep working; the plugin does their part for the states it keeps.
 
-  State allocation is append-only, so a block keeps its state across releases. `python3 tools/build_custom_blocks.py demo`
-  is the check.
-- `CustomBlocks.java`:
-  - **Keeps the states still:** real note blocks are placed at harp/0 and can't be tuned; real string stays all-false.
-  - **Mining:** an ore breaks only as fast as Minecraft's iron ore would. A `BLOCK_BREAK_SPEED` attribute scales the
-    client's own break time from the note block's to the ore's, so the crack animation matches.
-  - **Drops:** Cobblemon's loot (its evolution stone with Fortune, the ore itself with Silk Touch, nothing without a pickaxe).
-  - **Apricorns:** planted on the side of leaves; bone meal grows them; right-click picks a ripe one.
-  - **Generation:** Cobblemon's 42 ore features (count, height, vein size, biome tags) generate in new chunks.
-- `server/setup.sh`: installs the packs and mappings, and sets Paper's two update switches.
+| Pool | States kept for Cobblemon | Used for | What vanilla loses |
+|---|---|---|---|
+| Mushroom blocks (brown, red, stem) | the 93 with the bottom face shown but not all six | 47 full cubes: 23 ores, 10 evolution-stone blocks, apricorn logs, wood (each axis), planks, leaves; structure berry markers | a real mushroom block shows its bottom face only when all six show (huge mushrooms never generate the kept states) |
+| String | the 64 with `disarmed=true` | 61 plants: apricorns (stages 0-2 one look, ripe one look a colour, 4 facings), 7 saplings, berry bushes (6 ages), mints (8 ages) | nothing a player sees: vanilla string only holds `disarmed` for the tick before shears cut it |
+| Note blocks | none | — | none: note blocks, their tuning, music and observers are untouched |
 
-### What was checked
+Paper's `block-updates.disable-mushroom-block-updates` and `disable-tripwire-updates` stop the game changing those
+states. `VanillaBlocks.java` then does vanilla's part for real mushroom blocks (faces hide against their own kind when
+placed or pushed) and real string:
+- hooks attach along the line;
+- entities going in set it off (players through the PHYSICAL interaction event, others through EntityInteractEvent);
+- it releases 10 ticks after the last one leaves;
+- breaking it fires the hooks, then they let go;
+- shears cut it quietly.
 
-On toby, Paper 26.3 with the vanilla 26.3 Java client and the Bedrock protocol bot:
+Hooks are vanilla's own: the plugin only asks them to look again. Every state change goes through the world with
+neighbour updates, so observers see it.
+
+`CustomBlocks.java` places and breaks Cobblemon's blocks:
+- **Mining time:** a break-speed attribute makes the client's mining time the block's own (ores mine like iron ore).
+- **Drops:** Cobblemon's loot tables, explosions included.
+- **World:** pistons move cubes as they are and break plants; water washes plants away; endermen can't take them.
+- **Creative pick-block:** gives the Cobblemon item.
+- **Sounds:** their own, played from the server.
+
+`Plants.java` does Cobblemon's growing, following its blocks' code:
+- **ApricornBlock:** 1-in-5 random ticks, bone meal, picking with a 10% seed.
+- **Apricorn saplings:** two stages, then ApricornTreeFeature's tree.
+- **MintBlock:** light 9+, 1-in-8 random ticks.
+- **BerryBlock/BerryBlockEntity:** growth time and refresh rate ×1.4 minutes over the stages, yield at flowering, the
+  fruit drawn at its growth points.
+
+New chunks get Cobblemon's features:
+- ores, by their placed features;
+- apricorn trees, by biome rate;
+- berry groves, by biome preference and weight;
+- mints, by altitude.
+
+Cobblemon's structures use the blocks directly. Their berry bushes are markers that become bushes when the chunk
+loads; their gilded chests carry their loot table to the plugin's gilded chests.
+
+What a block's state can't say lives in the chunk's own data:
+- an unripe apricorn's colour;
+- which berry a bush is, its timers and fruit;
+- a mint's colour;
+- leaves a player placed (they never decay).
+
+Berry bushes and mints draw on Java with item displays. Java aims at string's flat outline, so every plant also gets an
+invisible interaction box its size, for clicks and hits. Bedrock draws all of them as Geyser custom blocks
+(`blocks.mcpack`, `geyser-blocks.json`).
+
+### Checked (Paper 26.3, toby, a fresh world; `docs/evidence/cb-*`)
 
 | Check | Result | Evidence |
 |---|---|---|
-| Ores generate in new chunks | about 1,000 ores in a 7×7-chunk area, in stone and deepslate | `evidence/cb-java-ore-generated.png` |
-| All 23 ores and 7 apricorn colours × 4 stages show with Cobblemon's textures on Java | yes | `cb-java-ores-and-apricorns.png`, `cb-java-lineup.png`, `cb-java-apricorns.png` |
-| Place an ore from its item | shows the ore, in hand and placed | `cb-java-ore-placed-from-item.png` |
-| Mining feel | by hand 1.5 s and with an axe 1 s: not broken; iron pickaxe: broken in under a second, a Moon Stone dropped | `cb-java-ore-*.png`, `cb-java-checks.log` |
-| Apricorn: plant, bone meal to ripe, pick | grows, picks back to the first stage, drops `cobblemon:red_apricorn` | `cb-java-apricorn-*.png`, `cb-java-checks.log` |
-| Real note blocks and string unaffected | a note block on gold stays harp/0 through 3 right-clicks and a redstone block; string with a pig standing in it stays all-false | `cb-java-checks.log` |
-| Chunk unload and reload, server restart | states unchanged | `cb-java-after-chunk-reload.png`, `cb-java-checks.log` |
-| Bedrock | Geyser registers `cl_note_block` and `cl_tripwire`; the client is offered the blocks pack; an ore and an apricorn reach the client as custom block runtime ids (a real note block as vanilla's) | `cb-bedrock-bot.log` |
+| Ores, apricorn trees, berry groves and mints generate in new chunks | e.g. 510 moon stone ores, 20 apricorn logs, 5 berry bushes around one taiga spot | `cb-java-apricorn-tree-natural.png`, `cb-java-berry-grove-natural.png` |
+| Ore mining | not broken by hand (1.5 s) or iron axe (1.5 s); iron pickaxe < 1 s, Moon Stone dropped | `cb-java-ore-mined-pickaxe.png`, `cb-java-checks.log` |
+| Ripe apricorn on a generated tree picked | back to its first stage, Green Apricorn dropped | `cb-java-natural-apricorn-*.png` |
+| Apricorn seed → sapling → tree (bone meal), its apricorn ripened and picked | yes | `cb-java-apricorn-sapling.png`, `cb-java-apricorn-tree-grown.png` |
+| Oran berry on farmland → fruiting (bone meal at Cobblemon's 56%) → harvested | 2 Oran Berries, bush back to mature | `cb-java-berry-*.png` |
+| Pink mint seeds → age 7 → broken | 2 seeds and a mint leaf | `cb-java-mint-grown.png` |
+| Structure blocks | a berry patch's bushes; old garden ruins' 2 gilded chests filled from Cobblemon's loot | `cb-java-structure-*.png` |
+| Tripwire trap (player-placed string between two hooks, lamp behind a hook) | a pig sets it off (string, hook, lamp on); released after; a hand break fires then detaches; shears detach without firing; re-placing string re-attaches | `cb-java-checks.log` |
+| Mushroom blocks placed side by side by hand | the faces between them hide | `cb-java-checks.log` |
+| Note block + observer + lamp | tuning lights the lamp (note blocks untouched) | `cb-java-checks.log` |
+| Pistons and TNT | an ore moves as itself; a 3×3 of ores blown up drops Moon Stones | `cb-java-checks.log` |
+| Bedrock | the three custom blocks registered; ore, ripe apricorn, fruiting bush and log arrive as their own custom ids, real mushroom blocks and string as vanilla's; the blocks pack offered | `cb-bedrock-bot.log` |
 
-### Limits
+### Still different from vanilla or Cobblemon
 
-- **Bedrock is proven at protocol level only.** A bot can't render, so how the textures and the apricorn geometry look on a
-  real device is unchecked. Geyser's wiki says Bedrock block components can break between Bedrock versions.
-- **Real note blocks can't be tuned** (every note is a Cobblemon block). A per-block note stored in chunk data would bring
-  tuning back. Real string has no tripwire hooks either.
-- **Ore veins are a random walk of Cobblemon's vein size,** close to vanilla's small blobs but not the same shape. They come
-  from a `BlockPopulator`, so only in chunks generated after the plugin is installed.
-- **Mining:** the hardness comes from vanilla's iron, deepslate and nether ores. Efficiency and Haste work, because the
-  scale is computed from the held tool. Bedrock gets Minecraft's ore time from the mapping, but the server still decides.
-- **Apricorns don't grow on their own yet,** only with bone meal. They need apricorn trees and saplings to appear naturally;
-  for now they're planted by hand on any leaves.
-- **Running out of states:** 127 tripwire states hold only the apricorns. Berry bushes, mints and other plants need
-  another source of states.
-
-## Rolling out to all of Cobblemon's blocks
-
-| Work | Estimate | PARITY.md rows it moves |
-|---|---|---|
-| Ores: done here; add `/pokeitem` for ore items, ore datapack tags (`c:ores`), Fortune per Cobblemon's formula | ½ day | Evolution stones and ores 🟡 → ✅ |
-| Apricorn trees: saplings, logs, planks, leaves (note block states) and tree growth that hangs apricorns; generation from Cobblemon's tree features | 3–4 days | Apricorns, Apricorn trees and ball crafting 🟡 → ✅ |
-| Berry bushes and mints (more states: crops' spare states or note block states for their stages) | 3–5 days | Berries and berry trees 🟡 → ✅, Recipes (the plant ones) |
-| Structures: swap the vanilla look-alikes for these blocks in `build_structures.py` | 1 day | Structures (fewer stand-ins) |
-| Gilded Chests as chests with their model on a display entity (already drawn for Machines) | 1 day | Display Case / Gilded Chests |
-| Real-device Bedrock check and fixes | 1 day | — |
-| **Total** | **about 2 weeks** | ~6 rows 🟡 → ✅ |
+- **Bottom face:** a real mushroom block can't show its bottom face unless all six show (the README says so).
+- **Bedrock looks, unchecked on a device:**
+  - every berry bush shows the Oran look, and every mint the red mint;
+  - a bot can't render, so how they look on a real device is unchecked.
+- **Berries:** no mulch and no mutations.
+- **Leaves:** apricorn leaves are drawn opaque on Java, because mushroom blocks draw no transparency. They decay like
+  leaves, about 3-6 s after their last log goes.
+- **Ore veins:** a random walk of Cobblemon's vein size, and only in chunks generated after the update.
+- **Apricorns:** an unripe apricorn looks the same for every colour, as Cobblemon's own model does. Its colour shows when
+  ripe.
+- **Saccharine trees, other plants and blocks:** saccharine trees, revival herbs, medicinal leeks, big roots, hearty
+  grains and Cobblemon's building blocks (tumblestone, slabs, stairs) still use stand-ins. There's room for about 46
+  more full cubes, but only 3 more plant states.
 
 ## Sources
 
