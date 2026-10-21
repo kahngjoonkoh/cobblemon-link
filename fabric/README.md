@@ -23,7 +23,7 @@ Feature by feature, against the Paper version: [PARITY.md](PARITY.md). How it wa
 | Floodgate (Fabric) | 2.2.4-b38 | the last 1.21.1 build; Bedrock players without Java accounts |
 | Geyser standalone | 2.12.0-b1265 | Bedrock 26.30–26.52; it speaks the latest Java protocol |
 | ViaProxy | 3.4.14 | Geyser's Java version → 1.21.1 |
-| GeyserUtils + GeyserModelEngine extension | the Paper version's builds | Cobblemon's models on Bedrock |
+| GeyserUtils + GeyserModelEngine extension | the Paper version's builds (the extension patched to write compact JSON) | Cobblemon's models on Bedrock |
 
 Bedrock's NetherNet transport (from 2026-10-27) needs a newer Geyser and its NetherNet port: update the Geyser pin
 then.

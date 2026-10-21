@@ -9,8 +9,9 @@ DATA=${DATA:-./data}; MODELS=${MODELS:-$DATA/models}; ASSETS=${ASSETS:-../assets
 mkdir -p mods-extra "$DATA/fabric/config/floodgate" "$DATA/fabric/config/cobblemonlink" "$DATA/geyser/extensions/geysermodelengineextension/input" \
     "$DATA/geyser/packs" "$DATA/geyser/custom_mappings" "$DATA/viaproxy" "$MODELS"
 
-# name | url | sha256 (pinned; bump together). GeyserUtils and the GeyserModelEngine extension are the builds the
-# Paper version tested, mirrored on the repo's deps-2026-10-15 release.
+# name | url | sha256 (pinned; bump together). GeyserUtils is the build the Paper version tested, mirrored on the
+# repo's deps-2026-10-15 release; the GeyserModelEngine extension writes compact JSON
+# (../server/patches/geysermodelengineextension-1.0.9-compact-json.patch, deps-2026-10-21).
 while IFS='|' read -r dest url sha; do
   [ -z "$dest" ] && continue
   if [ ! -f "$dest" ] || ! echo "$sha  $dest" | sha256sum -c --quiet 2>/dev/null; then
@@ -22,7 +23,7 @@ mods-extra/Floodgate-Fabric-2.2.4-b38.jar|https://cdn.modrinth.com/data/bWrNNfkb
 mods-extra/polymer-bundled-0.9.19+1.21.1.jar|https://maven.nucleoid.xyz/eu/pb4/polymer-bundled/0.9.19+1.21.1/polymer-bundled-0.9.19+1.21.1.jar|8c6bb7897bf53e3207a2ca4fc26db55471990b605855f494c2d80bfcabd1ed3b
 $DATA/geyser/Geyser-Standalone.jar|https://download.geysermc.org/v2/projects/geyser/versions/2.12.0/builds/1265/downloads/standalone|3e235b5112110665a53ed3b42c0b8d514021c50184c01380aa5b01d52ee1f636
 $DATA/viaproxy/ViaProxy.jar|https://github.com/ViaVersion/ViaProxy/releases/download/v3.4.14/ViaProxy-3.4.14.jar|2894bbfb2f4342f8fde887af6c689313efd5b0e46a8006775eea0e21e2948ab5
-$DATA/geyser/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/GeyserModelEngineExtension-1.0.9.jar|9b5e6c9b6e20f5f5aa7516cd32eb635f1a99d4458bd6327b828859cbb2aa4f18
+$DATA/geyser/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-21/GeyserModelEngineExtension-1.0.9-cl.1.jar|54b6004bbb2ec8a50127e68a0f48488b4b89128093ee7782c2f4a140086b5fc5
 $DATA/geyser/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-geyser-1.0-SNAPSHOT.jar|50120094bd46fefbb1672737540e3a66a483391e062625676805b4bb08e79ea9
 EOF2
 
@@ -52,6 +53,8 @@ if [ -d "$ASSETS/java" ]; then
   [ -f "$MODELS/index.json" ] && [ "$MODELS/index.json" -nt "$ASSETS/java" ] || \
       python3 tools/build_models.py ~/.cache/cl-fabric/models "$MODELS" "$ASSETS/gamedata.json"
   cp -r "$ASSETS"/bedrock/* "$DATA/geyser/extensions/geysermodelengineextension/input/"
+  # GeyserModelEngine only writes pack files that are missing: clear its output so the next start regenerates it
+  rm -rf "$DATA/geyser/extensions/geysermodelengineextension/ResourcePack/generated_pack"
   cp "$ASSETS/bedrock-ui.mcpack" "$DATA/geyser/packs/cobblemon-link-ui.mcpack"
   # Cobblemon's sounds (cries, the Poké Ball) for Bedrock, from the Cobblemon jar the server downloaded
   J=$(ls "$DATA"/fabric/mods/Cobblemon-fabric-*.jar 2>/dev/null | head -1)

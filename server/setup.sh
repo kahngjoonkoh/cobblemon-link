@@ -11,7 +11,8 @@ mkdir -p "$D/plugins/Geyser-Spigot/extensions" "$D/plugins/BetterModel/models" \
 # GeyserModelEngine/GeyserUtils only publish a moving "latest" tag, so the tested builds (MIT)
 # are mirrored on this repo's deps-2026-10-15 release. GeyserModelEngine's Paper plugin comes from our fork
 # (kahngjoonkoh/GeyserModelEngine, branch cobblemon-link-perf): upstream 1.0.9 + its open PR #76
-# (patches/geysermodelengine-1.0.9-pr76.patch), until upstream merges it.
+# (patches/geysermodelengine-1.0.9-pr76.patch), until upstream merges it. Its Geyser extension writes compact JSON
+# (patches/geysermodelengineextension-1.0.9-compact-json.patch, deps-2026-10-21).
 while IFS='|' read -r name url sha; do
   [ -z "$name" ] && continue
   dest="$D/plugins/$name"
@@ -27,7 +28,7 @@ bettermodel-3.5.1-SNAPSHOT-527-paper.jar|https://cdn.modrinth.com/data/4h8rX3rt/
 packetevents-spigot-2.14.0.jar|https://cdn.modrinth.com/data/HYKaKraK/versions/m78nFxYg/packetevents-spigot-2.14.0.jar|060087c58ec268eae7dd0eb1f17ac3bea1eaadda1693414141ff64e506091bd7
 GeyserModelEngine-1.0.9.jar|https://github.com/kahngjoonkoh/GeyserModelEngine/releases/download/1.0.9-cl.2/GeyserModelEngine-1.0.9-cl.2.jar|05ef67be2957c1be5872f31a3c8702fe9956bf20101f8b950e159049a6f0b3b6
 geyserutils-spigot.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-spigot-1.0-SNAPSHOT.jar|b39677308d320c00be2a5bf8058296f39789b836cfb448d0c13437b2ecbdec43
-Geyser-Spigot/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/GeyserModelEngineExtension-1.0.9.jar|9b5e6c9b6e20f5f5aa7516cd32eb635f1a99d4458bd6327b828859cbb2aa4f18
+Geyser-Spigot/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-21/GeyserModelEngineExtension-1.0.9-cl.1.jar|54b6004bbb2ec8a50127e68a0f48488b4b89128093ee7782c2f4a140086b5fc5
 Geyser-Spigot/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-geyser-1.0-SNAPSHOT.jar|50120094bd46fefbb1672737540e3a66a483391e062625676805b4bb08e79ea9
 EOF
 
@@ -72,6 +73,8 @@ cp ../assets/blocks/java/*.bbmodel "$D/plugins/BetterModel/models/"
 # Cobblemon's NPC models (tools/build_npcs.py) and the cosmetic looks (tools/looks.py), when built
 for x in npcs cosmetic shoulder; do [ -d ../assets/$x/java ] && cp ../assets/$x/java/*.bbmodel "$D/plugins/BetterModel/models/" && cp -r ../assets/$x/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"; done
 cp -r ../assets/blocks/bedrock/* "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/input/"
+# GeyserModelEngine only writes pack files that are missing: clear its output so the next start regenerates it
+rm -rf "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/ResourcePack/generated_pack"
 
 # configs only exist after the first boot
 set_key() { [ -f "$1" ] && sed -i "s|^\(\s*\)$2:.*|\1$2: $3|" "$1"; }
