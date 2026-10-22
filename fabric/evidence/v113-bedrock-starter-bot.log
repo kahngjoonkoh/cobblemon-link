@@ -1,0 +1,10 @@
+# v1.1.3 Fabric, Bedrock bot on a toby test server (online mode off)
+## starter form: one form with every region; button 1 (a tile) sent -> nothing picked; then button 4 -> Charmander
+start_game
+form Check out the starters!§r§l§4 |  | #0001<textures/cobblemonlink/card/bulbasaur> ; Kanto<textures/cobblemonlink/tile/bulbasaur> ; Bulbasaur<textures/cobblemonlink/none> ; Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively larger.<textures/cobblemonlink/none> ; #0004<textures/cobblemonlink/card/charmander>
+start_game
+form Check out the starters!§r§l§4 |  | #0001<textures/cobblemonlink/card/bulbasaur> ; Kanto<textures/cobblemonlink/tile/bulbasaur> ; Bulbasaur<textures/cobblemonlink/none> ; Bulbasaur can be seen 
+text system "§r.BotStarter has made the advancement §a[The World of Cobblemon!]"
+title set_title "§r|CLn1bL10~Charmander~~mh18x00s00-~-~-~~~~~~~~~~~items/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+title set_title "§r|CLn1bL10~Charmander~~mh18x00s00-~-~-~~~~~~~~~~~items/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+title set_title "§r|CLn1bL10~Charmander~~mh18x00s00-~-~-~~~~~~~~~~~items/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

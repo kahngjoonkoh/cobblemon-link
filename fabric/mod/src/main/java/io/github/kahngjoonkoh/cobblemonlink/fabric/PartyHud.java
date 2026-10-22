@@ -239,7 +239,7 @@ public final class PartyHud {
                     "L" + (g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.getLevel()), ascii(BattleUi.name(m)),
                     m.getGender() == Gender.MALE ? "m" : m.getGender() == Gender.FEMALE ? "f" : "n", "h" + two(h),
                     "x" + two(Math.round(BAR * expRatio(m, g, t))), "s" + two(scroll), ev, mv, ea, et,
-                    Models.has(look) ? "items/portrait/" + look : "cobblemonlink/none"};
+                    Models.has(look) ? "items/portrait/" + bedrockName(look) : "cobblemonlink/none"};
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
                 b.append(x).append("~".repeat(FIELDS[k] - x.length()));
@@ -283,6 +283,17 @@ public final class PartyHud {
     private static String step(double opacity) { return String.valueOf("abcdefgh".charAt(Math.min(7, (int) Math.round((1 - opacity) * 8)))); }
 
     private static String two(int v) { return v < 10 ? "0" + v : String.valueOf(v); }
+
+    /** A look's name in a Bedrock texture path, as build_bedrock_ui.py short() cuts names over 40 characters. */
+    static String bedrockName(String name) {
+        if (name.length() <= 40) return name;
+        try {
+            byte[] h = java.security.MessageDigest.getInstance("SHA-1").digest(name.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return name.substring(0, 31) + "_" + java.util.HexFormat.of().formatHex(h).substring(0, 8);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 
     /** Plain ASCII without the pack's '~' and '|': Bedrock's UI cuts the title by bytes. */
     static String ascii(String s) {

@@ -203,7 +203,10 @@ final class Items {
      * Right-click with an item: Cobblemon's party select (a chest of the party, so every client draws it), then the
      * item's effect; in battle, the bag item goes to Showdown and takes the turn.
      */
-    boolean use(Player p, ItemStack stack) {
+    boolean use(Player p, ItemStack stack) { return use(p, stack, () -> p.getInventory().getItemInMainHand()); }
+
+    /** src: where the item is (the hand, or a slot the battle bag picked); it's checked and used from there. */
+    boolean use(Player p, ItemStack stack, java.util.function.Supplier<ItemStack> src) {
         String tm = tmMove(stack);
         if (tm != null) {
             if (pl.battles.containsKey(p.getUniqueId())) return true;
@@ -231,8 +234,8 @@ final class Items {
                     return;
                 }
                 if (d.kind.equals("berry") && canUse(d, m)) { // a berry it can eat now is eaten
-                    if (d.pp > 0) pickMove(p, d.name, m, move -> apply(p, null, id, d, m, move));
-                    else apply(p, null, id, d, m, null);
+                    if (d.pp > 0) pickMove(p, d.name, m, move -> apply(p, null, id, d, m, move, src));
+                    else apply(p, null, id, d, m, null, src);
                     return;
                 }
                 String old = m.held;
@@ -253,20 +256,26 @@ final class Items {
             p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.cannot"), NamedTextColor.RED));
             return true;
         }
-        pickPokemon(p, pl.t(p, "cobblemonlink.item.use_on", name(p, id)), party, m -> b != null ? b.canUse(m, d) : canUse(d, m), m -> {
-            if (!stack.isSimilar(p.getInventory().getItemInMainHand())) return; // the item left the hand meanwhile
+        if (b != null && party.stream().noneMatch(m -> b.canUse(m, d))) { // nobody it would work on: no turn used
+            p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.invalid"), NamedTextColor.RED));
+            b.openMenu();
+            return true;
+        }
+        pickPokemon(p, pl.t(p, "cobblemonlink.item.use_on", name(p, id)), party, m -> b != null ? b.canUse(m, d) : canUse(d, m), b == null ? null : b::openMenu, m -> {
+            if (!stack.isSimilar(src.get())) return; // the item left its slot meanwhile
             if (d.kind.equals("ether") || d.kind.equals("berry") && d.pp > 0) {
-                pickMove(p, d.name, m, move -> apply(p, b, id, d, m, move));
-            } else apply(p, b, id, d, m, null);
+                pickMove(p, d.name, m, b == null ? null : b::openMenu, move -> apply(p, b, id, d, m, move, src));
+            } else apply(p, b, id, d, m, null, src);
         });
         return true;
     }
 
-    private void apply(Player p, Battle b, String id, Def d, Mon m, String move) {
+    private void apply(Player p, Battle b, String id, Def d, Mon m, String move, java.util.function.Supplier<ItemStack> src) {
         if (b != null) {
             String input = battleInput(d, id, b, m, move);
             if (input == null || !b.useItem(m, id, input)) {
                 p.sendMessage(Component.text(pl.t(p, "cobblemon.battle.bagitem.invalid"), NamedTextColor.RED));
+                b.openMenu(); // no turn used: the menu again
                 return;
             }
             if (d.kind.equals("x_stat") || d.kind.equals("dire_hit") || d.kind.equals("guard_spec")) m.addFriendship(pl.dex, 1);
@@ -282,7 +291,7 @@ final class Items {
             }
             p.sendMessage(Component.text(msg, NamedTextColor.GREEN));
         }
-        if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) p.getInventory().getItemInMainHand().subtract();
+        if (p.getGameMode() != org.bukkit.GameMode.CREATIVE) src.get().subtract();
         pl.store.save(p.getUniqueId());
     }
 
@@ -429,7 +438,13 @@ final class Items {
 
     /** Cobblemon's party select: one chest row, the party from the second slot; the ones it can't be used on greyed. */
     void pickPokemon(Player p, String title, List<Mon> party, java.util.function.Predicate<Mon> ok, Consumer<Mon> chosen) {
+        pickPokemon(p, title, party, ok, null, chosen);
+    }
+
+    /** closed: run if the player closes it without picking (a battle's menu again). */
+    void pickPokemon(Player p, String title, List<Mon> party, java.util.function.Predicate<Mon> ok, Runnable closed, Consumer<Mon> chosen) {
         Menu menu = new Menu(9, title);
+        menu.onClose = closed;
         for (int i = 0; i < party.size(); i++) {
             Mon m = party.get(i);
             boolean can = ok.test(m);
@@ -437,6 +452,7 @@ final class Items {
             ItemStack icon = Menu.monIcon(pl.dex, m, can ? pl.t(p, "cobblemonlink.item.click") : no);
             if (!can) icon = Menu.icon(Material.GRAY_STAINED_GLASS_PANE, m.name(pl.dex, CobblemonLink.loc(p)) + "  Lv." + m.level, List.of(no));
             menu.set(i + 1, icon, can ? e -> {
+                menu.onClose = null;
                 p.closeInventory();
                 chosen.accept(m);
             } : null);
@@ -445,12 +461,16 @@ final class Items {
     }
 
     /** Ether / Max Ether: which move. */
-    void pickMove(Player p, String title, Mon m, Consumer<String> chosen) {
+    void pickMove(Player p, String title, Mon m, Consumer<String> chosen) { pickMove(p, title, m, null, chosen); }
+
+    void pickMove(Player p, String title, Mon m, Runnable closed, Consumer<String> chosen) {
         Menu menu = new Menu(9, title);
+        menu.onClose = closed;
         for (int i = 0; i < m.moves.size(); i++) {
             String mv = m.moves.get(i);
             String pp = m.pp != null && i < m.pp.size() && m.ppMax != null && i < m.ppMax.size() ? m.pp.get(i) + "/" + m.ppMax.get(i) : "full";
             menu.set(i + 2, Menu.icon(Material.PAPER, pl.dex.label("move", mv), List.of("PP " + pp)), e -> {
+                menu.onClose = null;
                 p.closeInventory();
                 chosen.accept(mv);
             });

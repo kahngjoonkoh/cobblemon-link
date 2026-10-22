@@ -1,0 +1,63 @@
+# v1.1.3 Paper: starter form (tile index ignored, then Charmander), battle tiles, empty bag, potion refused at full HP, bag balls, Run
+start_game
+text system "§r§6Type /starter to choose your first Pokémon and begin your journey!"
+text system "§r§e.BotPaper joined the game"
+form Starter Selection§r§l§4 |  | #0001<textures/cobblemonlink/card/bulbasaur> ; Kanto<textures/cobblemonlink/tile/bulbasaur> ; Bulbasaur<textures/cobblemonlink/none> ; Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively larger.<textures/cobblemonlink/none> ; #0004<textures/cobblemonlink/card/charmander> ; <te
+form Starter Selection§r§l§4 |  | #0001<textures/cobblemonlink/card/bulbasaur> ; Kanto<textures/cobblemonlink/tile/bulbasaur> ; Bulbasaur<textures/cobblemonlink/none> ; Bulbasaur can be seen napping in bright sunlight. There is a seed on its back. By soaking up the sun's rays, the seed grows progressively larger.<textures/cobblemonlink/none> ; #0004<textures/cobblemonlink/card/charmander> ; <te
+text system "§r§aYou chose Charmander! Right-click (or tap) a wild Pokémon to battle it."
+text system "§r§6Type /starter to choose your first Pokémon and begin your journey!"
+text system "§r§e.BotPaperC joined the game"
+text system "§r§aGave Charmander Lv.10"
+using 85n
+sound cobblemon:pokemon.chansey.cry
+sound cobblemon:poke_ball.send_out
+sound cobblemon:pokemon.charmander.cry
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb4828/28~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~aitems/portrait/chansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb4828/28~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~aitems/portrait/chansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§cYou have no items you can use in this battle."
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! / Go! Charmander! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§eGot away safely!"
+text system "§r§e.BotPaperC joined the game"
+using 115n
+sound cobblemon:pokemon.chansey.cry
+sound cobblemon:poke_ball.send_out
+sound cobblemon:pokemon.charmander.cry
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Bag |  | Poké Ball x6 Poké Balls<textures/cobblemonlink/none> ; Potion x2 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+text system "§r§cThis item would not work."
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! / Go! Charmander! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Battle§r§l§2 | A wild Chansey (Lv.3) / appeared! / Go! Charmander! | Growl           40/40<textures/cobblemonlink/move_normal> ; Scratch           35/35<textures/cobblemonlink/move_normal> ; Ember           25/25<textures/cobblemonlink/move_fire> ; Smokescreen           20/20<textures/cobble
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! / Go! Charmander! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Battle§r§l§2 | Charmander used Ember! / It was a critical hit! / The wild Chansey used / Pound! | Growl           40/40<textures/cobblemonlink/move_normal> ; Scratch           35/35<textures/cobblemonlink/move_normal> ; Ember           24/25<textures/cobblemonlink/move_fire> ; Smokescreen   
+form Battle§r§l§1 | Charmander used Ember! / It was a critical hit! / The wild Chansey used / Pound! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§eGot away safely!"
+text system "§r§e.BotPaperC joined the game"
+using 106n
+sound cobblemon:pokemon.chansey.cry
+sound cobblemon:poke_ball.send_out
+sound cobblemon:pokemon.charmander.cry
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Bag |  | Poké Ball x5 Poké Balls<textures/cobblemonlink/none> ; Potion x2 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | A wild Chansey (Lv.3) / appeared! / Go! Charmander! / The Chansey broke free! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Bag |  | Poké Ball x4 Poké Balls<textures/cobblemonlink/none> ; Potion x2 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | The Chansey broke free! / The wild Chansey used / Pound! / The Chansey broke free! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Bag |  | Poké Ball x3 Poké Balls<textures/cobblemonlink/none> ; Potion x2 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | The wild Chansey used / Refresh! / But it failed. / The Chansey broke free! | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§eGot away safely!"

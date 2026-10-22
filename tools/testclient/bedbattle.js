@@ -13,8 +13,11 @@ c.on('start_game', p => {
 })
 c.on('move_player', p => { if (p.runtime_id == me) pos = p.position })
 c.on('add_player', p => { if (process.env.TARGET_PLAYER && p.username === process.env.TARGET_PLAYER) c.emit('add_entity', { entity_type: 'player:' + p.username, runtime_id: p.runtime_id }) })
+const seenAt = {} // NEAREST=1: of the TARGET entities sent before the tap, the one nearest the bot (e.g. the Paper carrier pig of a Pokémon spawned beside it)
 c.on('add_entity', p => {
   console.log('add_entity', p.entity_type, p.runtime_id)
+  if (process.env.NEAREST && p.entity_type.startsWith(process.env.TARGET || 'modelengine:')) seenAt[p.runtime_id] = p.position
+  if (process.env.NEAREST && target && seenAt[p.runtime_id] && pos) { const d = q => (q.x - pos.x) ** 2 + (q.z - pos.z) ** 2; if (d(p.position) < d(seenAt[target])) target = p.runtime_id }
   if (!target && p.entity_type.startsWith(process.env.TARGET || 'modelengine:')) { // TARGET: only use it, no hit
     target = p.runtime_id
     setTimeout(() => {

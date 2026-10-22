@@ -104,5 +104,14 @@
  "cobblemonlink.team.received": "%1$s wants to team up for multi battles",
  "cobblemonlink.dex.region": "Pokédex",
  "cobblemonlink.format.multi": "multi, 2 vs 2",
- "cobblemonlink.battle.target": "Use it on which Pokémon?"
+ "cobblemonlink.battle.target": "Use it on which Pokémon?",
+ "cobblemonlink.battle.fled": "Got away safely!",
+ "cobblemonlink.battle.bag": "Bag",
+ "cobblemonlink.battle.bag_empty": "You have no items you can use in this battle.",
+ "cobblemonlink.battle.bag_balls": "Poké Balls",
+ "cobblemonlink.battle.bag_medicine": "Medicine",
+ "cobblemonlink.battle.bag_battle": "Battle items",
+ "cobblemonlink.battle.no_balls_here": "Poké Balls can't be thrown in this battle.",
+ "cobblemonlink.battle.use_on": "Use %s on...",
+ "cobblemonlink.battle.back": "Back"
 }

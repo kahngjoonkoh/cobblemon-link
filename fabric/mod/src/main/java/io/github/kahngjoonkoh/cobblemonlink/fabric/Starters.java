@@ -18,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
  * Bedrock: the Paper version's starter form (title ending MARK + 4; build_bedrock_ui.py starter_form).
  */
 public final class Starters {
-    static final int PER_PAGE = 3; // regions on a Bedrock form page
 
     private Starters() {}
 
@@ -67,34 +66,38 @@ public final class Starters {
         return String.join(" ", s.getPokedex().stream().map(k -> Lang.get(p, k)).toList());
     }
 
+    /** build_bedrock_ui.py STARTER_BUTTONS / STARTER_MAX: four buttons a starter, a region three starters. */
+    static final int PER = 4, MAX = 36;
+
     /**
-     * The form: 0 "I choose you!" (the Pokédex number, the card), 1 and 2 the page arrows, then a row of 3 a region
-     * (the region's name on its first tile, "*" on the selected one). A tap re-sends it, as a click reopens a chest.
+     * The form, all regions at once (the pack's starter_form browses them without the form closing): per starter
+     * "I choose you!" (the card, its Pokédex number), its tile (the region's name on a region's first), its name and
+     * Pokédex entry. Only an "I choose you!" (button PER * k) picks; closing leaves the prompt up.
      */
     static void bedrock(ServerPlayer p, List<Region> regions, int page, int region, int index) {
-        String selected = regions.get(region).species().get(index);
-        var species = PokemonSpecies.getByName(selected);
-        Runnable stay = () -> bedrock(p, regions, page, region, index);
         List<Forms.Opt> opts = new ArrayList<>();
-        opts.add(new Forms.Opt(String.format("#%04d", species == null ? 0 : species.getNationalPokedexNumber()), "card/" + selected,
-                () -> Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, regions.get(region).category(), index)));
-        opts.add(new Forms.Opt("", "up", page > 0 ? () -> bedrock(p, regions, page - PER_PAGE, region, index) : stay));
-        opts.add(new Forms.Opt("", "down", page + PER_PAGE < regions.size() ? () -> bedrock(p, regions, page + PER_PAGE, region, index) : stay));
-        for (int k = 0; k < PER_PAGE && page + k < regions.size(); k++) {
-            Region r = regions.get(page + k);
-            int ri = page + k;
+        List<Runnable> picks = new ArrayList<>();
+        for (int ri = 0; ri < regions.size() && opts.size() < PER * MAX; ri++) {
+            Region r = regions.get(ri);
             for (int j = 0; j < 3; j++) {
-                if (j >= r.species().size()) {
-                    opts.add(new Forms.Opt("", "none", stay));
+                String s = j < r.species().size() ? r.species().get(j) : null;
+                var species = s == null ? null : PokemonSpecies.getByName(s);
+                if (species == null) {
+                    for (int k = 0; k < PER; k++) opts.add(new Forms.Opt("", "none", () -> {}));
+                    picks.add(null);
                     continue;
                 }
-                String s = r.species().get(j);
+                String category = r.category();
                 int sj = j;
-                opts.add(new Forms.Opt((j == 0 ? r.name() : "") + (ri == region && j == index ? "*" : ""), "tile/" + s,
-                        () -> bedrock(p, regions, page, ri, sj)));
+                opts.add(new Forms.Opt(String.format("#%04d", species.getNationalPokedexNumber()), "card/" + s, () -> {}));
+                opts.add(new Forms.Opt(j == 0 ? r.name() : "", "tile/" + s, () -> {}));
+                opts.add(new Forms.Opt(Lang.resolve(p, species.getTranslatedName()).getString(), "none", () -> {}));
+                opts.add(new Forms.Opt(desc(p, s), "none", () -> {}));
+                picks.add(() -> Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, category, sj));
             }
         }
-        String name = species == null ? selected : Lang.resolve(p, species.getTranslatedName()).getString();
-        Forms.send(p, name + Forms.MARK + 4, desc(p, selected), opts, i -> { if (i >= 0 && i < opts.size()) opts.get(i).action().run(); });
+        Forms.send(p, Lang.t(p, "cobblemon.ui.starter.choose_starter_title") + Forms.MARK + 4, "", opts, i -> {
+            if (i >= 0 && i % PER == 0 && i / PER < picks.size() && picks.get(i / PER) != null) picks.get(i / PER).run();
+        });
     }
 }

@@ -85,7 +85,19 @@ if [ -f "$G" ] && [ -f "$DATA/fabric/config/floodgate/key.pem" ]; then
     cp /tmp/cl-items.$$/cobblemon-link-items.mcpack "$DATA/geyser/packs/"
     rm -rf /tmp/cl-items.$$
   fi
-  echo "configured Geyser (Floodgate, through ViaProxy) and Bedrock item icons"
+  # Cobblemon's blocks on Bedrock: the vanilla states PolyMc borrows for them (written by the mod at start) as Geyser
+  # custom blocks; Minecraft's client jar (Mojang's, checked by its SHA-1, not shipped) has the vanilla parent models
+  PB="$DATA/fabric/config/cobblemonlink/poly-blocks.json"
+  if [ -f "$PB" ] && [ -d ~/.cache/cl-fabric/cobj ]; then
+    VJ=~/.cache/cl-fabric/client-1.21.1.jar
+    [ -f "$VJ" ] || curl -sfL -o "$VJ" https://piston-data.mojang.com/v1/objects/30c73b1c5da787909b2f73340419fdf13b9def88/client.jar
+    echo "30c73b1c5da787909b2f73340419fdf13b9def88  $VJ" | sha1sum -c --quiet || { rm -f "$VJ"; echo "client jar download failed" >&2; }
+    VANILLA_JAR=$([ -f "$VJ" ] && echo "$VJ") python3 ../tools/build_poly_blocks.py "$PB" ~/.cache/cl-fabric/cobj /tmp/cl-blocks.$$ >/dev/null
+    cp /tmp/cl-blocks.$$/cobblemon-link-blocks.json "$DATA/geyser/custom_mappings/"
+    cp /tmp/cl-blocks.$$/cobblemon-link-blocks.mcpack "$DATA/geyser/packs/"
+    rm -rf /tmp/cl-blocks.$$
+  fi
+  echo "configured Geyser (Floodgate, through ViaProxy), Bedrock item icons and blocks"
 else
   echo "first run: docker compose up -d, wait for the server to start, docker compose down, then run setup.sh again"
 fi

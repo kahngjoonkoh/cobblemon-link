@@ -1,0 +1,7 @@
+# v1.1.3 Fabric: Cobblemon blocks PolyMc shows as borrowed vanilla states arrive as Geyser custom blocks (clp_*)
+packs offered: 8259998a-e50d-9982-2d54-2afde7a8399b b0453084-3d39-5422-65c7-287839bd8a83 cc493d8f-bec7-8141-4d64-604aa9c890ad 00495237-232f-1a1e-52bb-64199d320c89 6058bc84-1a7f-3eb3-ac0f-f82702be6a88
+custom blocks registered: 149 - ours: 44 geyser_custom:clp_petrified_oak_slab geyser_custom:clp_light_weighted_pressure_plate geyser_custom:clp_dark_oak_fence_gate geyser_custom:clp_waxed_oxidized_cut_copper_slab geyser_custom:clp_infested_stone geyser_custom:clp_acacia_leaves geyser_custom:clp_cave_vines geyser_custom:clp_warped_fence_gate geyser_custom:clp_infested_mossy_stone_bricks geyser_custom:clp_infested_deepslate geyser_custom:clp_dark_oak_sapling geyser_custom:clp_small_dripleaf
+in the world at {"x":0,"y":69,"z":0} block_network_ids_are_hashes: false
+update_block 2,92,-5 runtime 20524
+update_block 2,92,-5 runtime 17801
+(setblock cobblemon:apricorn_leaves at 2,92,-5 -> runtime id 20524, past the vanilla palette: a custom block)

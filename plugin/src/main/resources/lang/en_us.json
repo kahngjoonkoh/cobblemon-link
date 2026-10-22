@@ -96,7 +96,6 @@
  "cobblemonlink.item.ev_down": "%1$s's %2$s EVs fell by %3$s.",
  "cobblemonlink.ui.yes": "Yes",
  "cobblemonlink.ui.no": "No",
- "cobblemonlink.ui.release_q": "Release?",
  "cobblemonlink.ui.nature_neutral": "No stat changes",
  "cobblemonlink.ui.nature_effect": "Raises %1$s, lowers %2$s",
  "cobblemonlink.ui.stat_short.hp": "HP",
@@ -110,5 +109,13 @@
  "cobblemonlink.pot.cook": "Cook",
  "cobblemonlink.pot.seasoning": "Seasonings go in the right column",
  "cobblemonlink.herd.spawned": "A herd led by %1$s.",
- "cobblemonlink.dialogue.next": "Next"
+ "cobblemonlink.dialogue.next": "Next",
+ "cobblemonlink.battle.bag": "Bag",
+ "cobblemonlink.battle.bag_empty": "You have no items you can use in this battle.",
+ "cobblemonlink.battle.bag_balls": "Poké Balls",
+ "cobblemonlink.battle.bag_medicine": "Medicine",
+ "cobblemonlink.battle.bag_battle": "Battle items",
+ "cobblemonlink.battle.no_balls_here": "Poké Balls can't be thrown in this battle.",
+ "cobblemonlink.battle.use_on": "Use %s on...",
+ "cobblemonlink.battle.back": "Back"
 }

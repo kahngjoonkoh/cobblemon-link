@@ -29,8 +29,9 @@ import net.minecraft.world.BossEvent;
  * Cobblemon's battle screen for players without the mod, driven by Cobblemon's own battle: when Cobblemon asks the
  * player to choose (BattleMakeChoicePacket), the menu opens; a choice goes back as the actor's Showdown response, as
  * Cobblemon's client sends it. The battle log is Cobblemon's battle messages.
- * Bedrock: Floodgate forms in the Paper version's layout (title "Battle" + MARK + 1 menu, 2 moves, 3 party), HP in
- * boss bars, a prompt in the action bar while the form is closed (tap the Pokémon or /battle reopens it).
+ * Bedrock: Floodgate forms in the Paper version's layout (title "Battle" + MARK + 1 menu, 2 moves, 3 party), Cobblemon's
+ * HP tiles from a title the UI pack draws (BattleTiles), a prompt in the action bar while the form is closed (tap the
+ * Pokémon or /battle reopens it). Vanilla Java's chest battle keeps boss bars.
  */
 public final class BattleUi {
     private static final Map<UUID, BattleUi> OPEN = new HashMap<>();
@@ -49,7 +50,7 @@ public final class BattleUi {
 
     private BattleUi(ServerPlayer player) {
         this.player = player;
-        if (!javaScreen()) { // Java's battle screen draws Cobblemon's own HP tiles instead
+        if (!javaScreen() && !Clients.bedrock(player)) { // Java's battle screen and Bedrock's tiles draw Cobblemon's own HP tiles instead
             wildBar.addPlayer(player);
             ownBar.addPlayer(player);
         }
@@ -67,6 +68,14 @@ public final class BattleUi {
                 continue;
             }
             ui.bars();
+            if (ui.thrown != null && ui.thrown.isRemoved()) { // a miss (no capture): the turn is still the player's
+                ui.thrown = null;
+                var a = ui.actor();
+                if (a != null && a.getMustChoose()) {
+                    ui.choosing = true;
+                    ui.openMenu();
+                }
+            }
             if (ui.choosing && !ui.formOpen && !ui.javaScreen())
                 ui.player.connection.send(new ClientboundSetActionBarTextPacket(Component.literal(Lang.t(ui.player, Clients.bedrock(ui.player)
                         ? "cobblemonlink.battle.choose_tap" : "cobblemonlink.battle.choose_click"))));
@@ -90,6 +99,9 @@ public final class BattleUi {
         BattleUi ui = OPEN.get(p.getUUID());
         return ui == null || ui.watching == null ? null : BattleRegistry.getBattle(ui.watching);
     }
+
+    /** A ball thrown from the bag; if it lands without a capture starting, the menu comes back (tick). */
+    private com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity thrown;
 
     /** The battle this player spectates; null when they fight in it. */
     private java.util.UUID watching;
@@ -131,6 +143,7 @@ public final class BattleUi {
         screen = null;
         if (javaScreen()) player.connection.send(new ClientboundSetActionBarTextPacket(Component.empty()));
         OPEN.remove(player.getUUID());
+        if (Clients.bedrock(player)) BattleTiles.clear(player);
         wildBar.removeAllPlayers();
         ownBar.removeAllPlayers();
         choosing = false;
@@ -327,10 +340,8 @@ public final class BattleUi {
         boolean trapped = !r.getActive().isEmpty() && r.getActive().getFirst().getTrapped();
         List<Forms.Opt> opts = new ArrayList<>(List.of(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
                 new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
-                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.capture"), "menu_bag", this::capture), new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.run"), "menu_run", () -> respond(new FleeAttemptActionResponse()))));
+                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.capture"), "menu_bag", this::openBag), new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.run"), "menu_run", () -> run(trapped))));
         if (trapped) opts.remove(1);
-        var b = battle(player);
-        if (b != null && !b.isPvW()) opts.removeIf(o -> o.image().equals("menu_bag")); // only wild Pokémon can be caught
         form(1, opts);
     }
 
@@ -411,10 +422,151 @@ public final class BattleUi {
         form(3, opts);
     }
 
-    /** Cobblemon's Catch: the menu steps aside and the player throws a Poké Ball (Cobblemon's own capture). */
-    private void capture() {
-        hide(); // Java's screen steps aside so a ball can be thrown
-        player.sendSystemMessage(Component.literal(Lang.t(player, "cobblemonlink.battle.throw_ball")));
+    /**
+     * Run. Cobblemon asks the player to walk away from the wild Pokémon (run_prompt), which a player in a form can't do,
+     * so outside Java's battle screen a wild battle is fled at once, as Cobblemon's checkFlee does once far enough.
+     */
+    private void run(boolean trapped) {
+        PokemonBattle b = battle(player);
+        if (javaScreen() || b == null || !b.isPvW() || trapped) { // trainers and PvP: Cobblemon's own answer
+            respond(new FleeAttemptActionResponse());
+            return;
+        }
+        for (var a : b.getActors())
+            if (a instanceof com.cobblemon.mod.common.battles.actor.PokemonBattleActor wild)
+                for (var bp : wild.getPokemonList()) bp.getEffectedPokemon().heal();
+        b.setFled(true);
+        b.stop();
+        player.sendSystemMessage(Component.literal(Lang.t(player, "cobblemonlink.battle.fled")).withStyle(ChatFormatting.YELLOW));
+        end();
+    }
+
+    /**
+     * The bag (Catch): the usable things the player carries, Poké Balls (wild battles only), medicine and battle
+     * items, with counts. A ball is thrown at the wild Pokémon (Cobblemon's capture takes the turn); an item asks for
+     * its Pokémon and goes through Cobblemon's own BagItemLike, which takes the turn or says why not. Nothing usable,
+     * a refused item, Back or closing: the battle menu again.
+     */
+    private void openBag() {
+        PokemonBattle b = battle(player);
+        BattleActor a = actor();
+        if (b == null || a == null) return;
+        boolean wild = b.isPvW();
+        List<net.minecraft.world.item.ItemStack> balls = new ArrayList<>(), medicine = new ArrayList<>(), battleItems = new ArrayList<>();
+        java.util.Set<net.minecraft.world.item.Item> seen = new java.util.HashSet<>();
+        var inv = player.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            var st = inv.getItem(i);
+            if (st.isEmpty() || !seen.add(st.getItem())) continue; // one entry per kind, with its total count
+            if (st.getItem() instanceof com.cobblemon.mod.common.item.PokeBallItem) {
+                if (wild) balls.add(st);
+            } else if (com.cobblemon.mod.common.battles.BagItems.getConvertibleForStack(st) != null // X items, Dire Hit, Moomoo Milk
+                    || st.getItem() instanceof com.cobblemon.mod.common.api.item.PokemonSelectingItem psi && psi.getBagItem() != null) { // medicine
+                String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).getPath();
+                (id.startsWith("x_") || id.equals("dire_hit") || id.equals("guard_spec") ? battleItems : medicine).add(st);
+            }
+        }
+        if (balls.isEmpty() && medicine.isEmpty() && battleItems.isEmpty()) {
+            player.sendSystemMessage(Component.literal(Lang.t(player, "cobblemonlink.battle.bag_empty")).withStyle(ChatFormatting.RED));
+            openMenu();
+            return;
+        }
+        List<Forms.Opt> opts = new ArrayList<>();
+        for (var group : List.of(balls, medicine, battleItems)) {
+            String head = Lang.t(player, group == balls ? "cobblemonlink.battle.bag_balls" : group == medicine ? "cobblemonlink.battle.bag_medicine" : "cobblemonlink.battle.bag_battle");
+            for (var st : group) {
+                var item = st.getItem();
+                opts.add(new Forms.Opt(st.getHoverName().getString() + " x" + inv.countItem(item) + "\n" + head, "none",
+                        group == balls ? () -> throwBall(item) : () -> useOn(item)));
+            }
+        }
+        opts.add(new Forms.Opt(Lang.t(player, "cobblemonlink.battle.back"), "none", this::openMenu));
+        choice(Lang.t(player, "cobblemonlink.battle.bag"), opts);
+    }
+
+    /** A plain list (vanilla Bedrock form, or a chest on Java); closing it is Back. */
+    private void choice(String title, List<Forms.Opt> opts) {
+        formOpen = true;
+        if (Clients.bedrock(player)) {
+            Forms.send(player, title, "", opts, i -> {
+                formOpen = false;
+                if (i >= 0 && i < opts.size()) opts.get(i).action().run();
+                else openMenu();
+            });
+            return;
+        }
+        formOpen = false;
+        if (screen != null) hide(); // Java's battle screen steps aside for the chest
+        Chest c = new Chest(Math.min(6, (opts.size() + 8) / 9), title);
+        for (int i = 0; i < Math.min(54, opts.size()); i++) {
+            Runnable r = opts.get(i).action();
+            String[] t = opts.get(i).text().split("\n");
+            c.set(i, Chest.icon(net.minecraft.world.item.Items.PAPER, t[0], t.length > 1 ? List.of(t[1]) : List.of()), () -> { player.closeContainer(); r.run(); });
+        }
+        c.open(player);
+    }
+
+    /** A ball from the bag, thrown from the player at the wild Pokémon (Cobblemon's EmptyPokeBallEntity); one used. */
+    private void throwBall(net.minecraft.world.item.Item item) {
+        PokemonBattle b = battle(player);
+        var foe = foe();
+        int slot = player.getInventory().findSlotMatchingItem(new net.minecraft.world.item.ItemStack(item));
+        if (b == null || !b.isPvW() || foe == null || slot < 0 || !(item instanceof com.cobblemon.mod.common.item.PokeBallItem pb)) {
+            player.sendSystemMessage(Component.literal(Lang.t(player, b != null && !b.isPvW() ? "cobblemonlink.battle.no_balls_here" : "cobblemonlink.battle.bag_empty")).withStyle(ChatFormatting.RED));
+            openMenu();
+            return;
+        }
+        var ball = new com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity(pb.getPokeBall(), player.level(), player,
+                com.cobblemon.mod.common.CobblemonEntities.EMPTY_POKEBALL);
+        // thrown from just in front of it, so it can't miss over a battle's distance (a miss never takes the turn)
+        var to = foe.position().add(0, foe.getBbHeight() / 2, 0);
+        var back = player.getEyePosition().subtract(to).normalize();
+        ball.setPos(to.add(back.scale(foe.getBbWidth() / 2 + 1.2)).add(0, 0.4, 0));
+        var d = to.subtract(ball.position());
+        ball.shoot(d.x, d.y, d.z, 0.8f, 0f);
+        ball.setOwner(player);
+        player.level().addFreshEntity(ball);
+        if (!player.hasInfiniteMaterials()) player.getInventory().getItem(slot).shrink(1);
+        choosing = false; // the throw is the turn: Cobblemon asks again if it breaks free
+        thrown = ball;
+        hide();
+    }
+
+    /** Medicine or a battle item: which Pokémon (battle items: the one in battle), then Cobblemon's BagItemLike. */
+    private void useOn(net.minecraft.world.item.Item item) {
+        BattleActor a = actor();
+        if (a == null) return;
+        int slot = player.getInventory().findSlotMatchingItem(new net.minecraft.world.item.ItemStack(item));
+        var bl = slot < 0 ? null : com.cobblemon.mod.common.battles.BagItems.getConvertibleForStack(player.getInventory().getItem(slot));
+        var psi = item instanceof com.cobblemon.mod.common.api.item.PokemonSelectingItem x && x.getBagItem() != null ? x : null;
+        if (bl == null && psi == null) {
+            openBag();
+            return;
+        }
+        String id = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item).getPath();
+        boolean active = id.startsWith("x_") || id.equals("dire_hit") || id.equals("guard_spec");
+        List<Forms.Opt> opts = new ArrayList<>();
+        for (BattlePokemon bp : a.getPokemonList()) {
+            if (active && a.getActivePokemon().stream().noneMatch(ap -> ap.getBattlePokemon() == bp)) continue;
+            var mon = bp.getEffectedPokemon();
+            opts.add(new Forms.Opt(name(mon) + "  " + Lang.t(player, "cobblemon.ui.lv.number", mon.getLevel()) + "\n" + bp.getHealth() + "/" + bp.getMaxHealth(), "none", () -> {
+                var st = player.getInventory().getItem(slot);
+                if (st.isEmpty() || st.getItem() != item) { openBag(); return; }
+                boolean used = psi != null ? psi.interactWithSpecificBattle(player, st, bp).getResult().consumesAction()
+                        : bl.handleInteraction(player, bp, st);
+                if (used) choosing = false; // Cobblemon took the turn (and the item)
+                else openMenu(); // it said why not (cannot / would not work): no turn used
+            }));
+        }
+        opts.add(new Forms.Opt(Lang.t(player, "cobblemonlink.battle.back"), "none", this::openBag));
+        choice(Lang.t(player, "cobblemonlink.battle.use_on", item.getDescription().getString()), opts);
+    }
+
+    /** Cobblemon forced an action (a bag item, a ball's capture): the turn is answered with a pass, as its client does. */
+    void forcedPass() {
+        BattleActor a = actor();
+        if (a == null || !a.getMustChoose()) return;
+        respond(new com.cobblemon.mod.common.battles.ForcePassActionResponse());
     }
 
     private void respond(ShowdownActionResponse response) {
@@ -453,6 +605,11 @@ public final class BattleUi {
     private void bars() {
         PokemonBattle b = battle(player);
         if (b == null) return;
+        if (Clients.bedrock(player)) {
+            BattleTiles.send(player, b, ap -> watching == null ? ownSide(b, ap) : java.util.Arrays.asList(b.getSide1().getActors()).contains(ap.getActor()),
+                    mon -> watching == null && mon.getOwnerPlayer() == player ? name(mon) : seen(mon));
+            return;
+        }
         for (ActiveBattlePokemon ap : b.getActivePokemon()) {
             BattlePokemon bp = ap.getBattlePokemon();
             if (bp == null) continue;

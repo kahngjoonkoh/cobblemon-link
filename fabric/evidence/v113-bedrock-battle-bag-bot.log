@@ -1,0 +1,63 @@
+# v1.1.3 Fabric: wild battle, HP tiles title (|CB...), no boss bars; empty bag -> message + menu; Run -> fled at once
+start_game
+title set_title "§r|CLn1bL10~Charmander~~mh18x00s00-~-~-~~~~~~~~~~~items/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+add_entity modelengine:chansey 752n
+using 752n
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb4827/27~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~aitems/portrait/chansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb4827/27~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~aitems/portrait/chansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§cYou have no items you can use in this battle."
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+text system "§r§eGot away safely!"
+
+## bag: potion on a hurt Charmander takes the turn (forced pass answered), then a ball from the bag
+start_game
+using 902n
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb3620/27~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+form Bag |  | Poké Ball x3 Poké Balls<textures/cobblemonlink/none> ; Potion x2 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+form Use Potion on... |  | Charmander  Lv.10 20/27<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+title set_title "§r|CBaitems/portrait/charmander~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Charmander~~L10~mb4827/27~~---~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+form Battle§r§l§1 | It restored .BotStarter's Charmander's HP. / Chansey used Growl on .BotStarter's Charmander! / .BotStarter's Charmander's Attack fell. / It is now turn 2 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlin
+form Bag |  | Poké Ball x3 Poké Balls<textures/cobblemonlink/none> ; Potion x1 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+add_entity modelengine:poke_ball 918n
+
+## bag balls: thrown from close range, break free -> menu again, until Run
+start_game
+using 948n
+sound cobblemon:poke_ball.throw
+form Battle§r§l§1 | Go! Charmander! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblemonlink/menu_bag> ; Run<textures/cobblemonlink/menu_run>
+sound cobblemon:pokemon.chansey.cry
+form Bag |  | Poké Ball x3 Poké Balls<textures/cobblemonlink/none> ; Potion x1 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+add_entity modelengine:poke_ball 960n
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.recall
+sound cobblemon:poke_ball.shut
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | The Chansey broke free! / Chansey used Charm on .BotStarter's Charmander! / .BotStarter's Charmander's Attack harshly fell. / It is now turn 2 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_swit
+form Bag |  | Poké Ball x2 Poké Balls<textures/cobblemonlink/none> ; Potion x1 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+add_entity modelengine:poke_ball 973n
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.recall
+sound cobblemon:poke_ball.shut
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | The Chansey broke free! / Chansey used Sweet Kiss on .BotStarter's Charmander! / But it missed. / It is now turn 3 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblem
+form Bag |  | Poké Ball x1 Poké Balls<textures/cobblemonlink/none> ; Potion x1 Medicine<textures/cobblemonlink/none> ; Back<textures/cobblemonlink/none>
+add_entity modelengine:poke_ball 1013n
+sound cobblemon:poke_ball.hit
+sound cobblemon:poke_ball.open
+sound cobblemon:poke_ball.recall
+sound cobblemon:poke_ball.shut
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.shake
+sound cobblemon:poke_ball.break
+form Battle§r§l§1 | The Chansey broke free! / Chansey used Sweet Kiss on .BotStarter's Charmander! / But it missed. / It is now turn 4 | Fight<textures/cobblemonlink/menu_fight> ; Switch<textures/cobblemonlink/menu_switch> ; Catch<textures/cobblem
+text system "§r§eGot away safely!"

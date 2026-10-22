@@ -25,7 +25,9 @@ final class StarterScreen {
     private static final char BASE = '\ue280', BLOCK = '\ue281', SELECTED = '\ue282', THUMB = '\ue283', UP = '\ue284',
             DOWN = '\ue285', BALL = '\ue286';
     private static final int WHITE = 255, SHADOW = 63, DIM = 90; // grey levels
-    private static final int VISIBLE = 4, PER_PAGE = 3; // regions on the Java screen; on the Bedrock form
+    private static final int VISIBLE = 4; // regions on the Java screen
+    /** build_bedrock_ui.py STARTER_BUTTONS / STARTER_MAX: four buttons a starter, a region three starters. */
+    static final int PER = 4, MAX = 36;
     // raw slots of column 6 for region k's tiles (chest rows 0+1, 2+3; inventory rows 0, 2), then on the hotbar
     // "I choose you!" (columns 0-3) and the page arrows (6, 8)
     private static final int[][] TILE_SLOTS = {{6, 15}, {24, 33}, {42}, {60}};
@@ -67,34 +69,34 @@ final class StarterScreen {
     }
 
     /**
-     * Bedrock: the same screen as a Floodgate form, its title ending in Forms.MARK + 4 (build_bedrock_ui.py
-     * starter_form draws it). Buttons: 0 "I choose you!" (text: the Pokédex number, image: the card); 1 and 2 the page
-     * arrows; then a row of 3 a region, padded (text: the region's name on its first tile, "*" on the selected one).
-     * A tap re-sends the form, as a click reopens the chest.
+     * Bedrock: the same screen as a Floodgate form, its title ending in Forms.MARK + 4, with every region at once:
+     * build_bedrock_ui.py starter_form browses them without the form closing. Per starter: "I choose you!" (the card,
+     * its Pokédex number), its tile (the region's name on a region's first), its name, its Pokédex entry. Only an
+     * "I choose you!" (button PER * k) picks; closing leaves the prompt up.
      */
     static void bedrock(CobblemonLink pl, Player p, List<Region> regions, int page, String selected, Consumer<String> choose) {
-        Dex.Species d = pl.dex.get(selected);
-        Runnable stay = () -> bedrock(pl, p, regions, page, selected, choose);
         List<Battle.Opt> opts = new ArrayList<>();
-        opts.add(new Battle.Opt(String.format("#%04d", d.dex), "card/" + selected, () -> choose.accept(selected)));
-        opts.add(new Battle.Opt("", "up", page > 0 ? () -> bedrock(pl, p, regions, page - PER_PAGE, selected, choose) : stay));
-        opts.add(new Battle.Opt("", "down", page + PER_PAGE < regions.size()
-                ? () -> bedrock(pl, p, regions, page + PER_PAGE, selected, choose) : stay));
-        for (int k = 0; k < PER_PAGE && page + k < regions.size(); k++) {
-            Region r = regions.get(page + k);
+        List<String> picks = new ArrayList<>();
+        for (int ri = 0; ri < regions.size() && opts.size() < PER * MAX; ri++) {
+            Region r = regions.get(ri);
             for (int j = 0; j < 3; j++) {
-                if (j >= r.species().size()) {
-                    opts.add(new Battle.Opt("", "none", stay));
+                String s = j < r.species().size() ? r.species().get(j) : null;
+                Dex.Species d = s == null ? null : pl.dex.get(s);
+                if (d == null) {
+                    for (int k = 0; k < PER; k++) opts.add(new Battle.Opt("", "none", () -> {}));
+                    picks.add(null);
                     continue;
                 }
-                String s = r.species().get(j);
-                opts.add(new Battle.Opt((j == 0 ? r.name() : "") + (s.equals(selected) ? "*" : ""),
-                        Ui.tiles.containsKey(s) ? "tile/" + s : "textures/items/portrait/" + Ui.bedrockName(s),
-                        () -> bedrock(pl, p, regions, page, s, choose)));
+                opts.add(new Battle.Opt(String.format("#%04d", d.dex), "card/" + s, () -> {}));
+                opts.add(new Battle.Opt(j == 0 ? r.name() : "", Ui.tiles.containsKey(s) ? "tile/" + s : "textures/items/portrait/" + Ui.bedrockName(s), () -> {}));
+                opts.add(new Battle.Opt(pl.dex.name(s), "none", () -> {}));
+                opts.add(new Battle.Opt(d.desc == null ? "" : d.desc, "none", () -> {}));
+                picks.add(s);
             }
         }
-        Mod.send(p, pl.dex.name(selected) + Forms.MARK + 4, d.desc == null ? "" : d.desc, opts,
-                i -> pl.getServer().getScheduler().runTask(pl, () -> { if (i >= 0) opts.get(i).action().run(); }));
+        Mod.send(p, "Starter Selection" + Forms.MARK + 4, "", opts, i -> pl.getServer().getScheduler().runTask(pl, () -> {
+            if (i >= 0 && i % PER == 0 && i / PER < picks.size() && picks.get(i / PER) != null) choose.accept(picks.get(i / PER));
+        }));
     }
 
     static Component title(CobblemonLink pl, List<Region> regions, int top, String selected) {

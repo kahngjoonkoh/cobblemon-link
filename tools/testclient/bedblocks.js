@@ -9,7 +9,7 @@ let names = []
 c.on('resource_packs_info', p => console.log('packs offered:', (p.texture_packs || []).map(t => t.uuid).join(' ')))
 c.on('start_game', p => {
   const custom = (p.block_properties || []).map(b => b.name)
-  const ours = custom.filter(n => n.includes('cl_'))
+  const ours = custom.filter(n => n.includes('cl_') || n.includes('clp_'))
   console.log('custom blocks registered:', custom.length, '- ours:', ours.length, ours.slice(0, 12).join(' '))
   console.log('in the world at', JSON.stringify(p.player_position), 'block_network_ids_are_hashes:', p.block_network_ids_are_hashes)
 })

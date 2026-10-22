@@ -116,59 +116,98 @@ def visible(expr):
     return {"binding_type": "view", "source_property_name": expr, "target_property_name": "#visible"}
 
 
-def starter_cell():
-    """One starter tile (StarterScreen.bedrock's buttons 3 on, 3 a row): Cobblemon's 25 px tile 27 px apart, its
-    region's header and container drawn by the row's first tile (the one whose text has the region's name)."""
-    text = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
-             "binding_name_override": "#t"}]
-    first = dict(image("starter_block", (89, 40), (-5, 0)), bindings=text + [visible("(not ((#t - '*') = ''))")])
-    header = label("#text", (-5, 1), (89, 7), 0.5, "center", text + [visible("(not ((#t - '*') = ''))"),
-              {"binding_type": "view", "source_property_name": "(#t - '*')", "target_property_name": "#text"}])
-    sel = [visible("(not ((#t - '*') = #t))")]
-    face = image(None, (23, 23), (1, 1), 3, BUTTON_IMAGE)  # build_cards.py's tile picture: the tile's inside
-    tile = {"button@common.button": {
-        "size": [25, 25], "offset": [0, 11], "anchor_from": "top_left", "anchor_to": "top_left",
-        "$pressed_button_name": "button.form_button_click",
-        "$button_bindings": [{"binding_type": "collection_details", "binding_collection_name": "form_buttons"}],
-        "controls": [{"default": image("starter_tile", (25, 25))}, {"hover": image("starter_tile_hover", (25, 25))},
-                     {"pressed": image("starter_tile_hover", (25, 25))},
-                     {"active": dict(image("starter_tile_active", (25, 25), layer=2), bindings=text + sel)}, {"face": face}]}}
-    is_tile = f"((not ((#tex - 'tile/') = #tex)) or (not ((#tex - 'portrait') = #tex)))"
-    return {"type": "panel", "size": [27, 44], "bindings": [tex_binding(), visible(is_tile)],
-            "controls": [{"block": first}, {"header": header}, tile]}
+STARTER_MAX = 36  # starter slots the form can hold: 12 regions of 3 (Cobblemon 1.8.2 has 9)
+STARTER_BUTTONS = 4  # per starter: 0 "I choose you!" (card, "#0001"), 1 its tile (text: the region on a region's first), 2 name, 3 entry
+STARTER_PAGE = 3  # regions shown at once (Cobblemon's list height)
+
+
+def sibling(control, prop="#toggle_state", target="#visible"):
+    """A sibling control's property (a toggle's state) into this one's (the dropdown's own pattern)."""
+    return {"binding_type": "view", "source_control_name": control, "source_property_name": prop,
+            "target_property_name": target, "resolve_sibling_scope": True}
+
+
+def radio(name, group, index, size, offset, off, on, shown):
+    """A radio toggle (one of group checked at a time, none of it a form button: picking never submits). shown:
+    bindings for #visible; off / on: (idle, hover) textures."""
+    states = {"unchecked": off[0], "unchecked_hover": off[1], "checked": on[0], "checked_hover": on[1]}
+    ctl = {k: image(t, size) for k, t in states.items()}
+    return {f"{name}@common.toggle": {
+        "size": list(size), "offset": list(offset), "anchor_from": "top_left", "anchor_to": "top_left", "layer": 2,
+        "$toggle_name": group, "$toggle_view_binding_name": name, "$radio_toggle_group": True,
+        "$toggle_group_forced_index": index, "$toggle_group_default_selected": 0, "$toggle_binding_type": "none",
+        "$toggle_property_bag": {"#toggle_state": index == 0},
+        "$unchecked_control": f"server_form.cl_st_{name}_unchecked", "$checked_control": f"server_form.cl_st_{name}_checked",
+        "$unchecked_hover_control": f"server_form.cl_st_{name}_unchecked_hover", "$checked_hover_control": f"server_form.cl_st_{name}_checked_hover",
+        "$unchecked_locked_control": "common.empty_panel", "$checked_locked_control": "common.empty_panel",
+        "$unchecked_locked_hover_control": "common.empty_panel", "$checked_locked_hover_control": "common.empty_panel",
+        "bindings": shown}}, {f"cl_st_{name}_{k}": c for k, c in ctl.items()}
 
 
 def starter_form():
-    """Cobblemon's StarterSelectionScreen (StarterScreen.bedrock): its 239 x 197 panel in the middle of the screen,
-    at Cobblemon's positions. Button 0 is "I choose you!" (its image the card, its text the Pokédex number), 1 and 2
-    the page arrows (ours), 3 on the tiles; the title (less MARK 4) is the name, the form's text the Pokédex entry.
-    ponytail: no scrollbar thumb; the model and background are still pictures."""
-    title = [{"binding_name": "#title_text"}]
-    grid = {"type": "grid", "anchor_from": "top_left", "anchor_to": "top_left", "offset": [143, 27 - 44],
-            "size": [81, 4 * 44], "grid_dimensions": [3, 4], "grid_item_template": "server_form.cl_cell_4",
-            "collection_name": "form_buttons"}  # row 0 (buttons 0-2, not tiles) sits hidden above the list
-    hint = lambda tex: [{"default": image(tex, (106, 14))}, {"hover": image(tex + "_hover", (106, 14))},
-                        {"pressed": image(tex + "_hover", (106, 14))}]
-    arrow = lambda tex: [{s: image(tex, (7, 4), (0, 0), 2)} for s in ("default", "hover", "pressed")]
-    return {"type": "panel", "size": [239, 197], "anchor_from": "center", "anchor_to": "center", "collection_name": "form_buttons",
-            "bindings": title + [visible(f"(not ((#title_text - '{MARK}4') = #title_text))")],
-            "controls": [
-                {"base": image("starter_base", (239, 197))},
-                {"card": at(0, image(None, (128, 125), (1, 13), 2, BUTTON_IMAGE))},
-                {"ball": image("starter_ball", (8, 8), (4, 3), 2)},
-                {"name": label("#text", (14, 2), bindings=title + [
-                    {"binding_type": "view", "source_property_name": f"(#title_text - '{MARK}4')", "target_property_name": "#text"}])},
-                {"dex": at(0, label("#form_button_text", (79, 2), bindings=BUTTON_TEXT))},
-                {"heading": label("Starter Selection", (134, 11), (77, 10), align="center")},
-                {"entry": label("#form_text", (8, 143), (114, 28), 0.5)},
-                button([106, 14], [13, 180], "button.form_button_click",
-                       hint("starter_choose") + [{"label": label("I choose you!", (0, 3), (106, 10), align="center")}], index=0),
-                button([16, 12], [210, 181], "button.menu_exit",
-                       [{s: image(t, (16, 12))} for s, t in (("default", "starter_exit"), ("hover", "starter_exit_hover"), ("pressed", "starter_exit_hover"))]),
-                button([13, 8], [148, 160], "button.form_button_click", arrow("starter_up"), index=1),
-                button([13, 8], [202, 160], "button.form_button_click", arrow("starter_down"), index=2),
-                {"list": grid}]}
-
+    """Cobblemon's StarterSelectionScreen (StarterScreen.bedrock) in one form that stays open while browsing: its
+    239 x 197 panel, the regions three at a time (page toggles on the scrollbar's track), each starter a radio toggle
+    whose card, name, number and entry show while it is checked. Only "I choose you!" is a form button (button
+    STARTER_BUTTONS * k), so browsing never picks. A region is 3 starters (padded with "none" tiles).
+    Returns (the form, the toggles' state controls for the namespace).
+    ponytail: the model is still Cobblemon's card picture."""
+    n, per = STARTER_MAX, STARTER_BUTTONS
+    pages = -(-n // 3 // STARTER_PAGE)
+    tex = {"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_texture",
+           "binding_name_override": "#cl_t"}
+    text = {"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
+            "binding_name_override": "#text"}
+    exists = f"(not ((#cl_t = '') or (#cl_t = '{TEX}none')))"
+    def ix(i, control, bag=None):  # bound to form button i
+        control = dict(control, collection_index=i)
+        if bag:
+            control["property_bag"] = bag
+        return control
+    c = [{"base": image("starter_base", (239, 197))},
+         {"ball": image("starter_ball", (8, 8), (4, 3), 2)},
+         {"heading": label("Starter Selection", (134, 11), (77, 10), align="center")},
+         {"exit@common.button": button([16, 12], [210, 181], "button.menu_exit", [
+             {s: image(t, (16, 12))} for s, t in (("default", "starter_exit"), ("hover", "starter_exit_hover"), ("pressed", "starter_exit_hover"))])["button@common.button"]}]
+    states = {}
+    track = 145 // pages
+    for p in range(pages):  # the scrollbar's track (231, 27)-(234, 172): a page per segment, the checked one the thumb
+        tog, st = radio(f"pg{p}", "cl_starter_page", p, (5, track), (230, 27 + p * track), ("none", "starter_track_hover"),
+                        ("starter_thumb", "starter_thumb"), [tex, view(exists, "#visible")])
+        key = f"pg{p}@common.toggle"
+        tog[key] = dict(ix(p * STARTER_PAGE * 3 * per + 1, tog[key]), **{"$toggle_property_bag": {"#cl_t": "", "#toggle_state": p == 0}})  # its first region's first tile
+        c.append(tog); states |= st
+    for k in range(n):
+        r, j = divmod(k, 3)
+        page, row = divmod(r, STARTER_PAGE)
+        y = 27 + 44 * row
+        tile = k * per + 1
+        shown = [tex, sibling(f"pg{page}", target="#cl_p"), view(f"(#cl_p and {exists})", "#visible")]
+        bag = {"#cl_t": "", "#cl_p": False}
+        if j == 0:  # the region's container and its name (the first tile's text)
+            c.append({f"rb{r}": ix(tile, image("starter_block", (89, 40), (138, y), 1, shown), bag)})
+            c.append({f"rh{r}": ix(tile, label("#text", (138, y + 1), (89, 7), 0.5, "center", [text] + shown, layer=3), bag)})
+        tog, st = radio(f"st{k}", "cl_starter", k, (25, 25), (143 + 27 * j, y + 11), ("starter_tile", "starter_tile_hover"),
+                        ("starter_tile_active", "starter_tile_active_hover"), shown)
+        key = f"st{k}@common.toggle"
+        tog[key] = dict(ix(tile, tog[key]), **{"$toggle_property_bag": bag | {"#toggle_state": k == 0}})
+        c.append(tog); states |= st
+        face = image(None, (23, 23), (144 + 27 * j, y + 12), 4, [dict(tex, binding_name_override="#texture")] + shown)
+        c.append({f"sf{k}": ix(tile, face, bag)})
+        on = sibling(f"st{k}")  # the details while this starter is checked
+        c.append({f"sc{k}": ix(k * per, image(None, (128, 125), (1, 13), 2, [dict(tex, binding_name_override="#texture"), on]))})
+        c.append({f"sn{k}": ix(k * per + 2, label("#text", (14, 2), bindings=[text, on]))})
+        c.append({f"sd{k}": ix(k * per, label("#text", (79, 2), bindings=[text, on]))})
+        c.append({f"se{k}": ix(k * per + 3, label("#text", (8, 143), (114, 28), 0.5, bindings=[text, on]))})
+        choose = button([106, 14], [13, 180], "button.form_button_click",
+                        [{"default": image("starter_choose", (106, 14))}, {"hover": image("starter_choose_hover", (106, 14))},
+                         {"pressed": image("starter_choose_hover", (106, 14))},
+                         {"label": label("I choose you!", (0, 3), (106, 10), align="center")}], index=k * per)["button@common.button"]
+        choose["bindings"] = [on]
+        c.append({f"sb{k}@common.button": choose})
+    form = {"type": "panel", "size": [239, 197], "anchor_from": "center", "anchor_to": "center", "collection_name": "form_buttons",
+            "bindings": [{"binding_name": "#title_text"}, visible(f"(not ((#title_text - '{MARK}4') = #title_text))")],
+            "controls": c}
+    return form, states
 
 
 # ---- the PC (PcScreen.bedrock): Cobblemon's PCGUI at its own positions (from its 1.8.2 classes) ----
@@ -452,6 +491,7 @@ def dex_art(gui, png):
     png("pokedex/seen", o("caught_seen_icon").crop((0, 0, 14, 14)))
 
 def server_form():
+    STARTER = starter_form()
     vanilla_long_form = {  # Mojang's long_form, unchanged, for every other form
         "$title_panel": "common_dialogs.standard_title_label", "$title_size": ["100% - 15px", 10],
         "$title_max_size": ["100% - 15px", 10], "size": [225, 200], "$text_name": "#title_text",
@@ -491,14 +531,13 @@ def server_form():
         "long_form": {"type": "panel", "size": ["100%", "100%"], "controls": [
             {"vanilla@server_form.cl_vanilla_long_form": {}}, {"battle@server_form.cl_battle": {}},
             {"starter@server_form.cl_starter": {}}, {"pc@server_form.cl_pc": {}}, {"summary@server_form.cl_summary": {}}, {"learn@server_form.cl_learn": {}}, {"dex@server_form.cl_dex": {}}]},
-        "cl_starter": starter_form(),
+        "cl_starter": STARTER[0], **STARTER[1],
         "cl_pc": pc_form(),
         "cl_summary": summary_form(),
         "cl_learn": learn_form(),
         "cl_dex": dex_form(),
         "cl_dex_slot@common.button": dex_slot(),
         "cl_pc_cell@common.button": pc_cell(),
-        "cl_cell_4": starter_cell(),
         "cl_vanilla_long_form@common_dialogs.main_panel_no_buttons": vanilla_long_form,
         "cl_battle": battle,
         "cl_cell_1": cell([93, 29], [90, 26], [6, 8]),
@@ -594,6 +633,77 @@ def hud_slot(i, y, s, anchor):
     return [{f"s{i}_{k}": x} for k, x in enumerate(c)]
 
 
+# Battle.java / BattleUi.java's Bedrock battle: a title "|CB" then six fixed-width tiles (0-2 your side, top left;
+# 3-5 the other side, top right), Cobblemon's BattleOverlay tiles. Must match BattleTiles.FIELDS (both products).
+# st: 'a' if the tile is used; pt: portrait path; nm name; lv "L19"; g m/f/n; hb HP bar step "b00".."b48";
+# ht "32/32" (yours) or "100%" (theirs); su status "brn"... or "---".
+BT_FIELDS = [("st", 1), ("pt", 76), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 7), ("su", 3)]
+BT_HEAD = 3
+BT_SLOT = sum(w for _, w in BT_FIELDS)
+BT_STEPS = 48
+BT_STATUS = ("brn", "frz", "par", "psn", "slp", "tox")
+
+
+def bt_field(i, name):
+    k = BT_HEAD + BT_SLOT * i
+    for f, w in BT_FIELDS:
+        if f == name:
+            return k, w
+        k += w
+
+
+def bt_tile(i, s, top):
+    """Tile i at scale s, top px down: the positions of the Java overlay (BattleUi.panel / Battle.panel)."""
+    own = i < 3
+    row = i % 3
+    anchor = "top_left" if own else "top_right"
+    x0 = 12 if own else -152
+    y0 = top + 45 * row
+    f = lambda n: bt_field(i, n)
+
+    def put(c, x, y, w, h, layer, fields=(), finals=()):
+        c.update({"size": [w * s, h * s], "offset": [(x0 + x) * s, (y0 + y) * s], "anchor_from": anchor, "anchor_to": "top_left",
+                  "layer": layer})
+        if fields:
+            b, bag = hud_chain(fields)
+            c["bindings"] = b + [view(src, dst) for src, dst in finals]
+            c["property_bag"] = bag
+        return c
+
+    def text(x, y, w, src, field, scale=1.0, align="left"):
+        c = {"type": "label", "text": "#text", "color": [1, 1, 1], "shadow": True, "localize": False,
+             "font_scale_factor": scale * s, "text_alignment": align}
+        return put(c, x, y, w, 9 * scale, 6, [f(field)], [(src, "#text")])
+
+    px = 5 if own else 107
+    ib = 40 if own else 7
+    c = [
+        put({"type": "image", "texture": TEX + "battle/underlay"}, px, 8, 28, 28, 1),
+        put({"type": "image"}, px, 8, 28, 28, 2, [f("pt")], [("('textures/' + (#cl_f0 - '~'))", "#texture")]),
+        put({"type": "image", "texture": TEX + ("battle/info" if own else "battle/info_flipped")}, 0, 0, 140, 40, 3),
+        text(ib, 7, 60, "(#cl_f0 - '~')", "nm"),
+        put({"type": "label", "text": "Lv.", "color": [1, 1, 1], "shadow": True, "font_scale_factor": s}, ib + 69, 7, 14, 9, 6),
+        text(ib + 82, 7, 18, "('§r' + ((#cl_f0 - '~') - 'L'))", "lv"),
+        put({"type": "image"}, ib + 60, 8, 5, 7, 6, [f("g")], [(f"('{TEX}hud/g_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'n'))", "#visible")]),
+        put({"type": "image"}, ib - 2, 19, 97, 4, 5, [f("hb")],
+            [(f"('{TEX}battle/hp{'o' if own else 'f'}_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'b00'))", "#visible")]),
+        text(ib + (39 if own else 44), 18, 40, "('§r' + (#cl_f0 - '~'))", "ht", 0.5),
+        put({"type": "image"}, ib - 2, 25, 37, 3.5, 6, [f("su")], [(f"('{TEX}battle/status_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = '---'))", "#visible")]),
+    ]
+    return [{f"b{i}_{k}": x} for k, x in enumerate(c)]
+
+
+def bt_screen():
+    """The battle tiles, shown while the title carries "|CB"; a tile while its st is 'a'. Touch screens: 3/4 size,
+    below the hearts."""
+    def tiles(s, top):
+        return [{f"bt{i}": hud_panel([bt_field(i, "st")], "(#cl_f0 = 'a')", bt_tile(i, s, top))} for i in range(6)]
+    on = [{"binding_name": HUD_T}, view(f"(not ({HUD_T} = ({HUD_T} - '|CB')))", "#visible")]
+    return {"type": "panel", "size": ["100%", "100%"], "layer": 1, "bindings": on, "controls": [
+        {"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": tiles(1, 10)}},
+        {"touch": {"type": "panel", "size": ["100%", "100%"], "ignored": "(not $touch)", "controls": tiles(0.75, 22 / 0.75)}}]}
+
+
 def hud_panel(fields, show, controls):
     b, bag = hud_chain(fields)
     return {"type": "panel", "size": ["100%", "100%"], "bindings": b + [view(show, "#visible")], "property_bag": bag,
@@ -623,10 +733,12 @@ def hud_screen():
         debug = [{"cl_dbg_t": lab("CL touch", "(not $touch)", -60)}, {"cl_dbg_d": lab("CL desk", "$touch", -60)}, {"cl_dbg_raw": raw}]
     return {"namespace": "hud",
             "cl_party": party,
+            "cl_battle_tiles": bt_screen(),
             "root_panel": {"modifications": [{"array_name": "controls", "operation": "insert_back",
-                                              "value": [{"cl_party@hud.cl_party": {}}] + debug}]},
-            # Mojang's title, its bindings only (the rest stays Mojang's): not shown when it carries the party
-            "hud_title_text": {"bindings": [{"binding_name": HUD_T}, view(f"({HUD_T} = ({HUD_T} - '|CL'))", "#visible")]}}
+                                              "value": [{"cl_party@hud.cl_party": {}}, {"cl_battle_tiles@hud.cl_battle_tiles": {}}] + debug}]},
+            # Mojang's title, its bindings only (the rest stays Mojang's): not shown when it carries the party or a battle
+            "hud_title_text": {"bindings": [{"binding_name": HUD_T},
+                                            view(f"(({HUD_T} = ({HUD_T} - '|CL')) and ({HUD_T} = ({HUD_T} - '|CB')))", "#visible")]}}
 
 
 def hud_art(gui, png, hp_colour):
@@ -652,6 +764,21 @@ def hud_art(gui, png, hp_colour):
         for fade in range(8):  # PartyPanel's fade steps: 0 opaque, 7 nearly gone
             a = img.getchannel("A").point(lambda v: v * (8 - fade) // 8)
             png(f"hud/{kind}_{'abcdefgh'[fade]}", Image.merge("RGBA", img.split()[:3] + (a,)))
+
+
+def bt_art(gui, png, hp_colour):
+    o = lambda n: Image.open(f"{gui}/battle/{n}.png").convert("RGBA")
+    png("battle/info", o("battle_info_base"))
+    png("battle/info_flipped", o("battle_info_base_flipped"))
+    png("battle/underlay", o("battle_info_underlay"))
+    for st in BT_STATUS:
+        png(f"battle/status_{st}", o(f"battle_status_{st}"))
+    for k in range(1, BT_STEPS + 1):  # 97 px bars, yours filling from the left, theirs from the right
+        w = round(97 * k / BT_STEPS)
+        for side, x in (("o", 0), ("f", 97 - w)):
+            bar = Image.new("RGBA", (97, 4))
+            bar.paste(hp_colour(k / BT_STEPS) + (255,), (x, 0, x + w, 4))
+            png(f"battle/hp{side}_b{k:02d}", bar)
 
 
 def portrait_names(out):
@@ -714,12 +841,17 @@ def build(gui, out):
     for y in range(4):
         up.paste((255, 255, 255, 255), (3 - y, y, 4 + y, y + 1))
     png("starter_up", up)
+    thumb = Image.new("RGBA", (5, 1))
+    thumb.paste((198, 198, 198, 255), (1, 0, 4, 1))
+    png("starter_thumb", thumb)  # the scrollbar thumb on the checked page's segment
+    png("starter_track_hover", Image.new("RGBA", (5, 1), (255, 255, 255, 60)))
     png("starter_down", up.transpose(Image.FLIP_TOP_BOTTOM))
     png("starter_ball", Image.open(f"{gui}/../item/poke_balls/poke_ball.png").convert("RGBA").resize((8, 8), Image.NEAREST))
     pc_art(gui, png, out)  # PcScreen.bedrock
     summary_art(gui, png)  # SummaryScreen
     dex_art(gui, png)  # PokedexScreen
     hud_art(gui, png, hp_colour)  # PartyPanel
+    bt_art(gui, png, hp_colour)  # the battle tiles (bt_screen)
     for n in ("party_slot", "party_slot_active", "party_slot_fainted", "party_slot_fainted_active",
               "party_slot_portrait_background", "party_gender_male", "party_gender_female"):  # the client mod's party HUD
         png("party/" + n, Image.open(f"{gui}/party/{n}.png").convert("RGBA"))
@@ -758,8 +890,11 @@ def build(gui, out):
 if __name__ == "__main__":
     f = server_form()
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
-    g = f["cl_starter"]["controls"][-1]["list"]
-    assert g["offset"][1] + 44 == 27 and g["grid_dimensions"] == [3, 4], "first tile row at the list's top (27)"
+    assert BT_SLOT == 107 and bt_field(3, "st") == (3 + 3 * 107, 1), "BattleTiles.FIELDS"
+    form, _ = starter_form()
+    names = [next(iter(c)) for c in form["controls"]]
+    assert len(names) == len(set(names)), "control names are unique (toggle state is looked up by name)"
+    assert sum(1 for n in names if n.startswith("sb")) == STARTER_MAX, "one I-choose-you button per starter"
     assert HUD_SLOT == 119 and hud_field(1, "lv") == (5 + 119 + 1, 4), "PartyPanel.FIELDS' layout"
     assert all(len("items/portrait/" + short(n)) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
     assert short("a" * 40) == "a" * 40 and len(short("a" * 41)) == 40

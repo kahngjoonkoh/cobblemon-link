@@ -30,6 +30,7 @@ import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import kr.toxicity.model.api.animation.AnimationIterator;
@@ -333,12 +334,8 @@ final class Battle {
         List<Integer> art = new ArrayList<>(List.of(0, 1, 2, 3)); // battle_menu_fight/switch/bag/run
         List<Opt> opts = new ArrayList<>(List.of(new Opt(t("cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
                 new Opt(t("cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
-                new Opt(t("cobblemon.battle.ui.capture"), "menu_bag", this::capture),
+                new Opt(t(wildBattle() ? "cobblemon.battle.ui.capture" : "cobblemonlink.battle.bag"), "menu_bag", this::openBag),
                 new Opt(t(!wildBattle() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "menu_run", this::run)));
-        if (!wildBattle()) { // Cobblemon: no Catch against a trainer
-            art.remove(2);
-            opts.remove(2);
-        }
         if (trapped) {
             art.remove(1);
             opts.remove(1);
@@ -362,7 +359,7 @@ final class Battle {
         List<ActionButton> buttons = new ArrayList<>(List.of(
                 menuButton(0, t("cobblemon.battle.ui.fight"), "", this::openFight),
                 menuButton(1, t("cobblemon.battle.ui.switch"), trapped ? "You can't switch out!" : "", trapped ? null : () -> openSwitch(true))));
-        if (wildBattle()) buttons.add(menuButton(2, t("cobblemon.battle.ui.capture"), "You have " + pl.countBalls(player) + " Poké Balls", this::capture));
+        buttons.add(menuButton(2, t(wildBattle() ? "cobblemon.battle.ui.capture" : "cobblemonlink.battle.bag"), "", this::openBag));
         buttons.add(menuButton(3, t(!wildBattle() ? "cobblemon.battle.ui.forfeit" : "cobblemon.battle.ui.run"), "", this::run));
         List<DialogBody> body = info();
         List<String> log = new ArrayList<>(turnLog.isEmpty() ? List.of(t("cobblemonlink.battle.what")) : turnLog);
@@ -681,10 +678,7 @@ final class Battle {
             ownBar.name(Component.text(name(m) + "  Lv." + m.level + "   " + p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() + " HP"));
             ownBar.progress(ratio(p));
         }
-        if (Ui.bedrock(player)) {
-            player.showBossBar(wildBar);
-            player.showBossBar(ownBar);
-        }
+        if (Ui.bedrock(player)) PartyPanel.bedrockTitle(player, tiles()); // Cobblemon's tiles, from the UI pack
         for (var u : spectators) {
             Player s = Bukkit.getPlayer(u);
             if (s != null) { s.showBossBar(wildBar); s.showBossBar(ownBar); }
@@ -743,6 +737,48 @@ final class Battle {
         if (bar > 0) o.glyph(corner, own ? ib - 2 : ib - 2 + 97 - bar, 29 + dy, (char) (0xE110 + bar), bar + 1);
         o.small(corner, ib + (own ? 39 : 44), 28 + dy,
                 own ? p.get("hp").getAsInt() + "/" + p.get("maxhp").getAsInt() : (int) Math.ceil(ratio(p) * 100) + "%");
+    }
+
+    /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
+    static final int[] TILE_FIELDS = {1, 76, 12, 4, 1, 3, 7, 3};
+    private static final java.util.Set<String> TILE_STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
+
+    /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of TILE_FIELDS. */
+    String tiles() {
+        String[][] t = new String[6][];
+        JsonArray p1 = state.getAsJsonArray(side);
+        for (int i = 0, n = 0; i < p1.size() && n < 3; i++)
+            if (p1.get(i).getAsJsonObject().get("active").getAsBoolean())
+                t[n++] = tile(pl.store.get(player.getUniqueId()).party.get(order.get(i)), p1.get(i).getAsJsonObject(), true);
+        if (wildBattle()) t[3] = tile(foeMon(), foeState(), false);
+        else {
+            JsonArray p2 = state.getAsJsonArray(foe);
+            List<Mon> team = pvp() ? rival.team() : npcTeam;
+            for (int i = 0, n = 3; i < p2.size() && i < team.size() && n < 6; i++)
+                if (p2.get(i).getAsJsonObject().get("active").getAsBoolean()) t[n++] = tile(team.get(i), p2.get(i).getAsJsonObject(), false);
+        }
+        return tilePayload(t);
+    }
+
+    private String[] tile(Mon m, JsonObject p, boolean own) {
+        int hp = p.get("hp").getAsInt(), max = Math.max(1, p.get("maxhp").getAsInt());
+        float r = ratio(p);
+        int step = hp <= 0 ? 0 : Math.max(1, Math.round(48 * r));
+        String model = m.model(pl.dex), st = p.get("status").getAsString();
+        return new String[]{"a", Ui.portraits.containsKey(model) ? "items/portrait/" + Ui.bedrockName(model) : "cobblemonlink/none",
+                PartyPanel.ascii(name(m)), "L" + m.level, "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n",
+                String.format("b%02d", step), own ? hp + "/" + max : (int) Math.ceil(r * 100) + "%", TILE_STATUS.contains(st) ? st : "---"};
+    }
+
+    static String tilePayload(String[][] tiles) {
+        StringBuilder b = new StringBuilder("|CB");
+        for (int i = 0; i < 6; i++)
+            for (int k = 0; k < TILE_FIELDS.length; k++) {
+                String x = tiles[i] == null ? "" : tiles[i][k];
+                if (x.length() > TILE_FIELDS[k]) x = x.substring(0, TILE_FIELDS[k]);
+                b.append(x).append("~".repeat(TILE_FIELDS[k] - x.length()));
+            }
+        return b.toString();
     }
 
     private static float ratio(JsonObject p) {
@@ -918,10 +954,110 @@ final class Battle {
         Bukkit.getScheduler().runTaskLater(pl, e::remove, wait + 30);
     }
 
-    /** Cobblemon's Catch: the battle steps aside and the player throws a real Poké Ball (ballHit). */
-    private void capture() {
+    /**
+     * The bag (Catch): the usable things the player carries, Poké Balls (wild battles only), medicine and battle
+     * items, with counts. A ball is thrown at the wild Pokémon (ballHit: the throw takes the turn); an item goes
+     * through Items.use from its slot (which Pokémon, then the turn, or why not and the menu again). Nothing usable,
+     * Back or closing: the battle menu again.
+     */
+    void openBag() {
+        var inv = player.getInventory();
+        List<Integer> balls = new ArrayList<>(), medicine = new ArrayList<>(), battleItems = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int slot = 0; slot < 41; slot++) {
+            ItemStack it = inv.getItem(slot);
+            if (it == null || it.getType().isAir()) continue;
+            String id = pl.items == null ? null : pl.items.id(it);
+            if (id == null || !seen.add(id)) continue; // one entry per kind, with its total count
+            if (pl.isBall(it)) {
+                if (wildBattle()) balls.add(slot);
+                continue;
+            }
+            Items.Def d = pl.items.defs.get(id);
+            if (d == null || !Items.USABLE.contains(d.kind) || d.kind.equals("held") || d.kind.equals("candy")) continue;
+            (d.kind.equals("x_stat") || d.kind.equals("dire_hit") || d.kind.equals("guard_spec") ? battleItems : medicine).add(slot);
+        }
+        if (balls.isEmpty() && medicine.isEmpty() && battleItems.isEmpty()) {
+            player.sendMessage(Component.text(t("cobblemonlink.battle.bag_empty"), NamedTextColor.RED));
+            openMenu();
+            return;
+        }
+        List<Opt> opts = new ArrayList<>();
+        for (var group : List.of(balls, medicine, battleItems)) {
+            String head = t(group == balls ? "cobblemonlink.battle.bag_balls" : group == medicine ? "cobblemonlink.battle.bag_medicine" : "cobblemonlink.battle.bag_battle");
+            for (int slot : group) {
+                ItemStack it = inv.getItem(slot);
+                String id = pl.items.id(it);
+                int count = 0;
+                for (ItemStack x : inv.getContents()) if (x != null && id.equals(pl.items.id(x))) count += x.getAmount();
+                opts.add(new Opt(pl.items.name(player, id) + " x" + count + "\n" + head, "none",
+                        group == balls ? () -> throwBall(slot) : () -> useFromBag(slot)));
+            }
+        }
+        opts.add(new Opt(t("cobblemonlink.battle.back"), "none", this::openMenu));
+        if (Mod.form(player)) {
+            Mod.send(player, t("cobblemonlink.battle.bag"), "", opts, i -> onMain(() -> {
+                if (over) return;
+                formOpen = false;
+                if (i >= 0 && i < opts.size()) opts.get(i).action().run();
+                else openMenu();
+            }));
+            formOpen = true;
+            return;
+        }
+        if (screen != null) screen.show(List.of()); // the chest goes over the battle screen
+        player.closeDialog();
+        Menu m = new Menu(Math.max(9, Math.min(54, (opts.size() + 8) / 9 * 9)), t("cobblemonlink.battle.bag"));
+        m.onClose = this::openMenu;
+        for (int i = 0; i < Math.min(54, opts.size()); i++) {
+            String[] text = opts.get(i).text().split("\n");
+            Runnable r = opts.get(i).action();
+            m.set(i, Menu.icon(org.bukkit.Material.PAPER, text[0], text.length > 1 ? List.of(text[1]) : List.of()), e -> {
+                m.onClose = null;
+                player.closeInventory();
+                r.run();
+            });
+        }
+        player.openInventory(m.getInventory());
+    }
+
+    /** A ball from the bag, thrown from the player at the wild Pokémon (a real throw: onBallThrow / onBallHit). */
+    private void throwBall(int slot) {
+        ItemStack it = player.getInventory().getItem(slot);
+        if (!wildBattle() || wildEntity == null || it == null || !pl.isBall(it)) {
+            player.sendMessage(Component.text(t(wildBattle() ? "cobblemonlink.battle.bag_empty" : "cobblemonlink.battle.no_balls_here"), NamedTextColor.RED));
+            openMenu();
+            return;
+        }
+        ItemStack one = it.clone();
+        one.setAmount(1);
+        // thrown from just in front of it, so it can't miss over a battle's distance (a miss never takes the turn)
+        var to = wildEntity.getLocation().add(0, wildEntity.getHeight() / 2, 0);
+        var back = player.getEyeLocation().toVector().subtract(to.toVector()).normalize();
+        var at = to.clone().add(back.multiply(wildEntity.getWidth() / 2 + 1.2)).add(0, 0.4, 0);
+        var v = to.toVector().subtract(at.toVector()).normalize().multiply(0.8);
+        at.setDirection(v);
+        to.getWorld().spawn(at, org.bukkit.entity.Snowball.class, ball -> { // ProjectileLaunchEvent: PokeBalls draws it
+            ball.setItem(one);
+            ball.setShooter(player);
+            ball.setVelocity(v);
+        });
+        long thrown = ++throwCount;
+        Bukkit.getScheduler().runTaskLater(pl, () -> { // no hit (ballHit) in 6 s: the turn is still the player's
+            if (!over && throwCount == thrown && !hitSince) openMenu();
+        }, 120);
+        hitSince = false;
+        if (player.getGameMode() != org.bukkit.GameMode.CREATIVE) it.subtract();
         if (screen != null) hide();
-        player.sendMessage(Component.text(t("cobblemon.battle.throw_pokeball_prompt")));
+    }
+
+    private long throwCount;
+    private boolean hitSince;
+
+    /** Medicine or a battle item from the bag: Items.use takes it from its slot. */
+    private void useFromBag(int slot) {
+        ItemStack it = player.getInventory().getItem(slot);
+        if (it == null || it.getType().isAir() || pl.items == null || !pl.items.use(player, it, () -> player.getInventory().getItem(slot))) openMenu();
     }
 
     /**
@@ -930,6 +1066,7 @@ final class Battle {
      */
     void ballHit(Entity ball, String ballId) {
         if (over || !wildBattle()) return;
+        hitSince = true;
         int hp = wild.maxHp(pl.dex), max = hp;
         String status = "";
         if (state != null) {
@@ -983,6 +1120,7 @@ final class Battle {
         if (screen != null) screen.close();
         player.hideBossBar(wildBar);
         player.hideBossBar(ownBar);
+        if (Ui.bedrock(player)) PartyPanel.bedrockTitle(player, PartyPanel.HIDDEN); // the party panel takes the title back
         for (var u : spectators) {
             Player s = Bukkit.getPlayer(u);
             if (s != null) { s.hideBossBar(wildBar); s.hideBossBar(ownBar); }

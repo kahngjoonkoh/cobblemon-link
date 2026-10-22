@@ -96,7 +96,6 @@
  "cobblemonlink.item.ev_down": "%1$s의 %2$s 노력치가 %3$s 내려갔다.",
  "cobblemonlink.ui.yes": "예",
  "cobblemonlink.ui.no": "아니오",
- "cobblemonlink.ui.release_q": "놓아줄까?",
  "cobblemonlink.ui.nature_neutral": "능력 변화 없음",
  "cobblemonlink.ui.nature_effect": "%1$s 상승, %2$s 하락",
  "cobblemonlink.ui.stat_short.hp": "HP",
@@ -110,5 +109,13 @@
  "cobblemonlink.pot.cook": "요리하기",
  "cobblemonlink.pot.seasoning": "조미료는 오른쪽 칸에 넣는다",
  "cobblemonlink.herd.spawned": "%1$s이(가) 이끄는 무리가 나타났다.",
- "cobblemonlink.dialogue.next": "다음"
+ "cobblemonlink.dialogue.next": "다음",
+ "cobblemonlink.battle.bag": "가방",
+ "cobblemonlink.battle.bag_empty": "이 배틀에서 쓸 수 있는 도구가 없습니다.",
+ "cobblemonlink.battle.bag_balls": "몬스터볼",
+ "cobblemonlink.battle.bag_medicine": "회복약",
+ "cobblemonlink.battle.bag_battle": "배틀 도구",
+ "cobblemonlink.battle.no_balls_here": "이 배틀에서는 몬스터볼을 던질 수 없습니다.",
+ "cobblemonlink.battle.use_on": "%s을(를) 누구에게 쓸까요?",
+ "cobblemonlink.battle.back": "뒤로"
 }

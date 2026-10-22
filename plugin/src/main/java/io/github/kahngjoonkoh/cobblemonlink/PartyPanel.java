@@ -180,7 +180,7 @@ final class PartyPanel {
     private static final net.kyori.adventure.title.Title.Times NO_FADE = net.kyori.adventure.title.Title.Times.times(
             java.time.Duration.ZERO, java.time.Duration.ofSeconds(2), java.time.Duration.ZERO);
 
-    private static void bedrockTitle(Player p, String text) {
+    static void bedrockTitle(Player p, String text) {
         p.sendTitlePart(net.kyori.adventure.title.TitlePart.TIMES, NO_FADE);
         p.sendTitlePart(net.kyori.adventure.title.TitlePart.TITLE, Component.text(text));
     }
