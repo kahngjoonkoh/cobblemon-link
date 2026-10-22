@@ -14,7 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * Cobblemon's battle HP tiles for Bedrock (BattleOverlay: yours top left, theirs top right, stacked in doubles and
  * triples): a title the UI pack draws and never shows (build_bedrock_ui.py bt_screen), "|CB" then six tiles of
- * "#<i>" and FIELDS, ASCII padded with '~', as the party HUD does.
+ * "Z<i>" and FIELDS, ASCII padded with '~', as the party HUD does.
  */
 public final class BattleTiles {
     /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
@@ -53,11 +53,11 @@ public final class BattleTiles {
                 status != null && STATUS.contains(status) ? status : "---"};
     }
 
-    /** "|CB" and six tiles, each "#<i>" then FIELDS (null: unused, all '~'), as the party HUD's slots. */
+    /** "|CB" and six tiles, each "Z<i>" then FIELDS (null: unused, all '~'), as the party HUD's slots. */
     static String payload(String[][] tiles) {
         StringBuilder b = new StringBuilder("|CB");
         for (int i = 0; i < 6; i++) {
-            b.append('#').append(i);
+            b.append('Z').append(i);
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = tiles[i] == null ? "" : tiles[i][k];
                 if (x.length() > FIELDS[k]) x = x.substring(0, FIELDS[k]);

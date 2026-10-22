@@ -504,7 +504,10 @@ def tidy(node, n=None):
         if k == "controls" and isinstance(v, list):
             fixed = []
             for x in v:
-                named = [key for key, val in x.items() if isinstance(val, dict) and ("@" in key or key not in CONTROL_KEYS)]
+                # one key holding a dict is a named control whatever its name ("text", "size"... are fine names)
+                single = len(x) == 1 and isinstance(next(iter(x.values())), dict)
+                named = list(x) if single else [key for key, val in x.items()
+                                                 if isinstance(val, dict) and ("@" in key or key not in CONTROL_KEYS)]
                 if len(named) == 1 and len(x) > 1:  # a wrapper with the control's keys beside it
                     key = named[0]
                     x = {key: dict(x[key], **{a: b for a, b in x.items() if a != key})}
@@ -536,6 +539,7 @@ def malformed(doc):
                 if k == "controls" and isinstance(v, list):
                     for x in v:
                         if not (isinstance(x, dict) and len(x) == 1 and isinstance(next(iter(x.values())), dict)): bad.append(x)
+                        elif "@" not in next(iter(x)) and "type" not in next(iter(x.values())): bad.append(x)  # wrapped twice
                         else: walk(next(iter(x.values())))
                 elif isinstance(v, (dict, list)): walk(v)
         elif isinstance(c, list):
@@ -563,14 +567,14 @@ def _server_form():
         return {state: {"type": "label", "text": "Tap here to move around.", "color": [1, 1, 1], "alpha": 0.75,
                         "layer": 3, "size": ["default", "default"]}}
     # BattleGUI hide_label at (W/2, H/5), here a button: closing the form is how a Bedrock player stands up
-    hide = {"button@common.button": {
+    hide = {
         "size": [140, 12], "anchor_from": "top_middle", "anchor_to": "top_middle", "offset": [0, "20%"],
         "$pressed_button_name": "button.menu_exit",
         "controls": [hint("default"), hint("hover"), hint("pressed")],
         "bindings": [{"binding_name": "#title_text"}, {"binding_type": "view", "target_property_name": "#visible",
-                      "source_property_name": f"(not ((#title_text - '{MARK}1') = #title_text))"}]}}
+                      "source_property_name": f"(not ((#title_text - '{MARK}1') = #title_text))"}]}
     battle = {"type": "panel", "size": ["100%", "100%"], "bindings": is_battle(True), "controls": [
-        {"log": log}, {"hide": hide},
+        {"log": log}, {"hide@common.button": hide},
         # BattleGeneralActionSelection: 90x26 tiles 3 px apart, top left at (12, H-85)
         {"menu": grid(1, [2, 2], [93, 29], [12, -27])},
         # BattleMoveSelection: 92x24 tiles 13/5 px apart from (20, H-84); Battle.java pads to 4 moves, back is 5th
@@ -605,15 +609,15 @@ def _server_form():
 
 
 # PartyPanel.java's Bedrock party: a title (its display hidden; a subtitle alone never reaches the HUD) of "|CL", the party's size, then six
-# slots of plain ASCII (Bedrock cuts strings by bytes), each "#<i>" then fixed-width fields padded with '~'. Must match
+# slots of plain ASCII (Bedrock cuts strings by bytes), each "Z<i>" then fixed-width fields padded with '~'. Must match
 # PartyPanel.FIELDS. Bedrock's '%.Ns' cut only reads two digits of N, so nothing is cut 100+ characters in: a slot is
-# reached by cutting whole slots off one at a time (each starts with its unique "#<i>", so "-" removes only it).
+# reached by cutting whole slots off one at a time (each starts with its unique "Z<i>", so "-" removes only it).
 # No field is all digits: Bedrock turns those into numbers, which a picture's name or a comparison can't use, so a
 # number field starts with a letter (n party size, a-d slot, L level, h HP, x EXP, s scroll; pop-up fades a-h).
 HUD_FIELDS = [("st", 1), ("lv", 4), ("nm", 12), ("g", 1), ("hp", 3), ("xp", 3), ("sc", 3), ("ev", 2), ("mv", 2),
               ("ea", 1), ("et", 11), ("pt", 40)]  # pt: the portrait's name under textures/items/portrait/
 HUD_HEAD = 5  # "|CL", then n and the party's size
-HUD_SLOT = 2 + sum(w for _, w in HUD_FIELDS)  # "#<i>" and the fields
+HUD_SLOT = 2 + sum(w for _, w in HUD_FIELDS)  # "Z<i>" and the fields
 HUD_T = "#hud_title_text_string"
 # Bedrock folds whatever follows a '%.Ns' cut into the cut (a cut then "- '~'" strips first, cuts after), so every
 # field is a chain of one-step view bindings through a control's own properties: the title less Geyser's colour code,
@@ -708,7 +712,7 @@ def hud_slot(i, y, s, anchor):
 # ht "32/32" (yours) or "100%" (theirs); su status "brn"... or "---".
 BT_FIELDS = [("st", 1), ("pt", 40), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 7), ("su", 3)]
 BT_HEAD = 3
-BT_SLOT = 2 + sum(w for _, w in BT_FIELDS)  # "#<i>" and the fields, as the party's slots
+BT_SLOT = 2 + sum(w for _, w in BT_FIELDS)  # "Z<i>" and the fields, as the party's slots
 BT_STEPS = 48
 BT_STATUS = ("brn", "frz", "par", "psn", "slp", "tox")
 
@@ -951,6 +955,7 @@ def build(gui, out):
 
     form, hud = server_form(), hud_screen()
     assert not malformed(form) and not malformed(hud), "every control entry is {name: control}"
+    hud_check(hud)
     import re  # Bedrock's '%.Ns' cut reads two digits of N: nothing longer than 99 anywhere
     for doc in (form, hud):
         assert not re.search(r"%\.\d{3,}s", json.dumps(doc)), "a 3-digit cut"
@@ -967,6 +972,46 @@ def build(gui, out):
         for name in sorted(files):
             z.writestr(zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0)), files[name])
     return files
+
+
+def payload(head, fields, slots):
+    """BattleTiles/PartyHud's Bedrock title as Geyser sends it: head, then six "Z<i>" slots of '~'-padded fields."""
+    out = "§r" + head
+    for i in range(6):
+        v = slots[i] if i < len(slots) and slots[i] else [""] * len(fields)
+        out += f"Z{i}" + "".join(x[:w] + "~" * (w - len(x[:w])) for x, (_, w) in zip(v, fields))
+    return out
+
+
+def hud_check(hud):
+    """Renders the battle tiles and the party from sample payloads through the pack's bindings (testclient/hudeval:
+    Bedrock's '-' and two-digit cut) and fails on an empty field or a step value Bedrock may take for a binding."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "testclient"))
+    import hudeval
+    def run(panel, title):
+        seen = {}
+        def walk(c, name):
+            v = hudeval.control(c, title)
+            for k, x in v.items():
+                assert not (isinstance(x, str) and x.startswith(("#", "$"))), f"{name} {k} = {x[:12]!r}...: '#' or '$' first"
+            if v.get("#visible") is False: return
+            seen[name] = v
+            for e in c.get("controls", []):
+                (n, cc), = e.items()
+                walk(cc, n)
+        walk(panel, "root")
+        return seen
+    mine = ["a", "mudkip", "Mudkip", "L10", "f", "b48", "33/33", "---"]
+    foe = ["a", "mareep", "Mareep", "L14", "m", "b24", "50%", "par"]
+    t = run(hud["cl_battle_tiles"]["controls"][0]["desktop"], payload("|CB", BT_FIELDS, [mine, [], [], foe]))
+    assert set(n for n in t if n.startswith("bt")) == {"bt0", "bt3"}, sorted(t)
+    for i, v in ((0, mine), (3, foe)):
+        got = {x.get("#texture") for x in t.values()} | {x.get("#text") for x in t.values()}
+        assert f"textures/items/portrait/{v[1]}" in got and v[2] in got and f"Lv.{v[3][1:]}" in got, (i, got)
+        assert f"§r{v[6]}" in got and any(str(g).endswith(f"_{v[5]}") for g in got) and (v[7] == "---" or f"{TEX}battle/status_{v[7]}" in got), (i, got)
+    slot = ["b", "L12", "Torchic", "m", "h20", "x10", "s00", "-", "-", "-", "", "torchic"]
+    party = run(hud["cl_party"], payload("|CLn2", HUD_FIELDS, [slot, slot]))
+    assert "n2" in party and "torchic" in str(party) and "Torchic" in str(party), sorted(party)
 
 
 if __name__ == "__main__":

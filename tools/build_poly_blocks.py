@@ -121,6 +121,9 @@ def build(poly, res, out):
             bed[f'textures/blocks/cobblemonlink/{k}.png'] = buf.getvalue()
         return k
 
+    def holed(k):
+        return Image.open(io.BytesIO(bed[f'textures/blocks/cobblemonlink/{k}.png'])).getchannel('A').getextrema()[0] < 255
+
     with tempfile.TemporaryDirectory() as tmp:
         for cob, client in sorted(table.items()):
             if client in done or not borrowed(cob, client) or natural(client): continue
@@ -135,11 +138,13 @@ def build(poly, res, out):
                 for side, f in first['elements'][0].get('faces', {}).items():
                     t = bedrock_blocks.resolve(first['textures'], f['texture'])
                     k = t and tex_key(t)
-                    if k: faces[side] = {'texture': k, 'render_method': 'alpha_test' if cname.endswith('leaves') else 'opaque'}
+                    if k: faces[side] = {'texture': k, 'render_method': 'alpha_test' if cname.endswith('leaves') or holed(k) else 'opaque'}
                 if not faces: continue
                 faces['*'] = faces.get('north', next(iter(faces.values())))
                 o['material_instances'] = faces
-                if cname.endswith('leaves'): o['light_dampening'] = 1  # as leaves: a canopy isn't left in the dark
+                if any(f['render_method'] == 'alpha_test' for f in faces.values()):
+                    # cut out (leaves, glass-like): without a geometry Bedrock draws the cube solid, holes and all
+                    o.update({'geometry': 'minecraft:geometry.full_block', 'light_dampening': 1})
             else:  # merged, turned, then Bedrock geometry with its own atlas (bedrock_blocks.convert)
                 els, tex = [], {}
                 for i, (mname, x, y) in enumerate(models):

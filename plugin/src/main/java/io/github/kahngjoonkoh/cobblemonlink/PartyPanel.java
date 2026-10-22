@@ -190,7 +190,7 @@ final class PartyPanel {
         int n = Math.min(6, d.party.size());
         StringBuilder b = new StringBuilder("|CLn").append(n);
         for (int i = 0; i < 6; i++) {
-            b.append('#').append(i); // the slot's marker: the pack cuts whole slots off by it (Bedrock's cut reads two digits)
+            b.append('Z').append(i); // the slot's marker: the pack cuts whole slots off by it (Bedrock's cut reads two digits)
             if (i >= n) {
                 b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
                 continue;
@@ -235,12 +235,12 @@ final class PartyPanel {
 
     private static String two(int v) { return v < 10 ? "0" + v : String.valueOf(v); }
 
-    /** Plain ASCII without the pack's '~' and '|': Bedrock's UI cuts the subtitle by bytes. */
+    /** Plain ASCII without the pack's '~', '|', '#', '$' or a slot's "Z<digit>" marker: Bedrock's UI cuts the title by bytes. */
     static String ascii(String s) {
         s = java.text.Normalizer.normalize(s.replace('♀', 'F').replace('♂', 'M'), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         StringBuilder b = new StringBuilder();
-        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' ? c : '?');
-        return b.toString();
+        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' && c != '$' ? c : '?');
+        return b.toString().replaceAll("Z(?=\\d)", "z"); // "Z<digit>" is a slot's marker
     }
 
     /** Cobblemon's EXP bar: filling up to the old level's end, then from 0 to now (level up), else from before to now. */

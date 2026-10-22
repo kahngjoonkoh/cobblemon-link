@@ -1,0 +1,24 @@
+# v1.1.8 Fabric: a real wild battle (Mudkip Lv.12 vs a wild Chansey Lv.5) from the Bedrock bot; slots now start with "Z<i>"
+# (v1.1.4-v1.1.7 started them with '#', a step value Bedrock never showed: no party HUD and no battle tiles on phones)
+set_title "§r|CBZ0amudkip~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Mudkip~~~~~~L12~mb4834/34~~---Z1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z3achansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Chansey~~~~~L5~~fb48100%~~~---Z4~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z5~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+tile bt0
+  b0_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b0_1 {'#texture': 'textures/items/portrait/mudkip', '#visible': True}
+  b0_2 {'#texture': 'textures/cobblemonlink/battle/info'}
+  b0_3 {'#text': 'Mudkip'}
+  b0_4 {'#text': 'Lv.12'}
+  b0_5 {'#texture': 'textures/cobblemonlink/hud/g_m', '#visible': True}
+  b0_6 {'#texture': 'textures/cobblemonlink/battle/hpo_b48', '#visible': True}
+  b0_7 {'#text': '§r34/34'}
+  b0_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}
+tile bt3
+  b3_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b3_1 {'#texture': 'textures/items/portrait/chansey', '#visible': True}
+  b3_2 {'#texture': 'textures/cobblemonlink/battle/info_flipped'}
+  b3_3 {'#text': 'Chansey'}
+  b3_4 {'#text': 'Lv.5'}
+  b3_5 {'#texture': 'textures/cobblemonlink/hud/g_f', '#visible': True}
+  b3_6 {'#texture': 'textures/cobblemonlink/battle/hpf_b48', '#visible': True}
+  b3_7 {'#text': '§r100%'}
+  b3_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}
+form Battle§r§l§1 | Go! Mudkip! / It is now turn 1 | Fight<textures/cobblemonlink/menu_fight> 

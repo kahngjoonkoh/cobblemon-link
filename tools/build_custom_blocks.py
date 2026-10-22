@@ -401,6 +401,8 @@ def build(res, out):
         name, sp = props(blocks[n])
         overrides[name][sp] = {'display_name': names.get(f'block.cobblemon.{base}', base), 'material_instances': mats,
                                'destructible_by_mining': hardness(base)}
+        if rm == 'alpha_test':  # without a geometry Bedrock draws the cube solid, holes and all (dark dirt from afar)
+            overrides[name][sp].update({'geometry': 'minecraft:geometry.full_block', 'light_dampening': 1})
     with tempfile.TemporaryDirectory() as tmp:
         os.makedirs(f'{tmp}/assets/minecraft/models/block', exist_ok=True)
         for k, v in VANILLA_PARENTS.items():

@@ -99,7 +99,7 @@ docker compose down && ./setup.sh && docker compose up -d
 ```bash
 tools/build.sh                     # fetch the pinned Cobblemon, convert models/data/packs into assets/, build the plugin
 fabric/tools/setup.sh              # build the Fabric mod and PolyMc, and its models and packs
-tools/build.sh --zip-only v1.1.7   # the two release zips in dist/
+tools/build.sh --zip-only v1.1.8   # the two release zips in dist/
 ```
 
 Needs `bash`, `curl`, `python3` (Pillow, NumPy), `zip` and Docker. Gradle and the JDKs run inside Docker images. To move

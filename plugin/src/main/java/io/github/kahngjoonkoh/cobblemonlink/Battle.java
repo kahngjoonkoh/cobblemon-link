@@ -743,7 +743,7 @@ final class Battle {
     static final int[] TILE_FIELDS = {1, 40, 12, 4, 1, 3, 7, 3};
     private static final java.util.Set<String> TILE_STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
 
-    /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of "#<i>" and TILE_FIELDS. */
+    /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of "Z<i>" and TILE_FIELDS. */
     String tiles() {
         String[][] t = new String[6][];
         JsonArray p1 = state.getAsJsonArray(side);
@@ -773,7 +773,7 @@ final class Battle {
     static String tilePayload(String[][] tiles) {
         StringBuilder b = new StringBuilder("|CB");
         for (int i = 0; i < 6; i++) {
-            b.append('#').append(i); // the tile's marker, as the party HUD's slots
+            b.append('Z').append(i); // the tile's marker, as the party HUD's slots
             for (int k = 0; k < TILE_FIELDS.length; k++) {
                 String x = tiles[i] == null ? "" : tiles[i][k];
                 if (x.length() > TILE_FIELDS[k]) x = x.substring(0, TILE_FIELDS[k]);

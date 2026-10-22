@@ -206,12 +206,12 @@ public final class PartyHud {
         p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(text)));
     }
 
-    /** The party for Bedrock's UI pack: "|CLn", its size, then six slots of "#<i>" and FIELDS, ASCII padded with '~'. */
+    /** The party for Bedrock's UI pack: "|CLn", its size, then six slots of "Z<i>" and FIELDS, ASCII padded with '~'. */
     static String bedrock(List<Pokemon> party, Map<UUID, Gain> gains) {
         int n = Math.min(6, party.size());
         StringBuilder b = new StringBuilder("|CLn").append(n);
         for (int i = 0; i < 6; i++) {
-            b.append('#').append(i); // the slot's marker: the pack cuts whole slots off by it (two-digit cuts only)
+            b.append('Z').append(i); // the slot's marker: the pack cuts whole slots off by it (two-digit cuts only)
             if (i >= n) {
                 b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
                 continue;
@@ -299,11 +299,11 @@ public final class PartyHud {
         }
     }
 
-    /** Plain ASCII without the pack's '~', '|' and '#': Bedrock's UI cuts the title by bytes. */
+    /** Plain ASCII without the pack's '~', '|', '#', '$' or a slot's "Z<digit>" marker: Bedrock's UI cuts the title by bytes. */
     static String ascii(String s) {
         s = java.text.Normalizer.normalize(s.replace('♀', 'F').replace('♂', 'M'), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         StringBuilder b = new StringBuilder();
-        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' ? c : '?');
-        return b.toString();
+        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' && c != '$' ? c : '?');
+        return b.toString().replaceAll("Z(?=\\d)", "z"); // "Z<digit>" is a slot's marker
     }
 }
