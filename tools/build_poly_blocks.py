@@ -187,8 +187,9 @@ def build(poly, res, out):
     os.makedirs(out, exist_ok=True)
     with zipfile.ZipFile(f'{out}/cobblemon-link-blocks.mcpack', 'w', zipfile.ZIP_DEFLATED) as z:
         for p in sorted(bed): z.writestr(zipfile.ZipInfo(p, (1980, 1, 1, 0, 0, 0)), bed[p])
-    def mapping(b, o):  # a block without properties: its one state is the block's own components
-        if list(o) == ['']: return {'name': f'clp_{b}', 'components': o['']}
+    def mapping(b, o):  # a block without properties: its one state's components sit on the block itself (Geyser
+        # ignores a "components" object: infested stone came out untextured, apricorn logs looked like gravel)
+        if list(o) == ['']: return {'name': f'clp_{b}', **o['']}
         return {'name': f'clp_{b}', 'only_override_states': True, 'state_overrides': o}
     json.dump({'format_version': 1, 'blocks': {f'minecraft:{b}': mapping(b, o) for b, o in sorted(overrides.items())}},
               open(f'{out}/cobblemon-link-blocks.json', 'w'), indent=1)

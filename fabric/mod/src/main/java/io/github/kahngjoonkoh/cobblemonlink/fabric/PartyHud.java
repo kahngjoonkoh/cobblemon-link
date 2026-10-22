@@ -232,7 +232,7 @@ public final class PartyHud {
                 double[] evf = g.evolutions > 0 ? fade(t - BEFORE - FLASH, POP_IN, POP_HOLD, POP_OUT) : new double[]{0, 0};
                 if (ex[1] > 0.25) {
                     ea = "y";
-                    et = "+" + g.exp + " EXP"; // ponytail: ASCII field in the HUD title string, stays English
+                    et = "e+" + g.exp + " EXP"; // letter first (Bedrock takes "+12..." for a number); ponytail: ASCII field in the HUD title string, stays English
                 }
                 if (evf[1] > 0) ev = step(evf[1]) + (ex[1] > 0 && mvf[1] > 0 ? "b" : "a");
                 if (mvf[1] > 0) mv = step(mvf[1]) + (ex[1] > 0 ? "a" : "b");

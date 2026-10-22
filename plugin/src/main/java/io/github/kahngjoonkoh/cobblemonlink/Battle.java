@@ -740,7 +740,7 @@ final class Battle {
     }
 
     /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
-    static final int[] TILE_FIELDS = {1, 40, 12, 4, 1, 3, 7, 3};
+    static final int[] TILE_FIELDS = {1, 40, 12, 4, 1, 3, 8, 3};
     private static final java.util.Set<String> TILE_STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
 
     /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of "Z<i>" and TILE_FIELDS. */
@@ -767,7 +767,7 @@ final class Battle {
         String model = m.model(pl.dex), st = p.get("status").getAsString();
         return new String[]{"a", Ui.portraits.containsKey(model) ? Ui.bedrockName(model) : "", // under textures/items/portrait/
                 PartyPanel.ascii(name(m)), "L" + m.level, "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n",
-                String.format("b%02d", step), own ? hp + "/" + max : (int) Math.ceil(r * 100) + "%", TILE_STATUS.contains(st) ? st : "---"};
+                String.format("b%02d", step), "h" + (own ? hp + "/" + max : (int) Math.ceil(r * 100) + "%"), TILE_STATUS.contains(st) ? st : "---"};
     }
 
     static String tilePayload(String[][] tiles) {

@@ -697,7 +697,7 @@ def hud_slot(i, y, s, anchor):
         img("hud/ball", sel + 43, 22, 9, 11, 5),
         img(None, sel + 46, 5, 2, 18, 4, *tex("hp", "hud/hp_"), "(not (#cl_f0 = 'h00'))"),
         img(None, sel + 49, 5, 1, 18, 4, *tex("xp", "hud/exp_"), "(not (#cl_f0 = 'x00'))"),
-        text(sel + 57, 17, 40, "left", [f("et"), f("ea")], "(#cl_f0 - '~')", "(not (#cl_f1 = '-'))"),
+        text(sel + 57, 17, 40, "left", [f("et"), f("ea")], "((#cl_f0 - '~') - 'e')", "(not (#cl_f1 = '-'))"),
     ]
     for kind, spots in (("ev", ((56, 4, "a"), (78, 4, "b"))), ("mv", ((56, 4, "a"), (56, 17, "b")))):
         for x, yy, pos in spots:  # PartyPanel.draw moves a pop-up aside for the other one or "+N EXP"
@@ -709,8 +709,8 @@ def hud_slot(i, y, s, anchor):
 # Battle.java / BattleUi.java's Bedrock battle: a title "|CB" then six fixed-width tiles (0-2 your side, top left;
 # 3-5 the other side, top right), Cobblemon's BattleOverlay tiles. Must match BattleTiles.FIELDS (both products).
 # st: 'a' if the tile is used; pt: portrait path; nm name; lv "L19"; g m/f/n; hb HP bar step "b00".."b48";
-# ht "32/32" (yours) or "100%" (theirs); su status "brn"... or "---".
-BT_FIELDS = [("st", 1), ("pt", 40), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 7), ("su", 3)]
+# ht "h32/32" (yours) or "h100%" (theirs), letter first as every field; su status "brn"... or "---".
+BT_FIELDS = [("st", 1), ("pt", 40), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 8), ("su", 3)]
 BT_HEAD = 3
 BT_SLOT = 2 + sum(w for _, w in BT_FIELDS)  # "Z<i>" and the fields, as the party's slots
 BT_STEPS = 48
@@ -765,7 +765,7 @@ def bt_tile(i, s, top):
         put({"type": "image"}, ib + 60, 8, 5, 7, 6, [f("g")], [(f"('{TEX}hud/g_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'n'))", "#visible")]),
         put({"type": "image"}, ib - 2, 19, 97, 4, 5, [f("hb")],
             [(f"('{TEX}battle/hp{'o' if own else 'f'}_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'b00'))", "#visible")]),
-        text(ib + (39 if own else 44), 24, None, "('§r' + (#cl_f0 - '~'))", "ht", 0.5),
+        text(ib + (39 if own else 44), 24, None, "('§r' + ((#cl_f0 - '~') - 'h'))", "ht", 0.5),
         put({"type": "image"}, ib - 2, 25, 37, 3.5, 6, [f("su")], [(f"('{TEX}battle/status_' + #cl_f0)", "#texture"),
                                                                     ("(not ((#cl_f0 = '---') or (#cl_f0 = '')))", "#visible")]),
     ]
@@ -994,6 +994,8 @@ def hud_check(hud):
             v = hudeval.control(c, title)
             for k, x in v.items():
                 assert not (isinstance(x, str) and x.startswith(("#", "$"))), f"{name} {k} = {x[:12]!r}...: '#' or '$' first"
+                # a step value starting like a number ("34/34~~", "+12 EXP") never showed on a phone: fields start with a letter
+                assert not (k.startswith("#cl_") and isinstance(x, str) and x[:1] in "0123456789+"), f"{name} {k} = {x[:12]!r}...: number-like"
             if v.get("#visible") is False: return
             seen[name] = v
             for e in c.get("controls", []):
@@ -1001,24 +1003,25 @@ def hud_check(hud):
                 walk(cc, n)
         walk(panel, "root")
         return seen
-    mine = ["a", "mudkip", "Mudkip", "L10", "f", "b48", "33/33", "---"]
-    foe = ["a", "mareep", "Mareep", "L14", "m", "b24", "50%", "par"]
+    mine = ["a", "mudkip", "Mudkip", "L10", "f", "b48", "h33/33", "---"]
+    foe = ["a", "mareep", "Mareep", "L14", "m", "b24", "h50%", "par"]
     t = run(hud["cl_battle_tiles"]["controls"][0]["desktop"], payload("|CB", BT_FIELDS, [mine, [], [], foe]))
     assert set(n for n in t if n.startswith("bt")) == {"bt0", "bt3"}, sorted(t)
     for i, v in ((0, mine), (3, foe)):
         got = {x.get("#texture") for x in t.values()} | {x.get("#text") for x in t.values()}
         assert f"textures/items/portrait/{v[1]}" in got and v[2] in got and f"Lv.{v[3][1:]}" in got, (i, got)
-        assert f"§r{v[6]}" in got and any(str(g).endswith(f"_{v[5]}") for g in got) and (v[7] == "---" or f"{TEX}battle/status_{v[7]}" in got), (i, got)
-    slot = ["b", "L12", "Torchic", "m", "h20", "x10", "s00", "-", "-", "-", "", "torchic"]
+        assert f"§r{v[6][1:]}" in got and any(str(g).endswith(f"_{v[5]}") for g in got) and (v[7] == "---" or f"{TEX}battle/status_{v[7]}" in got), (i, got)
+    slot = ["b", "L12", "Torchic", "m", "h20", "x10", "s00", "-", "-", "y", "e+12 EXP", "torchic"]
     party = run(hud["cl_party"], payload("|CLn2", HUD_FIELDS, [slot, slot]))
     assert "n2" in party and "torchic" in str(party) and "Torchic" in str(party), sorted(party)
+    assert "'+12 EXP'" in str(party), "the EXP pop-up's text"
 
 
 if __name__ == "__main__":
     f = server_form()
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
     assert not malformed(f), malformed(f)[:2]
-    assert BT_SLOT == 73 and bt_field(3, "st") == (3, 2, 1), "BattleTiles.FIELDS"
+    assert BT_SLOT == 74 and bt_field(3, "st") == (3, 2, 1), "BattleTiles.FIELDS"
     form, _ = starter_form()
     names = [next(iter(c)) for c in form["controls"]]
     assert len(names) == len(set(names)), "control names are unique (toggle state is looked up by name)"

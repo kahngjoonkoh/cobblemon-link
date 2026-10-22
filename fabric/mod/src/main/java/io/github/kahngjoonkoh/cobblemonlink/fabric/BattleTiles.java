@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class BattleTiles {
     /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
-    static final int[] FIELDS = {1, 40, 12, 4, 1, 3, 7, 3};
+    static final int[] FIELDS = {1, 40, 12, 4, 1, 3, 8, 3};
     static final int STEPS = 48;
     static final java.util.Set<String> STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
 
@@ -49,7 +49,7 @@ public final class BattleTiles {
         String look = Models.look(m.getSpecies().getResourceIdentifier().getPath(), m.getAspects());
         return new String[]{"a", Models.has(look) ? PartyHud.bedrockName(look) : "", // under textures/items/portrait/
                 PartyHud.ascii(name), "L" + m.getLevel(), m.getGender() == Gender.MALE ? "m" : m.getGender() == Gender.FEMALE ? "f" : "n",
-                String.format("b%02d", step), mine ? hp + "/" + max : (int) Math.ceil(ratio * 100) + "%",
+                String.format("b%02d", step), "h" + (mine ? hp + "/" + max : (int) Math.ceil(ratio * 100) + "%"), // letter first: Bedrock takes "34/34..." for a number
                 status != null && STATUS.contains(status) ? status : "---"};
     }
 

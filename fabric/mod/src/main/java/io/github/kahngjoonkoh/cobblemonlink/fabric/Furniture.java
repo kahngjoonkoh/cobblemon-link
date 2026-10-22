@@ -155,6 +155,16 @@ public final class Furniture {
                         placed(level, chunk.getPos().getBlockAt(x, y0 + y, z));
             }
         });
+        // a Bedrock holder doesn't tick, and a chunk a player left stops ticking: Polymer never saw them stop tracking it.
+        // A Java client drops the chunk's entities itself, Bedrock (Geyser) kept them: fruit and bushes floated where you'd been
+        ServerTickEvents.END_SERVER_TICK.register(s -> {
+            if (s.getTickCount() % 20 != 0) return;
+            for (var map : DRAWN.values())
+                for (var p : map.values()) {
+                    var att = p.bedrock.getAttachment();
+                    if (att != null) for (var h : new ArrayList<>(p.bedrock.getWatchingPlayers())) att.updateTracking(h);
+                }
+        });
         ServerChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> {
             var map = DRAWN.get(level);
             if (map != null) map.values().removeIf(p -> { boolean in = new net.minecraft.world.level.ChunkPos(p.pos).equals(chunk.getPos()); if (in) p.destroy(); return in; });

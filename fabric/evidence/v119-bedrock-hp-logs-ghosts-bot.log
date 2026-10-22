@@ -1,0 +1,30 @@
+# v1.1.9 Fabric, Bedrock bot on a copy of the e4 world
+## Own HP under the bar: fields start with a letter ("h30/30"), the pack shows it
+set_title "§r|CBZ0amudkip~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Mudkip~~~~~~L10~mb48h30/30~~---Z1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z3achansey~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Chansey~~~~~L5~~fb48h100%~~~---Z4~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Z5~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+tile bt0
+  b0_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b0_1 {'#texture': 'textures/items/portrait/mudkip', '#visible': True}
+  b0_2 {'#texture': 'textures/cobblemonlink/battle/info'}
+  b0_3 {'#text': 'Mudkip'}
+  b0_4 {'#text': 'Lv.10'}
+  b0_5 {'#texture': 'textures/cobblemonlink/hud/g_m', '#visible': True}
+  b0_6 {'#texture': 'textures/cobblemonlink/battle/hpo_b48', '#visible': True}
+  b0_7 {'#text': '§r30/30'}
+  b0_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}
+tile bt3
+  b3_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b3_1 {'#texture': 'textures/items/portrait/chansey', '#visible': True}
+  b3_2 {'#texture': 'textures/cobblemonlink/battle/info_flipped'}
+  b3_3 {'#text': 'Chansey'}
+  b3_4 {'#text': 'Lv.5'}
+  b3_5 {'#texture': 'textures/cobblemonlink/hud/g_f', '#visible': True}
+  b3_6 {'#texture': 'textures/cobblemonlink/battle/hpf_b48', '#visible': True}
+  b3_7 {'#text': '§r100%'}
+  b3_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}
+## Apricorn log (minecraft:infested_stone via PolyMc): Geyser's block definition sent to the client now has its textures
+"materials":{"type":"compound","value":{"up":{"type":"compound","value"
+"texture":{"type":"string","value":"clp_da50e25f55_apricorn_log_top"
+"texture":{"type":"string","value":"clp_ebd8e4aab7_apricorn_log"
+## Plant/fruit models when the player moves 600 blocks away (30 s later)
+v1.1.8 behaviour: 191 models left behind on the Bedrock client (never removed)
+v1.1.9: 0 left behind (502 added, 136 live, all near the player)
