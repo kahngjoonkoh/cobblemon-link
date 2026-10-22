@@ -22,6 +22,14 @@ from build_custom_blocks import rotate
 FALLBACKS = {'structure_void', 'stone', 'barrier', 'campfire', 'soul_campfire', 'chest'}
 LOOKALIKE = ('infested_', 'waxed_', 'petrified_')  # vanilla blocks that copy another's look: always borrowed
 WALK_THROUGH = ('tripwire', 'sugar_cane', 'kelp', 'cave_vines', 'small_dripleaf', 'sapling', 'pressure_plate')
+# vanilla states worldgen places (oceans' kelp, growing cane, lush caves, snowy podzol, trees' leaves): PolyMc borrows
+# some of them, but on Bedrock a vanilla world must look vanilla, so they keep their own look (Java sees PolyMc's)
+NATURAL = ('kelp', 'sugar_cane', 'cave_vines', 'small_dripleaf', 'mycelium', 'podzol')
+
+
+def natural(client):
+    c, p = split(client)
+    return c in NATURAL or c.endswith('_leaves') and 'persistent=false' in p
 
 
 def split(state):
@@ -103,7 +111,7 @@ def build(poly, res, out):
 
     with tempfile.TemporaryDirectory() as tmp:
         for cob, client in sorted(table.items()):
-            if client in done or not borrowed(cob, client): continue
+            if client in done or not borrowed(cob, client) or natural(client): continue
             block, props = split(cob)
             models = applies(res, block, props)
             if not models: continue
@@ -117,8 +125,9 @@ def build(poly, res, out):
                     k = t and tex_key(t)
                     if k: faces[side] = {'texture': k, 'render_method': 'alpha_test' if cname.endswith('leaves') else 'opaque'}
                 if not faces: continue
-                faces['*'] = next(iter(faces.values()))
+                faces['*'] = faces.get('north', next(iter(faces.values())))
                 o['material_instances'] = faces
+                if cname.endswith('leaves'): o['light_dampening'] = 1  # as leaves: a canopy isn't left in the dark
             else:  # merged, turned, then Bedrock geometry with its own atlas (bedrock_blocks.convert)
                 els, tex = [], {}
                 for i, (mname, x, y) in enumerate(models):
@@ -145,7 +154,7 @@ def build(poly, res, out):
                 hi = [max(e['to'][a] for e in els) for a in range(3)]
                 box = model_box(lo, hi)
                 o.update({'geometry': f'geometry.{gid}', 'material_instances': {'*': {'texture': k, 'render_method': 'alpha_test'}},
-                          'selection_box': box})
+                          'selection_box': box, 'light_dampening': 0})  # a custom block blocks all light by default
                 if any(w in cname for w in WALK_THROUGH): o['collision_box'] = {'origin': [0, 0, 0], 'size': [0, 0, 0]}
                 else: o['collision_box'] = box
             overrides.setdefault(cname, {})[cprops] = o
@@ -175,6 +184,8 @@ def demo():
     assert not borrowed('cobblemon:apricorn_door[facing=east]', 'minecraft:acacia_door[facing=east]')
     assert not borrowed('cobblemon:apricorn_fence', 'minecraft:stone')
     assert borrowed('cobblemon:apricorn_leaves[distance=1]', 'minecraft:acacia_leaves[distance=1,persistent=true,waterlogged=false]')
+    assert natural('minecraft:acacia_leaves[distance=1,persistent=false,waterlogged=false]') and natural('minecraft:kelp[age=3]')
+    assert not natural('minecraft:acacia_leaves[distance=1,persistent=true,waterlogged=false]') and not natural('minecraft:note_block[instrument=bass,note=1,powered=false]')
     assert borrowed('cobblemon:apricorn_slab[type=top]', 'minecraft:petrified_oak_slab[type=top]')
     assert split('minecraft:note_block[instrument=bass,note=1,powered=false]') == ('note_block', 'instrument=bass,note=1,powered=false')
     b = model_box([0, 0, 16], [16, 16, 16])  # a flat model on the block's south edge

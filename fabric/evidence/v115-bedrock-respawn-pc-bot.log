@@ -1,0 +1,13 @@
+# v1.1.5 Fabric, Bedrock bot on a toby test server
+## death (/kill), respawn, then the Summary (rcon 'execute as ... run party') and the party HUD: both complete after the respawn
+respawn 1
+text system "§r§e.BotShield left the game"
+text system "§r.BotDeath3 was killed"
+title set_title "§r|CLn1#0bL10~Mudkip~~~~~~mh18x00s00-~-~-~~~~~~~~~~~mudkip~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#3~~~~~~~~~~~~~~~~~~
+form Mudkip§r§l§6 |  | Info*<textures/cobblemonlink/summary/tab_info> ; Moves<textures/cobblemonlink/summary/tab_moves> ; Stats<textures/cobblemonlink/summary/tab_stats> ; Send out<textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ; Lv.10<textures/cobble
+## a new player without a starter joins with 30 s of Resistance V
+.BotShield has the following entity data: [{duration: 434, show_icon: 1b, amplifier: 4b, id: "minecraft:resistance"}]
+## /pc (not an operator; run through rcon 'execute as'): the player's own PC opens
+form §r§l§5 |  | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; Box 1<textures/cobblemonlink/none> ; Filter<textures/cobblemonlink/none> ;  <textures/cobblemonlink/pc/sort_options> ; <textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ; <textures/cobblemonlink/none> ;
+## Bedrock blocks: natural vanilla states (leaves persistent=false, kelp, sugar cane, cave vines, small dripleaf, snowy podzol/mycelium) left vanilla; leaves and plants let light through
+Geyser: Registered 1025 custom block overrides. Registered 45 custom blocks.

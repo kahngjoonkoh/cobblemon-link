@@ -12,6 +12,15 @@ c.on('start_game', p => {
   if (process.env.CMD) setTimeout(() => { console.log('command', process.env.CMD); c.queue('command_request', { command: process.env.CMD, origin: { type: 'player', uuid: '00000000-0000-0000-0000-000000000000', request_id: '', player_entity_id: 0n }, internal: false, version: '72' }) }, 6000)
 })
 c.on('move_player', p => { if (p.runtime_id == me) pos = p.position })
+// after a death: say the client is ready and press Respawn, as a player does (RESPAWN_CMD: a command once back)
+c.on('respawn', p => {
+  console.log('respawn', p.state)
+  if (p.state === 'server_ready' || p.state === 1) {
+    c.queue('respawn', { position: p.position, state: 'client_ready', runtime_entity_id: me })
+    c.queue('player_action', { runtime_entity_id: me, action: 'respawn', position: { x: 0, y: 0, z: 0 }, result_position: { x: 0, y: 0, z: 0 }, face: -1 })
+    if (process.env.RESPAWN_CMD) setTimeout(() => { console.log('command', process.env.RESPAWN_CMD); c.queue('command_request', { command: process.env.RESPAWN_CMD, origin: { type: 'player', uuid: '00000000-0000-0000-0000-000000000000', request_id: '', player_entity_id: 0n }, internal: false, version: '72' }) }, 4000)
+  }
+})
 c.on('add_player', p => { if (process.env.TARGET_PLAYER && p.username === process.env.TARGET_PLAYER) c.emit('add_entity', { entity_type: 'player:' + p.username, runtime_id: p.runtime_id }) })
 const seenAt = {} // NEAREST=1: of the TARGET entities sent before the tap, the one nearest the bot (e.g. the Paper carrier pig of a Pokémon spawned beside it)
 c.on('add_entity', p => {

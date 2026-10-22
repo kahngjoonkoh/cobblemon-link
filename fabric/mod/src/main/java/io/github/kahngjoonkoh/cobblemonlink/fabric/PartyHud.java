@@ -67,6 +67,9 @@ public final class PartyHud {
 
     static void register() {
         ServerTickEvents.END_SERVER_TICK.register(PartyHud::tick);
+        // a respawn or another dimension is a new player object and a fresh client HUD: draw the party again at once
+        net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register((old, now, alive) -> SHOWN.remove(now.getUUID()));
+        net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((p, from, to) -> SHOWN.remove(p.getUUID()));
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> {
             SEEN.remove(h.player.getUUID());
             GAINS.remove(h.player.getUUID());

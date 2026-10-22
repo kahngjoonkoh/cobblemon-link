@@ -447,7 +447,8 @@ def build(res, out):
                 'display_name': names.get(f'block.cobblemon.{base}', base.replace('_', ' ').title()), 'geometry': f'geometry.{gid}',
                 'material_instances': {'*': {'texture': tk, 'render_method': 'alpha_test'}},
                 'collision_box': {'origin': [0, 0, 0], 'size': [0, 0, 0]},  # Java's tripwire: walk through
-                'selection_box': {'origin': [-8, 0, -8], 'size': [16, 16, 16]}, 'destructible_by_mining': 0.0}
+                'selection_box': {'origin': [-8, 0, -8], 'size': [16, 16, 16]}, 'destructible_by_mining': 0.0,
+                'light_dampening': 0}  # a custom block blocks all light by default
     for i, d in items.items():  # icons: a seed's own texture, a block's side
         if d['kind'] == 'seed':
             t = bedrock_blocks.model(src, f'cobblemon:item/{i}')['textures'].get('layer0')

@@ -58,6 +58,34 @@ public final class Pc {
 
     static void register() {
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> VIEWS.remove(h.player.getUUID()));
+        // Cobblemon's /pc needs an operator; players carry no PC item, so everyone gets /pc for their own PC
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTED.register(s -> openPcCommand(s.getCommands().getDispatcher()));
+    }
+
+    /** Replaces Cobblemon's operator-only /pc with one for everyone: the player's own PC, as Cobblemon opens it. */
+    static void openPcCommand(com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> d) {
+        var root = d.getRoot();
+        try { // Brigadier has no removal: its child maps
+            for (String f : new String[]{"children", "literals"}) {
+                var m = com.mojang.brigadier.tree.CommandNode.class.getDeclaredField(f);
+                m.setAccessible(true);
+                ((java.util.Map<?, ?>) m.get(root)).remove("pc");
+            }
+        } catch (ReflectiveOperationException e) {
+            org.slf4j.LoggerFactory.getLogger("cobblemonlink").warn("/pc: {}", e.toString());
+            return;
+        }
+        d.register(net.minecraft.commands.Commands.literal("pc").executes(c -> {
+            ServerPlayer p = c.getSource().getPlayerOrException();
+            if (com.cobblemon.mod.common.battles.BattleRegistry.getBattleByParticipatingPlayer(p) != null) {
+                c.getSource().sendFailure(Component.literal(Lang.t(p, "cobblemon.pc.inbattle")));
+                return 0;
+            }
+            var pc = pc(p);
+            com.cobblemon.mod.common.api.storage.pc.link.PCLinkManager.INSTANCE.addLink(new com.cobblemon.mod.common.api.storage.pc.link.PCLink(pc, p.getUUID()));
+            new com.cobblemon.mod.common.net.messages.client.storage.pc.OpenPCPacket(pc, null, true).sendToPlayer(p);
+            return 1;
+        }));
     }
 
     /** Cobblemon opened its PC for a player without the mod. */
