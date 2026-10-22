@@ -1,0 +1,4 @@
+# v1.1.6 Fabric: a PC block placed beside a non-operator Bedrock bot (deop .BotPcB); a tap on it opens the PC form
+using block -54,63,3 (face 4)
+form §r§l§5 |  | <<textures/cobblemonlink/none> ; ><textures/cobblemonlink/none> ; Box 1<textures/cobblemonlink/none> ; Filter ...
+(without a tap, or with the PC removed, no PC form arrives)

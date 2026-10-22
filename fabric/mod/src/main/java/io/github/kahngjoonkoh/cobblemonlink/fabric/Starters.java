@@ -30,13 +30,6 @@ public final class Starters {
                     else Cobblemon.INSTANCE.getStarterHandler().requestStarterChoice(p);
                     return 1;
                 })));
-        // a player who has no starter yet joins with half a minute of protection: night mobs can't end the first visit
-        // before the starter prompt is even read (vanilla mobs stay as they are)
-        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
-            var p = h.player;
-            if (!Cobblemon.INSTANCE.getPlayerDataManager().getGenericData(p).getStarterSelected())
-                p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE, 600, 4, false, true));
-        });
         ServerTickEvents.END_SERVER_TICK.register(s -> {
             if (s.getTickCount() % 40 != 0) return;
             for (ServerPlayer p : s.getPlayerList().getPlayers())

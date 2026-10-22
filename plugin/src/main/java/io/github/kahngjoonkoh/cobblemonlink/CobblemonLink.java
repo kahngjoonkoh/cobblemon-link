@@ -256,8 +256,6 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
         Player p = e.getPlayer();
         Store.Data d = store.get(p.getUniqueId());
         Bukkit.getScheduler().runTaskLater(this, () -> MoveLearn.next(this, p), 200); // moves still waiting from last time
-        if (d.empty()) // no starter yet: half a minute of protection, so night mobs can't end the first visit (mobs stay vanilla)
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.RESISTANCE, 600, 4, false, true));
         if (d.empty() && prompt(p, true)) { // Cobblemon's "Check out the starters!" prompt, with our command
             p.sendMessage(Component.text("Type /starter to choose your first Pokémon and begin your journey!", NamedTextColor.GOLD));
             (plainToast(p) ? starterToast : toastAfterPacks).add(p.getUniqueId());
@@ -873,10 +871,7 @@ public final class CobblemonLink extends JavaPlugin implements Listener {
             p.sendMessage(Component.text(d.hideParty ? "Party hidden. /partyhud shows it again." : "Party shown.", NamedTextColor.GRAY));
         });
         playerCommand("pokedex", "Open your Pokédex", null, (p, a) -> PokedexScreen.open(this, p, 0, null));
-        playerCommand("pc", "Open your PC", null, (p, a) -> { // your own PC, for everyone (not in battle)
-            if (battles.containsKey(p.getUniqueId())) p.sendMessage(Component.text(t(p, "cobblemon.pc.inbattle"), NamedTextColor.RED));
-            else pc.open(p);
-        });
+        playerCommand("pc", "Open your PC (admin; players use the PC button in the Pokémon menu)", "cobblemonlink.admin", (p, a) -> pc.open(p));
         playerCommand("battle", "Reopen the battle menu", null, (p, a) -> {
             Battle b = battles.get(p.getUniqueId());
             if (b == null) p.sendMessage(Component.text("You are not in a battle.", NamedTextColor.RED));

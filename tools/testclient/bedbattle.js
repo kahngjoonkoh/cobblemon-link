@@ -44,6 +44,13 @@ c.on('container_open', p => console.log('container_open', p.window_id, p.window_
 c.on('inventory_content', p => { if (p.window_id !== 'inventory' && p.window_id !== 0) console.log('container_content', p.window_id, (p.input || []).map(it => it.network_id).join(',')) })
 c.on('inventory_slot', p => { if (p.window_id === 'inventory' || p.window_id === 0) held[p.slot] = p.item })
 c.on('inventory_content', p => { if (p.window_id === 'inventory' || p.window_id === 0) (p.input || []).forEach((it, i) => held[i] = it) })
+// USE_BLOCK=x,y,z@ms: right-click (tap) that block, e.g. a PC
+if (process.env.USE_BLOCK) { const [xyz, at] = process.env.USE_BLOCK.split('@'); const [x, y, z] = xyz.split(',').map(Number); setTimeout(() => {
+  console.log('using block', xyz)
+  c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use', actions: [],
+    transaction_data: { action_type: 'click_block', trigger_type: 'player_input', block_position: { x, y, z }, face: +(process.env.FACE || 1), hotbar_slot: 0,
+      held_item: held[0] || { network_id: 0 }, player_pos: pos, click_pos: { x: 0.5, y: 1, z: 0.5 }, block_runtime_id: 0, client_prediction: 'success' } } })
+}, +(at || 10000)) }
 if (process.env.USE_ITEM) setTimeout(() => {
   console.log('using item in slot 0', held[0] && held[0].network_id)
   c.queue('inventory_transaction', { transaction: { legacy: { legacy_request_id: 0 }, transaction_type: 'item_use', actions: [],
