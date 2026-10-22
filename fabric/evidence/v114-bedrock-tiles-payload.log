@@ -1,0 +1,23 @@
+# v1.1.4 Fabric: a real battle payload (Mudkip Lv.10 vs a wild female Mareep Lv.14) through the pack's bindings
+# (tools: Bedrock's two-digit '%.Ns' cut emulated; every field lines up for both tiles)
+set_title "§r|CB#0amudkip~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Mudkip~~~~~~L10~fb4833/33~~---#1~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#2~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#3amareep~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Mareep~~~~~~L14~fb48100%~~~---#4~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#5~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+tile bt0
+  b0_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b0_1 {'#texture': 'textures/items/portrait/mudkip', '#visible': True}
+  b0_2 {'#texture': 'textures/cobblemonlink/battle/info'}
+  b0_3 {'#text': 'Mudkip'}
+  b0_4 {'#text': 'Lv.10'}
+  b0_5 {'#texture': 'textures/cobblemonlink/hud/g_f', '#visible': True}
+  b0_6 {'#texture': 'textures/cobblemonlink/battle/hpo_b48', '#visible': True}
+  b0_7 {'#text': '§r33/33'}
+  b0_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}
+tile bt3
+  b3_0 {'#texture': 'textures/cobblemonlink/battle/underlay'}
+  b3_1 {'#texture': 'textures/items/portrait/mareep', '#visible': True}
+  b3_2 {'#texture': 'textures/cobblemonlink/battle/info_flipped'}
+  b3_3 {'#text': 'Mareep'}
+  b3_4 {'#text': 'Lv.14'}
+  b3_5 {'#texture': 'textures/cobblemonlink/hud/g_f', '#visible': True}
+  b3_6 {'#texture': 'textures/cobblemonlink/battle/hpf_b48', '#visible': True}
+  b3_7 {'#text': '§r100%'}
+  b3_8 {'#texture': 'textures/cobblemonlink/battle/status_---', '#visible': False}

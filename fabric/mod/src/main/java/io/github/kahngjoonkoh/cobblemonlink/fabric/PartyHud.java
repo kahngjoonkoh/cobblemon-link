@@ -32,7 +32,7 @@ public final class PartyHud {
     static final int BAR = 18, BEFORE = 15, FLASH = 2, POP_IN = 3, POP_HOLD = 40, POP_OUT = 3, LEVEL_UP = 10;
     static final int POPUP = POP_IN + POP_HOLD + POP_OUT, LAST = BEFORE + FLASH + POPUP, EXP_HOLD = BEFORE + FLASH + POPUP - 6;
     /** build_bedrock_ui.py HUD_FIELDS: state, level, name, gender, HP, EXP, scroll, evolution and move pop-ups, "+N EXP" fade and text, portrait. */
-    static final int[] FIELDS = {1, 4, 12, 1, 3, 3, 3, 2, 2, 1, 11, 76};
+    static final int[] FIELDS = {1, 4, 12, 1, 3, 3, 3, 2, 2, 1, 11, 40};
     static final String HIDDEN = "|CLn0", HIDE_TAG = "cobblemonlink.hideparty";
 
     /** One Pokémon as last seen, to notice gains. */
@@ -203,11 +203,12 @@ public final class PartyHud {
         p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(text)));
     }
 
-    /** The party for Bedrock's UI pack: "|CLn", its size, then six slots of FIELDS, ASCII padded with '~'. */
+    /** The party for Bedrock's UI pack: "|CLn", its size, then six slots of "#<i>" and FIELDS, ASCII padded with '~'. */
     static String bedrock(List<Pokemon> party, Map<UUID, Gain> gains) {
         int n = Math.min(6, party.size());
         StringBuilder b = new StringBuilder("|CLn").append(n);
         for (int i = 0; i < 6; i++) {
+            b.append('#').append(i); // the slot's marker: the pack cuts whole slots off by it (two-digit cuts only)
             if (i >= n) {
                 b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
                 continue;
@@ -239,7 +240,7 @@ public final class PartyHud {
                     "L" + (g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.getLevel()), ascii(BattleUi.name(m)),
                     m.getGender() == Gender.MALE ? "m" : m.getGender() == Gender.FEMALE ? "f" : "n", "h" + two(h),
                     "x" + two(Math.round(BAR * expRatio(m, g, t))), "s" + two(scroll), ev, mv, ea, et,
-                    Models.has(look) ? "items/portrait/" + bedrockName(look) : "cobblemonlink/none"};
+                    Models.has(look) ? bedrockName(look) : ""}; // under textures/items/portrait/
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
                 b.append(x).append("~".repeat(FIELDS[k] - x.length()));
@@ -295,11 +296,11 @@ public final class PartyHud {
         }
     }
 
-    /** Plain ASCII without the pack's '~' and '|': Bedrock's UI cuts the title by bytes. */
+    /** Plain ASCII without the pack's '~', '|' and '#': Bedrock's UI cuts the title by bytes. */
     static String ascii(String s) {
         s = java.text.Normalizer.normalize(s.replace('♀', 'F').replace('♂', 'M'), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         StringBuilder b = new StringBuilder();
-        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' ? c : '?');
+        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' ? c : '?');
         return b.toString();
     }
 }

@@ -35,7 +35,7 @@ final class PartyPanel {
     private static final Key PORTRAIT = Key.key("cobblemonlink", "portrait_hud");
     // build_bedrock_ui.py HUD_FIELDS: state, level, name, gender, HP, EXP, scroll, evolution and move pop-ups, "+N EXP"
     // fade and text, portrait texture. A number field starts with a letter: Bedrock's UI makes an all-digit one a number.
-    static final int[] FIELDS = {1, 4, 12, 1, 3, 3, 3, 2, 2, 1, 11, 76};
+    static final int[] FIELDS = {1, 4, 12, 1, 3, 3, 3, 2, 2, 1, 11, 40};
     static final String HIDDEN = "|CLn0";
 
     /** A battle's EXP for one Pokémon: its level before (-1: no level up), the EXP, new moves, evolutions unlocked. */
@@ -190,6 +190,7 @@ final class PartyPanel {
         int n = Math.min(6, d.party.size());
         StringBuilder b = new StringBuilder("|CLn").append(n);
         for (int i = 0; i < 6; i++) {
+            b.append('#').append(i); // the slot's marker: the pack cuts whole slots off by it (Bedrock's cut reads two digits)
             if (i >= n) {
                 b.append("~".repeat(java.util.Arrays.stream(FIELDS).sum()));
                 continue;
@@ -221,7 +222,7 @@ final class PartyPanel {
                     "L" + (g != null && g.oldLevel >= 0 && t < BEFORE ? g.oldLevel : m.level), ascii(m.name(pl.dex)),
                     "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n", "h" + two(h), "x" + two(Math.round(BAR * expRatio(m, g, t))),
                     "s" + two(Integer.parseInt(scroll)), ev, mv, ea, et,
-                    Ui.portraits.containsKey(model) ? "items/portrait/" + Ui.bedrockName(model) : "cobblemonlink/none"};
+                    Ui.portraits.containsKey(model) ? Ui.bedrockName(model) : ""}; // under textures/items/portrait/
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = v[k].length() > FIELDS[k] ? v[k].substring(0, FIELDS[k]) : v[k];
                 b.append(x).append("~".repeat(FIELDS[k] - x.length()));
@@ -238,7 +239,7 @@ final class PartyPanel {
     static String ascii(String s) {
         s = java.text.Normalizer.normalize(s.replace('♀', 'F').replace('♂', 'M'), java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
         StringBuilder b = new StringBuilder();
-        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' ? c : '?');
+        for (char c : s.toCharArray()) b.append(c >= 32 && c < 127 && c != '~' && c != '|' && c != '#' ? c : '?');
         return b.toString();
     }
 

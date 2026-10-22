@@ -547,13 +547,15 @@ def server_form():
 
 
 # PartyPanel.java's Bedrock party: a title (its display hidden; a subtitle alone never reaches the HUD) of "|CL", the party's size, then six
-# fixed-width slots of plain ASCII (Bedrock cuts strings by bytes); a field is padded with '~'. Must match PartyPanel.FIELDS.
+# slots of plain ASCII (Bedrock cuts strings by bytes), each "#<i>" then fixed-width fields padded with '~'. Must match
+# PartyPanel.FIELDS. Bedrock's '%.Ns' cut only reads two digits of N, so nothing is cut 100+ characters in: a slot is
+# reached by cutting whole slots off one at a time (each starts with its unique "#<i>", so "-" removes only it).
 # No field is all digits: Bedrock turns those into numbers, which a picture's name or a comparison can't use, so a
 # number field starts with a letter (n party size, a-d slot, L level, h HP, x EXP, s scroll; pop-up fades a-h).
 HUD_FIELDS = [("st", 1), ("lv", 4), ("nm", 12), ("g", 1), ("hp", 3), ("xp", 3), ("sc", 3), ("ev", 2), ("mv", 2),
-              ("ea", 1), ("et", 11), ("pt", 76)]
+              ("ea", 1), ("et", 11), ("pt", 40)]  # pt: the portrait's name under textures/items/portrait/
 HUD_HEAD = 5  # "|CL", then n and the party's size
-HUD_SLOT = sum(w for _, w in HUD_FIELDS)
+HUD_SLOT = 2 + sum(w for _, w in HUD_FIELDS)  # "#<i>" and the fields
 HUD_T = "#hud_title_text_string"
 # Bedrock folds whatever follows a '%.Ns' cut into the cut (a cut then "- '~'" strips first, cuts after), so every
 # field is a chain of one-step view bindings through a control's own properties: the title less Geyser's colour code,
@@ -564,21 +566,29 @@ def view(src, dst):
     return {"binding_type": "view", "source_property_name": src, "target_property_name": dst}
 
 
-def hud_chain(fields):
-    """Bindings putting each (start, width) of fields in #cl_f0, #cl_f1, ... (and a property bag for them)."""
+def hud_chain(fields, head=HUD_HEAD, seg=HUD_SLOT):
+    """Bindings putting each field (slot, offset in it, width) in #cl_f0, #cl_f1, ... (and a property bag for them);
+    slot None: the offset is from the title's start. #cl_s0 is the title less its header, #cl_s<k+1> less k+1 slots."""
     b = [{"binding_name": HUD_T}, view(f"(({HUD_T} - '§r') - '§f')", "#cl_t")]
-    for j, (k, n) in enumerate(fields):
-        b += [view(f"(#cl_t - ('%.{k}s' * #cl_t))", f"#cl_a{j}"), view(f"('%.{n}s' * #cl_a{j})", f"#cl_f{j}")]
-    bag = {"#cl_t": ""} | {f"#cl_{x}{j}": "" for j in range(len(fields)) for x in "af"}
+    top = max([i for i, _, _ in fields if i is not None], default=-1)
+    if top >= 0:
+        b.append(view(f"(#cl_t - ('%.{head}s' * #cl_t))", "#cl_s0"))
+        for k in range(top):
+            b.append(view(f"(#cl_s{k} - ('%.{seg}s' * #cl_s{k}))", f"#cl_s{k + 1}"))
+    for j, (i, k, n) in enumerate(fields):
+        src = "#cl_t" if i is None else f"#cl_s{i}"
+        assert k < 100 and n < 100, "Bedrock's cut reads two digits"
+        b += [view(f"({src} - ('%.{k}s' * {src}))", f"#cl_a{j}"), view(f"('%.{n}s' * #cl_a{j})", f"#cl_f{j}")]
+    bag = {"#cl_t": ""} | {f"#cl_s{k}": "" for k in range(top + 1)} | {f"#cl_{x}{j}": "" for j in range(len(fields)) for x in "af"}
     return b, bag
 
 
 def hud_field(i, name, part=None):
-    """(start, width) of slot i's field (or its part-th character) in the title, less its colour code."""
-    k = HUD_HEAD + HUD_SLOT * i
+    """(slot, offset in it, width) of slot i's field (or its part-th character)."""
+    k = 2
     for f, w in HUD_FIELDS:
         if f == name:
-            return (k + part, 1) if part is not None else (k, w)
+            return (i, k + part, 1) if part is not None else (i, k, w)
         k += w
 
 
@@ -613,7 +623,8 @@ def hud_slot(i, y, s, anchor):
     tex = lambda name, prefix: ([f(name)], f"'{prefix}' + #cl_f0")
     c = [
         img("hud/portrait_bg", 22 + sel, 2, 21, 21, 1),
-        put({"type": "image"}, 22 + sel, 2, 21, 21, 2, [f("pt")], [("('textures/' + (#cl_f0 - '~'))", "#texture")]),
+        put({"type": "image"}, 22 + sel, 2, 21, 21, 2, [f("pt")], [("('textures/items/portrait/' + (#cl_f0 - '~'))", "#texture"),
+                                                               ("(not ((#cl_f0 - '~') = ''))", "#visible")]),
         img(None, 0, 0, 62, 30, 3, *tex("st", "hud/slot_")),
         img(None, 24 + sel, 4, 17, 17, 4, *tex("sc", "hud/scroll_"), "(not (#cl_f0 = 's00'))"),
         text(sel - 3, 13, 20, "center", static="Lv."),
@@ -637,18 +648,18 @@ def hud_slot(i, y, s, anchor):
 # 3-5 the other side, top right), Cobblemon's BattleOverlay tiles. Must match BattleTiles.FIELDS (both products).
 # st: 'a' if the tile is used; pt: portrait path; nm name; lv "L19"; g m/f/n; hb HP bar step "b00".."b48";
 # ht "32/32" (yours) or "100%" (theirs); su status "brn"... or "---".
-BT_FIELDS = [("st", 1), ("pt", 76), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 7), ("su", 3)]
+BT_FIELDS = [("st", 1), ("pt", 40), ("nm", 12), ("lv", 4), ("g", 1), ("hb", 3), ("ht", 7), ("su", 3)]
 BT_HEAD = 3
-BT_SLOT = sum(w for _, w in BT_FIELDS)
+BT_SLOT = 2 + sum(w for _, w in BT_FIELDS)  # "#<i>" and the fields, as the party's slots
 BT_STEPS = 48
 BT_STATUS = ("brn", "frz", "par", "psn", "slp", "tox")
 
 
 def bt_field(i, name):
-    k = BT_HEAD + BT_SLOT * i
+    k = 2
     for f, w in BT_FIELDS:
         if f == name:
-            return k, w
+            return i, k, w
         k += w
 
 
@@ -665,30 +676,36 @@ def bt_tile(i, s, top):
         c.update({"size": [w * s, h * s], "offset": [(x0 + x) * s, (y0 + y) * s], "anchor_from": anchor, "anchor_to": "top_left",
                   "layer": layer})
         if fields:
-            b, bag = hud_chain(fields)
+            b, bag = hud_chain(fields, BT_HEAD, BT_SLOT)
             c["bindings"] = b + [view(src, dst) for src, dst in finals]
             c["property_bag"] = bag
         return c
 
     def text(x, y, w, src, field, scale=1.0, align="left"):
+        """w None: sized to its text (no ellipsis)."""
         c = {"type": "label", "text": "#text", "color": [1, 1, 1], "shadow": True, "localize": False,
              "font_scale_factor": scale * s, "text_alignment": align}
-        return put(c, x, y, w, 9 * scale, 6, [f(field)], [(src, "#text")])
+        c = put(c, x, y, w or 1, 9 * scale, 6, [f(field)], [(src, "#text")])
+        if w is None:
+            c["size"] = ["default", "default"]
+        return c
 
     px = 5 if own else 107
     ib = 40 if own else 7
     c = [
         put({"type": "image", "texture": TEX + "battle/underlay"}, px, 8, 28, 28, 1),
-        put({"type": "image"}, px, 8, 28, 28, 2, [f("pt")], [("('textures/' + (#cl_f0 - '~'))", "#texture")]),
+        put({"type": "image"}, px, 8, 28, 28, 2, [f("pt")], [("('textures/items/portrait/' + (#cl_f0 - '~'))", "#texture"),
+                                                              ("(not ((#cl_f0 - '~') = ''))", "#visible")]),
         put({"type": "image", "texture": TEX + ("battle/info" if own else "battle/info_flipped")}, 0, 0, 140, 40, 3),
         text(ib, 7, 60, "(#cl_f0 - '~')", "nm"),
-        put({"type": "label", "text": "Lv.", "color": [1, 1, 1], "shadow": True, "font_scale_factor": s}, ib + 69, 7, 14, 9, 6),
-        text(ib + 82, 7, 18, "('§r' + ((#cl_f0 - '~') - 'L'))", "lv"),
+        # "L10~" less '~' and 'L' is "10", a number a label won't show: 'Lv.' + it is text, sized to fit (no ellipsis)
+        text(ib + 66, 7, None, "('Lv.' + ((#cl_f0 - '~') - 'L'))", "lv"),
         put({"type": "image"}, ib + 60, 8, 5, 7, 6, [f("g")], [(f"('{TEX}hud/g_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'n'))", "#visible")]),
         put({"type": "image"}, ib - 2, 19, 97, 4, 5, [f("hb")],
             [(f"('{TEX}battle/hp{'o' if own else 'f'}_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = 'b00'))", "#visible")]),
-        text(ib + (39 if own else 44), 18, 40, "('§r' + (#cl_f0 - '~'))", "ht", 0.5),
-        put({"type": "image"}, ib - 2, 25, 37, 3.5, 6, [f("su")], [(f"('{TEX}battle/status_' + #cl_f0)", "#texture"), ("(not (#cl_f0 = '---'))", "#visible")]),
+        text(ib + (39 if own else 44), 24, None, "('§r' + (#cl_f0 - '~'))", "ht", 0.5),
+        put({"type": "image"}, ib - 2, 25, 37, 3.5, 6, [f("su")], [(f"('{TEX}battle/status_' + #cl_f0)", "#texture"),
+                                                                    ("(not ((#cl_f0 = '---') or (#cl_f0 = '')))", "#visible")]),
     ]
     return [{f"b{i}_{k}": x} for k, x in enumerate(c)]
 
@@ -697,15 +714,17 @@ def bt_screen():
     """The battle tiles, shown while the title carries "|CB"; a tile while its st is 'a'. Touch screens: 3/4 size,
     below the hearts."""
     def tiles(s, top):
-        return [{f"bt{i}": hud_panel([bt_field(i, "st")], "(#cl_f0 = 'a')", bt_tile(i, s, top))} for i in range(6)]
+        return [{f"bt{i}": hud_panel([bt_field(i, "st")], "(#cl_f0 = 'a')", bt_tile(i, s, top(i)), BT_HEAD, BT_SLOT)} for i in range(6)]
     on = [{"binding_name": HUD_T}, view(f"(not ({HUD_T} = ({HUD_T} - '|CB')))", "#visible")]
     return {"type": "panel", "size": ["100%", "100%"], "layer": 1, "bindings": on, "controls": [
-        {"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": tiles(1, 10)}},
-        {"touch": {"type": "panel", "size": ["100%", "100%"], "ignored": "(not $touch)", "controls": tiles(0.75, 22 / 0.75)}}]}
+        {"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": tiles(1, lambda i: 10)}},
+        # touch: yours below the hearts and the coordinates line ("Position:"), theirs below the hunger bar
+        {"touch": {"type": "panel", "size": ["100%", "100%"], "ignored": "(not $touch)",
+                   "controls": tiles(0.75, lambda i: (50 if i < 3 else 22) / 0.75)}}]}
 
 
-def hud_panel(fields, show, controls):
-    b, bag = hud_chain(fields)
+def hud_panel(fields, show, controls, head=HUD_HEAD, seg=HUD_SLOT):
+    b, bag = hud_chain(fields, head, seg)
     return {"type": "panel", "size": ["100%", "100%"], "bindings": b + [view(show, "#visible")], "property_bag": bag,
             "controls": controls}
 
@@ -713,12 +732,12 @@ def hud_panel(fields, show, controls):
 def hud_screen():
     """The party down the left edge (PartyOverlay: centred, so a column per party size); on a touch screen at 3/4 size
     from the top, clear of the D-pad. The title that carries it isn't shown."""
-    desktop = [{f"n{n}": hud_panel([(3, 2)], f"(#cl_f0 = 'n{n}')", [c for i in range(n) for c in hud_slot(i, -n * 15 - 10 + 34 * i, 1, "left_middle")])}
+    desktop = [{f"n{n}": hud_panel([(None, 3, 2)], f"(#cl_f0 = 'n{n}')", [c for i in range(n) for c in hud_slot(i, -n * 15 - 10 + 34 * i, 1, "left_middle")])}
                for n in range(1, 7)]
     # a touch screen's slot shows while it holds a Pokémon: its first field is a-d (padding is '~', past the end '')
     touch = [{f"t{i}": hud_panel([hud_field(i, "st")], "(not ((#cl_f0 = '~') or (#cl_f0 = '')))", hud_slot(i, 8 / 0.75 + 34 * i, 0.75, "top_left"))}
              for i in range(6)]
-    b, bag = hud_chain([(3, 2)])
+    b, bag = hud_chain([(None, 3, 2)])
     party = {"type": "panel", "size": ["100%", "100%"], "layer": 1, "property_bag": bag,  # "|CLn0": hidden
              "bindings": b + [view(f"(not ({HUD_T} = ({HUD_T} - '|CL')))", "#cl_on"), view("(#cl_on and (not (#cl_f0 = 'n0')))", "#visible")],
              "controls": [{"desktop": {"type": "panel", "size": ["100%", "100%"], "ignored": "$touch", "controls": desktop}},
@@ -890,13 +909,16 @@ def build(gui, out):
 if __name__ == "__main__":
     f = server_form()
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
-    assert BT_SLOT == 107 and bt_field(3, "st") == (3 + 3 * 107, 1), "BattleTiles.FIELDS"
+    assert BT_SLOT == 73 and bt_field(3, "st") == (3, 2, 1), "BattleTiles.FIELDS"
     form, _ = starter_form()
     names = [next(iter(c)) for c in form["controls"]]
     assert len(names) == len(set(names)), "control names are unique (toggle state is looked up by name)"
     assert sum(1 for n in names if n.startswith("sb")) == STARTER_MAX, "one I-choose-you button per starter"
-    assert HUD_SLOT == 119 and hud_field(1, "lv") == (5 + 119 + 1, 4), "PartyPanel.FIELDS' layout"
-    assert all(len("items/portrait/" + short(n)) <= 76 for n in portrait_names(sys.argv[2])), "a portrait's path fits its field"
+    assert HUD_SLOT == 85 and hud_field(1, "lv") == (1, 3, 4), "PartyPanel.FIELDS' layout"
+    assert all(len(short(n)) <= 40 for n in portrait_names(sys.argv[2])), "a portrait's name fits its field"
+    import re  # nothing is cut 100+ characters in (Bedrock reads two digits of N)
+    for doc in (hud_screen(),):
+        assert not re.search(r"%\.\d{3,}s", json.dumps(doc)), "a 3-digit cut"
     assert short("a" * 40) == "a" * 40 and len(short("a" * 41)) == 40
     files = build(sys.argv[1], sys.argv[2])
     print(f"bedrock ui pack: {len(files)} files -> {sys.argv[2]}")

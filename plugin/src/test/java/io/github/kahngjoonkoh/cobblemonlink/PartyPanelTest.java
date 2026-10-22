@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Test;
 class PartyPanelTest {
     @Test
     void bedrockSlotsAreFixedWidthAscii() {
-        assertEquals(119, java.util.Arrays.stream(PartyPanel.FIELDS).sum(), "build_bedrock_ui.py HUD_SLOT");
+        assertEquals(83, java.util.Arrays.stream(PartyPanel.FIELDS).sum(), "build_bedrock_ui.py HUD_SLOT less \"#<i>\"");
+        assertEquals("a?b??", PartyPanel.ascii("a~b|#"));
         assertEquals("Flabebe", PartyPanel.ascii("Flabébé"));
         assertEquals("NidoranF", PartyPanel.ascii("Nidoran♀"));
         assertEquals("a?b?", PartyPanel.ascii("a~b|"), "the pack's padding and marker stay out of names");

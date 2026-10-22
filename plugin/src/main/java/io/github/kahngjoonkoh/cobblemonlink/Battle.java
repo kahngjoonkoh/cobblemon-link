@@ -740,10 +740,10 @@ final class Battle {
     }
 
     /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
-    static final int[] TILE_FIELDS = {1, 76, 12, 4, 1, 3, 7, 3};
+    static final int[] TILE_FIELDS = {1, 40, 12, 4, 1, 3, 7, 3};
     private static final java.util.Set<String> TILE_STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
 
-    /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of TILE_FIELDS. */
+    /** The battle tiles for Bedrock's UI pack: "|CB", then six tiles (0-2 yours, 3-5 theirs) of "#<i>" and TILE_FIELDS. */
     String tiles() {
         String[][] t = new String[6][];
         JsonArray p1 = state.getAsJsonArray(side);
@@ -765,19 +765,21 @@ final class Battle {
         float r = ratio(p);
         int step = hp <= 0 ? 0 : Math.max(1, Math.round(48 * r));
         String model = m.model(pl.dex), st = p.get("status").getAsString();
-        return new String[]{"a", Ui.portraits.containsKey(model) ? "items/portrait/" + Ui.bedrockName(model) : "cobblemonlink/none",
+        return new String[]{"a", Ui.portraits.containsKey(model) ? Ui.bedrockName(model) : "", // under textures/items/portrait/
                 PartyPanel.ascii(name(m)), "L" + m.level, "M".equals(m.gender) ? "m" : "F".equals(m.gender) ? "f" : "n",
                 String.format("b%02d", step), own ? hp + "/" + max : (int) Math.ceil(r * 100) + "%", TILE_STATUS.contains(st) ? st : "---"};
     }
 
     static String tilePayload(String[][] tiles) {
         StringBuilder b = new StringBuilder("|CB");
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++) {
+            b.append('#').append(i); // the tile's marker, as the party HUD's slots
             for (int k = 0; k < TILE_FIELDS.length; k++) {
                 String x = tiles[i] == null ? "" : tiles[i][k];
                 if (x.length() > TILE_FIELDS[k]) x = x.substring(0, TILE_FIELDS[k]);
                 b.append(x).append("~".repeat(TILE_FIELDS[k] - x.length()));
             }
+        }
         return b.toString();
     }
 

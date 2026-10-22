@@ -14,11 +14,11 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * Cobblemon's battle HP tiles for Bedrock (BattleOverlay: yours top left, theirs top right, stacked in doubles and
  * triples): a title the UI pack draws and never shows (build_bedrock_ui.py bt_screen), "|CB" then six tiles of
- * FIELDS, ASCII padded with '~', as the party HUD does.
+ * "#<i>" and FIELDS, ASCII padded with '~', as the party HUD does.
  */
 public final class BattleTiles {
     /** build_bedrock_ui.py BT_FIELDS: used, portrait, name, level, gender, HP bar step, HP text, status. */
-    static final int[] FIELDS = {1, 76, 12, 4, 1, 3, 7, 3};
+    static final int[] FIELDS = {1, 40, 12, 4, 1, 3, 7, 3};
     static final int STEPS = 48;
     static final java.util.Set<String> STATUS = java.util.Set.of("brn", "frz", "par", "psn", "slp", "tox");
 
@@ -47,21 +47,23 @@ public final class BattleTiles {
         float ratio = Math.clamp(hp / (float) Math.max(1, max), 0f, 1f);
         int step = hp <= 0 ? 0 : Math.max(1, Math.round(STEPS * ratio));
         String look = Models.look(m.getSpecies().getResourceIdentifier().getPath(), m.getAspects());
-        return new String[]{"a", Models.has(look) ? "items/portrait/" + PartyHud.bedrockName(look) : "cobblemonlink/none",
+        return new String[]{"a", Models.has(look) ? PartyHud.bedrockName(look) : "", // under textures/items/portrait/
                 PartyHud.ascii(name), "L" + m.getLevel(), m.getGender() == Gender.MALE ? "m" : m.getGender() == Gender.FEMALE ? "f" : "n",
                 String.format("b%02d", step), mine ? hp + "/" + max : (int) Math.ceil(ratio * 100) + "%",
                 status != null && STATUS.contains(status) ? status : "---"};
     }
 
-    /** "|CB" and six tiles (null: unused, all '~'). */
+    /** "|CB" and six tiles, each "#<i>" then FIELDS (null: unused, all '~'), as the party HUD's slots. */
     static String payload(String[][] tiles) {
         StringBuilder b = new StringBuilder("|CB");
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 6; i++) {
+            b.append('#').append(i);
             for (int k = 0; k < FIELDS.length; k++) {
                 String x = tiles[i] == null ? "" : tiles[i][k];
                 if (x.length() > FIELDS[k]) x = x.substring(0, FIELDS[k]);
                 b.append(x).append("~".repeat(FIELDS[k] - x.length()));
             }
+        }
         return b.toString();
     }
 
