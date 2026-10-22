@@ -78,6 +78,17 @@ def full_cube(m):
     return len(els) == 1 and els[0]['from'] == [0, 0, 0] and els[0]['to'] == [16, 16, 16] and not els[0].get('rotation')
 
 
+def bleed(im):
+    """Clear pixels take the texture's average colour (still clear): Bedrock's mipmaps blend them in, and black ones
+    made cut-out leaves look like dark dirt from a few blocks away."""
+    im = im.convert('RGBA')
+    px = [p for p in (im.get_flattened_data() if hasattr(im, 'get_flattened_data') else im.getdata()) if p[3] > 0]
+    if not px or len(px) == im.width * im.height: return im
+    avg = tuple(sum(p[i] for p in px) // len(px) for i in range(3))
+    under = Image.new('RGBA', im.size, avg + (0,))
+    return Image.composite(im, under, im.getchannel('A').point(lambda a: 255 if a else 0))
+
+
 def model_box(lo, hi):
     """A Geyser box (origin from the block's bottom centre) inside the block, at least 1 px each way (Geyser refuses
     boxes reaching out of the block)."""
@@ -104,6 +115,7 @@ def build(poly, res, out):
             if not data: return None
             im = Image.open(io.BytesIO(data))
             if im.height > im.width: im = im.crop((0, 0, im.width, im.width))  # animated: the first frame
+            im = bleed(im)
             buf = io.BytesIO(); im.save(buf, 'PNG')
             terrain[k] = {'textures': f'textures/blocks/cobblemonlink/{k}'}
             bed[f'textures/blocks/cobblemonlink/{k}.png'] = buf.getvalue()
@@ -188,6 +200,8 @@ def demo():
     assert not natural('minecraft:acacia_leaves[distance=1,persistent=true,waterlogged=false]') and not natural('minecraft:note_block[instrument=bass,note=1,powered=false]')
     assert borrowed('cobblemon:apricorn_slab[type=top]', 'minecraft:petrified_oak_slab[type=top]')
     assert split('minecraft:note_block[instrument=bass,note=1,powered=false]') == ('note_block', 'instrument=bass,note=1,powered=false')
+    im = Image.new('RGBA', (2, 1)); im.putpixel((0, 0), (200, 100, 0, 255))
+    assert bleed(im).getpixel((1, 0)) == (200, 100, 0, 0), "a clear pixel takes the colour, stays clear"
     b = model_box([0, 0, 16], [16, 16, 16])  # a flat model on the block's south edge
     assert b['origin'][2] + b['size'][2] <= 8 and b['size'][2] >= 1, b
     print('ok')

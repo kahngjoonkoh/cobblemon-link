@@ -82,6 +82,7 @@ c.on('level_sound_event', p => p.sound_id && console.log('levelsound', p.sound_i
 c.on('boss_event', p => p.title && console.log('bossbar', p.title, p.progress))
 c.on('text', p => console.log('text', p.type, JSON.stringify(p.message)))
 c.on('set_title', p => p.text && console.log('title', p.type, JSON.stringify(p.text)))
+c.on('toast_request', p => console.log('toast', JSON.stringify(p.title), JSON.stringify(p.message)))
 c.on('disconnect', p => { console.log('disconnect', p.message); process.exit(0) })
 c.on('error', e => { console.log('error', e.message) })
 setTimeout(() => { console.log('done after', secs, 's'); process.exit(0) }, secs * 1000)

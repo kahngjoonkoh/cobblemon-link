@@ -1,0 +1,17 @@
+# v1.1.7: a full party (6) through the pack's party HUD bindings (tools/testclient/hudeval.py), touch layout
+t0 True {'tex': ['mudkip', 'slot_b', 'g_m', 'hp_h18'], 'text': ['12', 'Mudkip']}
+t1 True {'tex': ['pikachu', 'slot_a', 'g_m', 'hp_h18'], 'text': ['12', 'Pikachu']}
+t2 True {'tex': ['eevee', 'slot_a', 'g_m', 'hp_h18'], 'text': ['12', 'Eevee']}
+t3 True {'tex': ['charmander', 'slot_a', 'g_f', 'hp_h18'], 'text': ['12', 'Charmander']}
+t4 True {'tex': ['bulbasaur', 'slot_a', 'g_m', 'hp_h18'], 'text': ['12', 'Bulbasaur']}
+t5 True {'tex': ['squirtle', 'slot_a', 'g_m', 'hp_h18'], 'text': ['12', 'Squirtle']}
+
+# server_form.json: malformed control entries 0 (was 64: Summary 29, PC 21, Pokédex 9, move learning 5), cuts over 99: 0
+
+# bot: Cobblemon advancement toasts and chat translated for Bedrock
+text system "§r.BotFull has made the advancement §a[Full House]"
+text system "§r.BotFull has made the advancement §a[Is it a Fruit or is it a Nut?]"
+toast "§aAdvancement Made!" "§rFull House"
+toast "§aAdvancement Made!" "§rIs it a Fruit or is it a Nut?"
+
+# Geyser with the item icon mappings: Registered 596 custom items (e4 had none: Polymer never wrote its pack to disk)

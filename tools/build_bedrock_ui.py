@@ -490,7 +490,65 @@ def dex_art(gui, png):
     png("pokedex/caught", o("caught_icon_small"))
     png("pokedex/seen", o("caught_seen_icon").crop((0, 0, 14, 14)))
 
+def tidy(node, n=None):
+    """Every entry of a "controls" list as Bedrock needs it: {name: control}. at() on a wrapper ({"x@y": {...}} plus
+    collection_index) or a bare control (pc_text, pc_image) made entries Bedrock drops silently (the Summary and parts
+    of the PC and Pokédex came out empty on a phone): the extra keys go into the control, a bare one gets a name."""
+    n = n if n is not None else [0]
+    if isinstance(node, list):
+        return [tidy(x, n) for x in node]
+    if not isinstance(node, dict):
+        return node
+    out = {}
+    for k, v in node.items():
+        if k == "controls" and isinstance(v, list):
+            fixed = []
+            for x in v:
+                named = [key for key, val in x.items() if isinstance(val, dict) and ("@" in key or key not in CONTROL_KEYS)]
+                if len(named) == 1 and len(x) > 1:  # a wrapper with the control's keys beside it
+                    key = named[0]
+                    x = {key: dict(x[key], **{a: b for a, b in x.items() if a != key})}
+                elif not named:  # a bare control
+                    n[0] += 1
+                    x = {f"cl_c{n[0]}": x}
+                (key, val), = x.items()
+                if key.startswith("button@"):  # several unnamed buttons in one panel: give each its own name
+                    n[0] += 1
+                    key = f"cl_b{n[0]}@" + key.split("@", 1)[1]
+                fixed.append({key: tidy(val, n)})
+            out[k] = fixed
+        else:
+            out[k] = tidy(v, n)
+    return out
+
+
+CONTROL_KEYS = {"bindings", "property_bag", "size", "offset", "anchor_from", "anchor_to", "layer", "texture", "text", "type",
+                "collection_index", "collection_name", "color", "shadow", "font_scale_factor", "text_alignment", "alpha",
+                "visible", "ignored", "localize", "grid_dimensions", "grid_item_template", "button_mappings", "modifications"}
+
+
+def malformed(doc):
+    """Entries of "controls" lists that aren't {name: control} (Bedrock drops them)."""
+    bad = []
+    def walk(c):
+        if isinstance(c, dict):
+            for k, v in c.items():
+                if k == "controls" and isinstance(v, list):
+                    for x in v:
+                        if not (isinstance(x, dict) and len(x) == 1 and isinstance(next(iter(x.values())), dict)): bad.append(x)
+                        else: walk(next(iter(x.values())))
+                elif isinstance(v, (dict, list)): walk(v)
+        elif isinstance(c, list):
+            for x in c: walk(x)
+    walk(doc)
+    return bad
+
+
 def server_form():
+    return tidy(_server_form())
+
+
+def _server_form():
     STARTER = starter_form()
     vanilla_long_form = {  # Mojang's long_form, unchanged, for every other form
         "$title_panel": "common_dialogs.standard_title_label", "$title_size": ["100% - 15px", 10],
@@ -891,8 +949,13 @@ def build(gui, out):
     files["textures/item_texture.json"] = json.dumps({"resource_pack_name": "cobblemon-link UI", "texture_name": "atlas.items",
         "texture_data": textures}, indent=1).encode()
 
-    files["ui/server_form.json"] = json.dumps(server_form(), indent=1, ensure_ascii=False).encode()
-    files["ui/hud_screen.json"] = json.dumps(hud_screen(), indent=1, ensure_ascii=False).encode()
+    form, hud = server_form(), hud_screen()
+    assert not malformed(form) and not malformed(hud), "every control entry is {name: control}"
+    import re  # Bedrock's '%.Ns' cut reads two digits of N: nothing longer than 99 anywhere
+    for doc in (form, hud):
+        assert not re.search(r"%\.\d{3,}s", json.dumps(doc)), "a 3-digit cut"
+    files["ui/server_form.json"] = json.dumps(form, indent=1, ensure_ascii=False).encode()
+    files["ui/hud_screen.json"] = json.dumps(hud, indent=1, ensure_ascii=False).encode()
     # Bedrock keeps a pack by uuid + version: a content-derived patch number makes every change a new download
     digest = hashlib.sha1(b"".join(k.encode() + files[k] for k in sorted(files))).digest()
     ver = [1, 0, int.from_bytes(digest[:3]) % 32768]  # Bedrock refuses a pack whose version part is over 65535 (81108: "Block")
@@ -909,6 +972,7 @@ def build(gui, out):
 if __name__ == "__main__":
     f = server_form()
     assert f["cl_cell_2"]["controls"][1]["back"]["offset"] == [-11, 4], "fight back arrow lands at (9, H-22)"
+    assert not malformed(f), malformed(f)[:2]
     assert BT_SLOT == 73 and bt_field(3, "st") == (3, 2, 1), "BattleTiles.FIELDS"
     form, _ = starter_form()
     names = [next(iter(c)) for c in form["controls"]]

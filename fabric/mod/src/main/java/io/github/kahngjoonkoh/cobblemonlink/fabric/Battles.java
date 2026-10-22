@@ -54,6 +54,10 @@ public final class Battles {
             return true;
         }
         if (!pe.getPokemon().isWild() || pe.isBattling()) return false;
+        if (PartyHud.party(p).stream().allMatch(m -> m.isFainted())) { // Cobblemon would say "1 usable but you need 1"
+            p.sendSystemMessage(net.minecraft.network.chat.Component.literal(Lang.t(p, "cobblemonlink.battle.all_fainted")).withStyle(net.minecraft.ChatFormatting.RED));
+            return true;
+        }
         var result = BattleBuilder.INSTANCE.pve(p, pe);
         if (result instanceof com.cobblemon.mod.common.battles.ErroredBattleStart err) err.sendTo(p, c -> c);
         return true;

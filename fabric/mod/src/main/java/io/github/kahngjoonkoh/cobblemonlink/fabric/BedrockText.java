@@ -34,6 +34,21 @@ public final class BedrockText {
             var r = Lang.resolve(p, t.text());
             return r == t.text() ? pk : new ClientboundSetSubtitleTextPacket(r);
         }
+        if (pk instanceof ClientboundUpdateAdvancementsPacket u) { // the toast's title and text: Cobblemon's advancements
+            java.util.List<net.minecraft.advancements.AdvancementHolder> added = new java.util.ArrayList<>();
+            for (var h : u.getAdded()) {
+                var a = h.value();
+                var d = a.display().map(x -> {
+                    var nd = new net.minecraft.advancements.DisplayInfo(x.getIcon(), Lang.resolve(p, x.getTitle()), Lang.resolve(p, x.getDescription()),
+                            x.getBackground(), x.getType(), x.shouldShowToast(), x.shouldAnnounceChat(), x.isHidden());
+                    nd.setLocation(x.getX(), x.getY());
+                    return nd;
+                });
+                added.add(new net.minecraft.advancements.AdvancementHolder(h.id(), new net.minecraft.advancements.Advancement(a.parent(), d,
+                        a.rewards(), a.criteria(), a.requirements(), a.sendsTelemetryEvent(), a.name().map(n -> Lang.resolve(p, n)))));
+            }
+            return new ClientboundUpdateAdvancementsPacket(u.shouldReset(), added, u.getRemoved(), u.getProgress());
+        }
         if (pk instanceof ClientboundContainerSetContentPacket c)
             return new ClientboundContainerSetContentPacket(c.getContainerId(), c.getStateId(),
                     net.minecraft.core.NonNullList.of(net.minecraft.world.item.ItemStack.EMPTY, c.getItems().stream().map(Lang::item).toArray(net.minecraft.world.item.ItemStack[]::new)),

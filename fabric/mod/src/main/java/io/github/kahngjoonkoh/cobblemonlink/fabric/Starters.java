@@ -93,7 +93,10 @@ public final class Starters {
                 opts.add(new Forms.Opt(j == 0 ? r.name() : "", "tile/" + s, () -> {}));
                 opts.add(new Forms.Opt(Lang.resolve(p, species.getTranslatedName()).getString(), "none", () -> {}));
                 opts.add(new Forms.Opt(desc(p, s), "none", () -> {}));
-                picks.add(() -> Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, category, sj));
+                picks.add(() -> { // a second press (or a late answer) after the pick is ignored, not "already selected"
+                    if (!Cobblemon.INSTANCE.getPlayerDataManager().getGenericData(p).getStarterSelected())
+                        Cobblemon.INSTANCE.getStarterHandler().chooseStarter(p, category, sj);
+                });
             }
         }
         Forms.send(p, Lang.t(p, "cobblemon.ui.starter.choose_starter_title") + Forms.MARK + 4, "", opts, i -> {

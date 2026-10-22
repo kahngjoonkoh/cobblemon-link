@@ -79,6 +79,11 @@ if [ -f "$G" ] && [ -f "$DATA/fabric/config/floodgate/key.pem" ]; then
   cp "$DATA/fabric/config/floodgate/key.pem" "$DATA/geyser/key.pem"
   # Cobblemon's item icons: Geyser mappings for PolyMc's stand-ins, from the pack Polymer built at the last start
   P="$DATA/fabric/polymer/resource_pack.zip"
+  # Polymer only writes its pack to disk when asked: ask the running server, and wait for a whole zip
+  if [ ! -f "$P" ] && docker compose ps --status running fabric 2>/dev/null | grep -q fabric; then
+    docker compose exec -T fabric rcon-cli "polymer generate-pack" >/dev/null
+    for _ in $(seq 120); do python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1])' "$P" 2>/dev/null && break; sleep 5; done
+  fi
   if [ -f "$P" ]; then
     python3 tools/bedrock_items.py "$P" /tmp/cl-items.$$ >/dev/null
     cp /tmp/cl-items.$$/cobblemon-link-items.json "$DATA/geyser/custom_mappings/"

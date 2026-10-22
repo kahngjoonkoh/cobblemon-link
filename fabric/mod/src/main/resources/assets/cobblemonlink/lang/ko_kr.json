@@ -113,5 +113,6 @@
  "cobblemonlink.battle.bag_battle": "배틀 도구",
  "cobblemonlink.battle.no_balls_here": "이 배틀에서는 몬스터볼을 던질 수 없습니다.",
  "cobblemonlink.battle.use_on": "%s을(를) 누구에게 쓸까요?",
- "cobblemonlink.battle.back": "뒤로"
+ "cobblemonlink.battle.back": "뒤로",
+ "cobblemonlink.battle.all_fainted": "포켓몬이 모두 기절했습니다. 회복 머신이나 침대에서 회복시키거나 회복될 때까지 기다리세요."
 }

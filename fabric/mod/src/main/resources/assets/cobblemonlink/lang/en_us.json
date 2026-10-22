@@ -113,5 +113,6 @@
  "cobblemonlink.battle.bag_battle": "Battle items",
  "cobblemonlink.battle.no_balls_here": "Poké Balls can't be thrown in this battle.",
  "cobblemonlink.battle.use_on": "Use %s on...",
- "cobblemonlink.battle.back": "Back"
+ "cobblemonlink.battle.back": "Back",
+ "cobblemonlink.battle.all_fainted": "Your Pokémon have fainted. Heal them at a Healing Machine or in a bed, or wait for them to recover."
 }
