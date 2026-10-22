@@ -86,6 +86,9 @@ docker compose down && ./setup.sh && docker compose up -d
 - **Bedrock:** `<host>:19133`.
 - Java's port is bound to localhost by default. Set `JAVA_BIND=0.0.0.0` (or a Tailscale IP) in `server/.env` to
   expose it.
+- Bedrock 26.60+ (from 2026-10-27) joins over NetherNet: also open TCP 19133 and UDP 19134, and set
+  `BEDROCK_ADVERTISE` (the address players reach this machine on, e.g. its Tailscale IP) in `server/.env` before
+  `setup.sh`.
 - Java players from outside need the resource pack served publicly: set `PACK_URL=` or `PACK_BIND=0.0.0.0`.
 - Settings are in `server/data/plugins/CobblemonLink/config.yml`.
 

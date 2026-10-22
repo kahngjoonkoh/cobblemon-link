@@ -80,10 +80,15 @@ rm -rf "$D/plugins/Geyser-Spigot/extensions/geysermodelengineextension/ResourceP
 
 # configs only exist after the first boot
 set_key() { [ -f "$1" ] && sed -i "s|^\(\s*\)$2:.*|\1$2: $3|" "$1"; }
+[ -f .env ] && set -a && . ./.env && set +a   # BEDROCK_ADVERTISE
 G="$D/plugins/Geyser-Spigot/config.yml"
 if [ -f "$G" ]; then
   sed -i 's/^\(\s*\)auth-type: online/\1auth-type: floodgate/' "$G"
   sed -i 's/^\(\s*\)max-players: .*/\1max-players: 12/' "$G"   # what Bedrock's server list shows
+  # NetherNet (Bedrock 26.60+, from 2026-10-27) beside RakNet: signaling on the Bedrock port over TCP, WebRTC on its own
+  # UDP port. Players get BEDROCK_ADVERTISE (the address they reach this machine on) for the WebRTC leg.
+  sed -i 's/^\(\s*\)transport: raknet/\1transport: both/; s/^\(\s*\)webrtc-port: 0$/\1webrtc-port: 19134/' "$G"
+  [ -n "${BEDROCK_ADVERTISE:-}" ] && sed -i "0,/^\(\s*\)advertise-addresses: \[\]/s//\1advertise-addresses: [\"$BEDROCK_ADVERTISE\"]/" "$G"
   echo "patched Geyser auth-type -> floodgate"
 else
   echo "first run: start the server once, stop it, then run setup.sh again"

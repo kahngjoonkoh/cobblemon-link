@@ -37,6 +37,8 @@ services:
     ports:
       - "${JAVA_BIND:-127.0.0.1}:25566:25565"     # Java
       - "19133:19132/udp"           # Bedrock (Geyser); 19133 so it can sit beside a normal server
+      - "19133:19132/tcp"           # NetherNet signaling (Bedrock 26.60+)
+      - "19134:19134/udp"           # NetherNet WebRTC
     restart: unless-stopped
     # Safe shutdown: mc-server-runner stops Paper by typing "stop" on its console, which needs
     # stdin + tty. Without them the stop is never read and the server is SIGKILLed (corrupt worlds).

@@ -71,6 +71,8 @@ docker compose down && tools/setup.sh && docker compose up -d   # Geyser through
 - Restart the server with `docker compose restart` (all three): ViaProxy keeps the server's address from its start.
 - Java: `<host>:25565` (bound to localhost; set `JAVA_BIND=0.0.0.0` in `fabric/.env` to expose it).
 - Bedrock: `<host>:19132` (UDP).
+- Bedrock 26.60+ (from 2026-10-27) joins over NetherNet: open TCP on the Bedrock port and UDP 19134 (`WEBRTC_PORT`) as well,
+  and set `BEDROCK_ADVERTISE` to the address players reach this machine on (e.g. its Tailscale IP) before `setup.sh`.
 - Other `.env` settings: `JAVA_PORT`, `BEDROCK_BIND`, `BEDROCK_PORT`, `MEMORY` (4G), `MAX_PLAYERS` (12),
   `ONLINE_MODE` (TRUE), `MODE`, `LEVEL_TYPE`, `RCON_PASSWORD`, `DATA` (./data), `MODELS`, `PREFIX` (container names).
 

@@ -76,6 +76,10 @@ fi
 G="$DATA/geyser/config.yml"
 if [ -f "$G" ] && [ -f "$DATA/fabric/config/floodgate/key.pem" ]; then
   sed -i 's/^\(\s*\)auth-type: .*/\1auth-type: floodgate/; s/^\(\s*\)address: 127.0.0.1/\1address: viaproxy/; s/^\(\s*\)port: 25565/\1port: 25568/' "$G"
+  # NetherNet (Bedrock 26.60+, from 2026-10-27) beside RakNet: signaling on the Bedrock port over TCP, WebRTC on its own
+  # UDP port. Players get BEDROCK_ADVERTISE (the address they reach this machine on) for the WebRTC leg.
+  sed -i 's/^\(\s*\)transport: raknet/\1transport: both/; s/^\(\s*\)webrtc-port: 0$/\1webrtc-port: 19134/' "$G"
+  [ -n "${BEDROCK_ADVERTISE:-}" ] && sed -i "0,/^\(\s*\)advertise-addresses: \[\]/s//\1advertise-addresses: [\"$BEDROCK_ADVERTISE\"]/" "$G"
   cp "$DATA/fabric/config/floodgate/key.pem" "$DATA/geyser/key.pem"
   # Cobblemon's item icons: Geyser mappings for PolyMc's stand-ins, from the pack Polymer built at the last start
   P="$DATA/fabric/polymer/resource_pack.zip"

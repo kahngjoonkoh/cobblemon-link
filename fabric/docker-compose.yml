@@ -53,3 +53,5 @@ services:
       - ${DATA:-./data}/geyser:/w
     ports:
       - "${BEDROCK_BIND:-0.0.0.0}:${BEDROCK_PORT:-19132}:19132/udp"
+      - "${BEDROCK_BIND:-0.0.0.0}:${BEDROCK_PORT:-19132}:19132/tcp"   # NetherNet signaling (Bedrock 26.60+)
+      - "${BEDROCK_BIND:-0.0.0.0}:${WEBRTC_PORT:-19134}:19134/udp"    # NetherNet WebRTC
