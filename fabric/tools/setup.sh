@@ -9,6 +9,9 @@ DATA=${DATA:-./data}; MODELS=${MODELS:-$DATA/models}; ASSETS=${ASSETS:-../assets
 mkdir -p mods-extra "$DATA/fabric/config/floodgate" "$DATA/fabric/config/cobblemonlink" "$DATA/geyser/extensions/geysermodelengineextension/input" \
     "$DATA/geyser/packs" "$DATA/geyser/custom_mappings" "$DATA/viaproxy" "$MODELS"
 
+# GeyserUtils' Geyser extension: upstream main with ../server/patches/geyserutils-1.0-event-loop.patch (its packets on
+# the session's event loop; without it Bedrock players were kicked with "Index -1"), mirrored on deps-2026-11-09 until
+# GeyserExtensionists/GeyserUtils#44 is merged.
 # name | url | sha256 (pinned; bump together). GeyserUtils is the build the Paper version tested, mirrored on the
 # repo's deps-2026-10-15 release; the GeyserModelEngine extension writes compact JSON
 # (../server/patches/geysermodelengineextension-1.0.9-cl.patch, deps-2026-10-22: shares identical
@@ -22,10 +25,10 @@ while IFS='|' read -r dest url sha; do
 done <<EOF2
 mods-extra/Floodgate-Fabric-2.2.4-b38.jar|https://cdn.modrinth.com/data/bWrNNfkb/versions/Mf2wV7re/Floodgate-Fabric-2.2.4-b38.jar|8a8494e9579ecb5e5a8d74f43122816a26a8460ec2b8954cf89575b360351fa9
 mods-extra/polymer-bundled-0.9.19+1.21.1.jar|https://maven.nucleoid.xyz/eu/pb4/polymer-bundled/0.9.19+1.21.1/polymer-bundled-0.9.19+1.21.1.jar|8c6bb7897bf53e3207a2ca4fc26db55471990b605855f494c2d80bfcabd1ed3b
-$DATA/geyser/Geyser-Standalone.jar|https://download.geysermc.org/v2/projects/geyser/versions/2.12.0/builds/1265/downloads/standalone|3e235b5112110665a53ed3b42c0b8d514021c50184c01380aa5b01d52ee1f636
+$DATA/geyser/Geyser-Standalone.jar|https://download.geysermc.org/v2/projects/geyser/versions/2.12.1/builds/1295/downloads/standalone|207a98811f1fef6efc364f9bc3cebf80e98d959bd675c4fffa0003deb77f72d2
 $DATA/viaproxy/ViaProxy.jar|https://github.com/ViaVersion/ViaProxy/releases/download/v3.4.14/ViaProxy-3.4.14.jar|2894bbfb2f4342f8fde887af6c689313efd5b0e46a8006775eea0e21e2948ab5
 $DATA/geyser/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-22/GeyserModelEngineExtension-1.0.9-cl.2.jar|6f4879e5f6a3e43ccd4b29dee9ef961f9988294800a3efd4f9f9f36f4451714f
-$DATA/geyser/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-geyser-1.0-SNAPSHOT.jar|50120094bd46fefbb1672737540e3a66a483391e062625676805b4bb08e79ea9
+$DATA/geyser/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-11-09/geyserutils-geyser-1.0-SNAPSHOT-cl.1.jar|df660a4b9053c5fc6248bfcc3538ab1c1231446319f1e12584bb486e24af5d46
 EOF2
 
 # PolyMc has no 1.21.1 release: built from TheEpicBlock/PolyMc master at a pinned commit (its datagen first);
@@ -84,6 +87,8 @@ if [ -f "$G" ] && [ -f "$DATA/fabric/config/floodgate/key.pem" ]; then
   # Cobblemon's item icons: Geyser mappings for PolyMc's stand-ins, from the pack Polymer built at the last start
   P="$DATA/fabric/polymer/resource_pack.zip"
   # Polymer only writes its pack to disk when asked: ask the running server, and wait for a whole zip
+  # a pack older than the Cobblemon jar maps the old items (an upgrade left every Ultra Ball a "?"): make a new one
+  [ -f "$P" ] && [ -n "${J:-}" ] && [ "$J" -nt "$P" ] && rm -f "$P"
   if [ ! -f "$P" ] && docker compose ps --status running fabric 2>/dev/null | grep -q fabric; then
     docker compose exec -T fabric rcon-cli "polymer generate-pack" >/dev/null
     for _ in $(seq 120); do python3 -c 'import sys, zipfile; zipfile.ZipFile(sys.argv[1])' "$P" 2>/dev/null && break; sleep 5; done

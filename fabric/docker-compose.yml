@@ -14,8 +14,9 @@ services:
       VERSION: "1.21.1"
       ONLINE_MODE: ${ONLINE_MODE:-TRUE}   # Bedrock players come in through Floodgate either way
       MEMORY: ${MEMORY:-4G}
-      MODRINTH_PROJECTS: "fabric-api,fabric-language-kotlin,cobblemon:GJ2a1b8O"   # Cobblemon 1.8.2
+      MODRINTH_PROJECTS: "fabric-api,fabric-language-kotlin,cobblemon:PdOzYHKU"   # Cobblemon 1.8.4
       MODRINTH_ALLOWED_VERSION_TYPE: release
+      REMOVE_OLD_MODS: "TRUE"   # else an upgrade leaves the old Cobblemon / cobblemon-link jar beside the new one
       MODE: ${MODE:-survival}
       LEVEL_TYPE: ${LEVEL_TYPE:-minecraft:normal}
       MAX_PLAYERS: ${MAX_PLAYERS:-12}
@@ -24,8 +25,8 @@ services:
     volumes:
       - ${DATA:-./data}/fabric:/data
       - ./mods-extra:/mods:ro
-      - ${MODELS:-./data/models}:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
-      - ${UI:-./data/ui}:/data/config/cobblemonlink/ui:ro               # tools/ui_pack.py output
+      - ${MODELS:-${DATA:-./data}/models}:/data/config/cobblemonlink/models:ro   # tools/build_models.py output
+      - ${UI:-${DATA:-./data}/ui}:/data/config/cobblemonlink/ui:ro               # tools/ui_pack.py output
     ports:
       - "${JAVA_BIND:-127.0.0.1}:${JAVA_PORT:-25565}:25565"
     stop_grace_period: 60s

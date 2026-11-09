@@ -1,5 +1,6 @@
 package io.github.kahngjoonkoh.cobblemonlink.fabric;
 
+import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.client.gui.interact.wheel.InteractTypePokemon;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.net.messages.server.pokemon.interact.InteractPokemonPacket;
@@ -20,10 +21,16 @@ final class Wheel {
 
     static void open(ServerPlayer p, PokemonEntity pe) {
         record Choice(String name, String image, net.minecraft.world.item.Item item, InteractTypePokemon type) {}
-        List<Choice> choices = List.of(new Choice(Lang.t(p, "cobblemon.ui.interact.mount.shoulder"), "none", Items.FEATHER, InteractTypePokemon.SHOULDER),
+        // the choices Cobblemon's own wheel enables (PokemonEntity's InteractPokemonUIPacket): a Mudkip offered
+        // Shoulder and Ride, and pressing them did nothing (seen on a real Bedrock 26.60 client)
+        boolean shoulder = pe.canSitOnShoulder() && Cobblemon.INSTANCE.getStorage().getParty(p).toGappyList().contains(pe.getPokemon());
+        boolean ride = pe.isRideableFor(p);
+        List<Choice> all = List.of(new Choice(Lang.t(p, "cobblemon.ui.interact.mount.shoulder"), "none", Items.FEATHER, InteractTypePokemon.SHOULDER),
                 new Choice(Lang.t(p, "cobblemon.ui.interact.ride"), "none", Items.SADDLE, InteractTypePokemon.RIDE),
                 new Choice(Lang.t(p, p.getMainHandItem().isEmpty() ? "cobblemonlink.wheel.take_item" : "cobblemon.ui.interact.give.item"), "none", Items.CHEST, InteractTypePokemon.HELD_ITEM),
                 new Choice(Lang.t(p, p.getMainHandItem().isEmpty() ? "cobblemonlink.wheel.take_cosmetic" : "cobblemon.ui.interact.give.cosmetic_item"), "none", Items.LEATHER_HELMET, InteractTypePokemon.COSMETIC_ITEM));
+        List<Choice> choices = all.stream().filter(c -> c.type() != InteractTypePokemon.SHOULDER || shoulder)
+                .filter(c -> c.type() != InteractTypePokemon.RIDE || ride).toList();
         Runnable[] act = new Runnable[choices.size()];
         for (int i = 0; i < act.length; i++) {
             var type = choices.get(i).type();

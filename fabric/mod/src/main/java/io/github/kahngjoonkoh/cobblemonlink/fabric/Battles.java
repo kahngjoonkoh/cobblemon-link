@@ -41,13 +41,27 @@ public final class Battles {
             return true;
         }
         if (p.getMainHandItem().getItem() instanceof PokeBallItem) { // the client sent a click on the Pokémon, not a throw
-            p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
+            // ...unless it threw one too (Bedrock sends a tap and a use-item): one ball, not a second that Cobblemon
+            // refuses with "It's not your turn to act." (seen on a real 26.60 client)
+            boolean thrown = !p.level().getEntitiesOfClass(com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity.class,
+                    p.getBoundingBox().inflate(8), b -> b.getOwner() == p && b.tickCount < 10).isEmpty();
+            if (!thrown) {
+                var item = p.getMainHandItem().getItem();
+                p.getMainHandItem().use(p.level(), p, net.minecraft.world.InteractionHand.MAIN_HAND);
+                p.getCooldowns().addCooldown(item, 10); // the use-item after the tap is then ignored by Minecraft
+            }
             return true;
         }
         if (p.getMainHandItem().getItem() instanceof com.cobblemon.mod.common.item.PokedexItem && BattleUi.get(p) == null) {
             Dex.scan(p, pe);
             return true;
         }
+        // as Cobblemon: a battle item or medicine is used by right-clicking your own Pokémon in the battle (its
+        // attemptItemInteraction), so that tap is Cobblemon's, not the menu's
+        if (pe.isBattling() && p.getUUID().equals(pe.getOwnerUUID())
+                && (com.cobblemon.mod.common.battles.BagItems.getConvertibleForStack(p.getMainHandItem()) != null
+                    || p.getMainHandItem().getItem() instanceof com.cobblemon.mod.common.api.item.PokemonSelectingItem psi && psi.getBagItem() != null))
+            return false;
         var ui = BattleUi.get(p);
         if (ui != null) { // in a battle: the menu again
             ui.reveal();

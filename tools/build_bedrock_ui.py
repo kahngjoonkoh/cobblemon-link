@@ -82,7 +82,7 @@ def button(size, offset, pressed, controls, index=None):
     b = {"size": size, "offset": offset, "anchor_from": "top_left", "anchor_to": "top_left", "$pressed_button_name": pressed,
          "controls": controls}
     if index is not None:
-        b = at(index, dict(b, **{"$button_bindings": [{"binding_type": "collection_details", "binding_collection_name": "form_buttons"}]}))
+        b = at(index, dict(b, **{"$button_bindings": [DETAILS], "bindings": [DETAILS]}))
     return {"button@common.button": b}
 
 
@@ -105,6 +105,7 @@ def label(text, offset, size=("default", "default"), scale=1.0, align="left", bi
     return c
 
 
+DETAILS = {"binding_type": "collection_details", "binding_collection_name": "form_buttons"}  # a form button's index
 BUTTON_TEXT = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text"}]
 BUTTON_IMAGE = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_texture",
                  "binding_name_override": "#texture"},
@@ -176,34 +177,51 @@ def starter_form():
         key = f"pg{p}@common.toggle"
         tog[key] = dict(ix(p * STARTER_PAGE * 3 * per + 1, tog[key]), **{"$toggle_property_bag": {"#cl_t": "", "#toggle_state": p == 0}})  # its first region's first tile
         c.append(tog); states |= st
+    # a page's regions, their toggles and the details sit in one panel per page, shown by its page toggle: a control
+    # with a collection_index reads no sibling property it set itself (#cl_p), so on a real 26.60 client every page
+    # was drawn at once, on top of the others; the panel (no collection_index) reads the page toggle beside it
+    pages_c = [[] for _ in range(pages)]
+    details_c = []
     for k in range(n):
         r, j = divmod(k, 3)
         page, row = divmod(r, STARTER_PAGE)
+        pc = pages_c[page]
         y = 27 + 44 * row
         tile = k * per + 1
-        shown = [tex, sibling(f"pg{page}", target="#cl_p"), view(f"(#cl_p and {exists})", "#visible")]
-        bag = {"#cl_t": "", "#cl_p": False}
+        shown = [tex, view(exists, "#visible")]
+        bag = {"#cl_t": ""}
         if j == 0:  # the region's container and its name (the first tile's text)
-            c.append({f"rb{r}": ix(tile, image("starter_block", (89, 40), (138, y), 1, shown), bag)})
-            c.append({f"rh{r}": ix(tile, label("#text", (138, y + 1), (89, 7), 0.5, "center", [text] + shown, layer=3), bag)})
+            pc.append({f"rb{r}": ix(tile, image("starter_block", (89, 40), (138, y), 1, shown), bag)})
+            pc.append({f"rh{r}": ix(tile, label("#text", (138, y + 1), (89, 7), 0.5, "center", [text] + shown, layer=3), bag)})
         tog, st = radio(f"st{k}", "cl_starter", k, (25, 25), (143 + 27 * j, y + 11), ("starter_tile", "starter_tile_hover"),
                         ("starter_tile_active", "starter_tile_active_hover"), shown)
         key = f"st{k}@common.toggle"
         tog[key] = dict(ix(tile, tog[key]), **{"$toggle_property_bag": bag | {"#toggle_state": k == 0}})
-        c.append(tog); states |= st
+        pc.append(tog); states |= st
         face = image(None, (23, 23), (144 + 27 * j, y + 12), 4, [dict(tex, binding_name_override="#texture")] + shown)
-        c.append({f"sf{k}": ix(tile, face, bag)})
-        on = sibling(f"st{k}")  # the details while this starter is checked
-        c.append({f"sc{k}": ix(k * per, image(None, (128, 125), (1, 13), 2, [dict(tex, binding_name_override="#texture"), on]))})
-        c.append({f"sn{k}": ix(k * per + 2, label("#text", (14, 2), bindings=[text, on]))})
-        c.append({f"sd{k}": ix(k * per, label("#text", (79, 2), bindings=[text, on]))})
-        c.append({f"se{k}": ix(k * per + 3, label("#text", (8, 143), (114, 28), 0.5, bindings=[text, on]))})
+        pc.append({f"sf{k}": ix(tile, face, bag)})
+        # the details while this starter is checked, on every page (as Cobblemon keeps its choice while you scroll):
+        # in a panel of their own, finding the toggle by name across the screen, not among their siblings
+        on = dict(sibling(f"st{k}"), resolve_sibling_scope=False)
+        dc = details_c
+        dc.append({f"sc{k}": ix(k * per, image(None, (128, 125), (1, 13), 2, [dict(tex, binding_name_override="#texture"), on]))})
+        # Cobblemon's name (14, 2) and number (79, 1) in its "uniform" font, narrower than Bedrock's: drawn at 0.8 so
+        # "Charmander" stays on its tab and "#0004" inside the dark one (it ran past both on a real 26.60 client)
+        dc.append({f"sn{k}": ix(k * per + 2, label("#text", (14, 3), scale=0.8, bindings=[text, on]))})
+        dc.append({f"sd{k}": ix(k * per, label("#text", (79, 3), scale=0.8, bindings=[text, on]))})
+        dc.append({f"se{k}": ix(k * per + 3, label("#text", (8, 143), (114, 28), 0.5, bindings=[text, on]))})
         choose = button([106, 14], [13, 180], "button.form_button_click",
                         [{"default": image("starter_choose", (106, 14))}, {"hover": image("starter_choose_hover", (106, 14))},
                          {"pressed": image("starter_choose_hover", (106, 14))},
                          {"label": label("I choose you!", (0, 3), (106, 10), align="center")}], index=k * per)["button@common.button"]
-        choose["bindings"] = [on]
-        c.append({f"sb{k}@common.button": choose})
+        choose["bindings"] = [DETAILS, on]  # keep the button's index (DETAILS) beside its visibility
+        dc.append({f"sb{k}@common.button": choose})
+    for pg, pc in enumerate(pages_c):
+        c.append({f"page{pg}": {"type": "collection_panel", "collection_name": "form_buttons", "size": [239, 197],
+                                "offset": [0, 0], "anchor_from": "top_left", "anchor_to": "top_left",
+                                "bindings": [sibling(f"pg{pg}")], "controls": pc}})
+    c.append({"details": {"type": "collection_panel", "collection_name": "form_buttons", "size": [239, 197],
+                          "offset": [0, 0], "anchor_from": "top_left", "anchor_to": "top_left", "controls": details_c}})
     form = {"type": "panel", "size": [239, 197], "anchor_from": "center", "anchor_to": "center", "collection_name": "form_buttons",
             "bindings": [{"binding_name": "#title_text"}, visible(f"(not ((#title_text - '{MARK}4') = #title_text))")],
             "controls": c}
@@ -241,11 +259,11 @@ def pc_cell():
             controls.append({f"t_{ty}{n}": image(f"pc/tcell/{ty}", (4, 4), (20 - 5 * (n - 1), 1), 5, t + [has(f"~{ty}{n}")])})
     return {"size": [25, 25], "anchor_from": "top_left", "anchor_to": "top_left",
             "$pressed_button_name": "button.form_button_click",
-            "$button_bindings": [{"binding_type": "collection_details", "binding_collection_name": "form_buttons"}],
-            "bindings": t + [visible("(not (#t = ''))")], "controls": controls}
+            "$button_bindings": [DETAILS],
+            "bindings": t + [DETAILS, visible("(not (#t = ''))")], "controls": controls}
 
 
-def pc_button(i, xy, size, tex, text=None, text_xy=(0, 0), states=True):
+def pc_button(i, xy, size, tex, text=None, text_xy=(0, 0), states=True, scale=1.0):
     """A form button i at xy, its art tex (+ '_hover'), an optional label; hidden while its text is empty."""
     t = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
           "binding_name_override": "#t"}]
@@ -253,13 +271,15 @@ def pc_button(i, xy, size, tex, text=None, text_xy=(0, 0), states=True):
            {"pressed": image(tex + ("_hover" if states else ""), size)}] if tex else [
         {"default": image(None, size)}, {"hover": image("pc/hover", size, layer=4)}, {"pressed": image("pc/hover", size, layer=4)}]
     if text:
-        art.append({"text": label(text, text_xy, (size[0], 10), align="center", layer=5,
+        art.append({"text": label(text, text_xy, (size[0], 10), scale, align="center", layer=5,
                                   bindings=t + [{"binding_type": "view", "source_property_name": "#t", "target_property_name": "#text"}] if text == "#t" else None)})
     return at(i, {"button@common.button": {
         "size": list(size), "offset": list(xy), "anchor_from": "top_left", "anchor_to": "top_left",
         "$pressed_button_name": "button.form_button_click",
         "$button_bindings": [{"binding_type": "collection_details", "binding_collection_name": "form_buttons"}],
-        "bindings": t + [visible("(not (#t = ''))")], "controls": art}})
+        # collection_details in the button's own bindings (as vanilla's form buttons): without it a press carries no
+        # button index and Bedrock answers "closed" (seen on a real 26.60 client; $button_bindings alone is not enough)
+        "bindings": t + [DETAILS, visible("(not (#t = ''))")], "controls": art}})
 
 
 def pc_text(i, xy, size, scale=0.5, align="center"):
@@ -385,12 +405,11 @@ def summary_form():
     for k, name in enumerate(("info", "moves", "stats")):
         c.append(pc_button(k, (78 + 31 * k, -1), (39, 13), f"summary/tab_{name}", states=False))
     for k, (x, w) in enumerate(((217, 30), (249, 24), (275, 24))):
-        c.append(pc_button(3 + k, (x, 139), (w, 11), None, "#t", (0, 2)))
+        c.append(pc_button(3 + k, (x, 139), (w, 11), None, "#t", (0, 3), scale=0.5))  # "Send out" fits 30 px at half size
     c.append(pc_button(10, (12, 13), (56, 11), None))  # the name: a tap renames, as Cobblemon's nickname field
     c.append(pc_button(17 + 3 * 8, (12, 145), (54, 15), "summary/evolve", "Evolve", (0, 4)))  # Cobblemon's Evolve button
-    for i in range(6):
-        x, y = 216 + 6 + i % 2 * 51, 24 + 8 + 32 * (i // 2) + i % 2 * 8
-        c.append({f"ps{i}@server_form.cl_pc_cell": {"collection_index": 11 + i, "offset": [x + 9, y]}})
+    for i in range(6):  # Cobblemon's PartyWidget: slots 51 apart, the right column 8 lower, rows 32 apart
+        c += sum_card(i, 216 + 6 + i % 2 * 51, 24 + 7 + 32 * (i // 2) + i % 2 * 8)
     for r in range(8):  # every tab on the Info rows (15 px apart, then the Ability block and the EXP rows)
         (lx, ly), (vx, vy) = sum_row(r, "info")
         c.append(at(SUM_ROWS + 3 * r, label("#form_button_text", (lx, ly), (45, 7), 0.5, "left", BUTTON_TEXT, layer=5)))
@@ -398,6 +417,43 @@ def summary_form():
     return {"type": "panel", "size": [331, 161], "anchor_from": "center", "anchor_to": "center",
             "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}6') = #title_text))")], "controls": c}
+
+
+SUM_NAME, SUM_HP, SUM_BALL = 42, 48, 54  # Summary.java: per party slot k, its name, HP bar and ball (+ "m"/"f") holders
+
+
+def sum_card(i, x, y):
+    """Cobblemon's PartySlotWidget (46 x 27) for party slot i at (x, y): the slot art (selected '*', fainted '!',
+    empty), the Pokémon over its left half, "Lv. 5" centred at (31, 13), the name at (4, 20), the gender icon at
+    (40, 20), the HP bar at (4, 25), the ball it was caught in at (-1, -1.5); all text half size, as Cobblemon's.
+    Holder 11 + i (its text "Lv. 5" + '*' + '!') is the button; SUM_NAME / SUM_HP / SUM_BALL + i the rest.
+    ponytail: the Pokémon is its whole-body picture, not Cobblemon's 3D profile model."""
+    t = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
+          "binding_name_override": "#t"}]
+    lv = "((#t - '*') - '!')"
+    st = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
+           "binding_name_override": "#s"}]  # SUM_HP + i's text: the slot's state, one letter (an "and" never shows on Bedrock)
+    # over the party panel's background (layer 2)
+    art = [{"normal": at(SUM_HP + i, image("summary/slot", (46, 27), (x, y), 3, st + [visible("(#s = 'n')")]))},
+           {"sel": at(SUM_HP + i, image("summary/slot_sel", (46, 27), (x, y), 3, st + [visible("(#s = 's')")]))},
+           {"faint": at(SUM_HP + i, image("summary/slot_fainted", (46, 27), (x, y), 3, st + [visible("(#s = 'f')")]))},
+           {"empty": at(SUM_HP + i, image("summary/slot_empty", (46, 27), (x, y), 3, st + [visible("(#s = '')")]))},
+           {"body": image(None, (24, 24), (x + 1, y - 3), 4, BUTTON_IMAGE + [visible("(not (#texture = 'textures/cobblemonlink/none'))")])},
+           {"lv": label("#text", (x + 16, y + 13), (30, 7), 0.5, "center", t + [view(lv, "#text")], layer=5)}]
+    card = {"size": [46, 27], "offset": [x, y], "anchor_from": "top_left", "anchor_to": "top_left",
+            "$pressed_button_name": "button.form_button_click", "$button_bindings": [DETAILS],
+            "bindings": t + [DETAILS, visible("(not (#t = ''))")],
+            "controls": [{"default": {"type": "panel", "size": [46, 27]}}, {"hover": image("pc/hover", (46, 27), layer=7)},
+                         {"pressed": image("pc/hover", (46, 27), layer=7)}]}
+    g = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
+          "binding_name_override": "#g"}]
+    return [{f"pc{i}{next(iter(c))}": dict(next(iter(c.values())), **({} if "collection_index" in next(iter(c.values())) else {"collection_index": 11 + i}))} for c in art] + [
+            at(11 + i, {f"pcard{i}@common.button": card}),
+            at(SUM_NAME + i, label("#form_button_text", (x + 4, y + 20), (36, 5), 0.5, "left", BUTTON_TEXT, layer=6)),
+            at(SUM_HP + i, image(None, (37, 1), (x + 4, y + 25), 6, BUTTON_IMAGE + [visible("(not (#texture = 'textures/cobblemonlink/none'))")])),
+            at(SUM_BALL + i, image(None, (9, 11), (x - 1, y - 2), 6, BUTTON_IMAGE + [visible("(not (#texture = 'textures/cobblemonlink/none'))")])),
+            at(SUM_BALL + i, image("summary/gender_m", (4, 3), (x + 40, y + 20), 6, g + [visible("(#g = 'm')")])),
+            at(SUM_BALL + i, image("summary/gender_f", (4, 3), (x + 40, y + 20), 6, g + [visible("(#g = 'f')")]))]
 
 
 def summary_art(gui, png):
@@ -408,6 +464,21 @@ def summary_art(gui, png):
     png("summary/info_base", o("summary_info_base"))
     png("summary/moves_base", o("summary_moves_base"))
     png("summary/party_bg", o("summary_party_background"))
+    slot = o("summary_party_slot")  # two states stacked: idle, then selected
+    png("summary/slot", slot.crop((0, 0, 46, 27)))
+    png("summary/slot_sel", slot.crop((0, 27, 46, 54)))
+    png("summary/slot_fainted", o("summary_party_slot_fainted").crop((0, 0, 46, 27)))
+    png("summary/slot_empty", o("summary_party_slot_empty").crop((0, 0, 46, 27)))
+    for sex in ("male", "female"):
+        png(f"summary/gender_{sex[0]}", Image.open(f"{gui}/party/party_gender_{sex}.png").convert("RGBA"))
+    import glob as _g
+    for f in sorted(_g.glob(f"{gui}/ball/*.png")):  # the caught ball: its top frame
+        png("ball/" + os.path.basename(f)[:-4], Image.open(f).convert("RGBA").crop((0, 0, 18, 22)))
+    for c, rgb in (("g", (98, 204, 105)), ("y", (232, 202, 61)), ("r", (219, 67, 52))):  # ponytail: 3 colours, not Cobblemon's gradient
+        for w in range(1, 38):
+            bar = Image.new("RGBA", (37, 1), (0, 0, 0, 0))
+            bar.paste(Image.new("RGBA", (w, 1), rgb + (255,)), (0, 0))
+            png(f"summary/hp/{c}{w}", bar)
     png("summary/evolve", o("summary_evolve_button").crop((0, 0, 54, 15)))
     png("summary/evolve_hover", o("summary_evolve_button").crop((0, 15, 54, 30)))
     for name in ("info", "moves", "stats"):
@@ -439,8 +510,8 @@ def dex_slot():
     has = lambda k: visible(f"(not ((#t - '{k}') = #t))")
     return {"size": [25, 25], "anchor_from": "top_left", "anchor_to": "top_left",
             "$pressed_button_name": "button.form_button_click",
-            "$button_bindings": [{"binding_type": "collection_details", "binding_collection_name": "form_buttons"}],
-            "bindings": t + [visible("(not (#t = ''))")],
+            "$button_bindings": [DETAILS],
+            "bindings": t + [DETAILS, visible("(not (#t = ''))")],
             "controls": [{"default": image("pokedex/slot", (25, 25))}, {"hover": image("pokedex/slot_select", (25, 25), layer=4)},
                          {"pressed": image("pokedex/slot_select", (25, 25), layer=4)},
                          {"pic": image(None, (23, 23), (1, 1), 2, BUTTON_IMAGE)},
@@ -500,6 +571,10 @@ def tidy(node, n=None):
     if not isinstance(node, dict):
         return node
     out = {}
+    # a plain "panel" ignores collection_name, so its collection_index children all read form button 0 (seen on a
+    # real 26.60 client: every Summary field read "Info*"); a collection_panel lays out the same and honours it
+    if node.get("type") == "panel" and "collection_name" in node:
+        node = dict(node, type="collection_panel")
     for k, v in node.items():
         if k == "controls" and isinstance(v, list):
             fixed = []
@@ -875,7 +950,7 @@ def build(gui, out):
         img.save(buf, "PNG")
         files[f"{TEX}{name}.png"] = buf.getvalue()
 
-    for k in ["fight", "switch", "bag", "run"]:
+    for k in ["fight", "switch", "bag", "run", "forfeit"]:
         t = Image.open(f"{gui}/battle/battle_menu_{k}.png").convert("RGBA")
         png(f"menu_{k}", t.crop((0, 0, 90, 26)))
         png(f"menu_{k}_hover", t.crop((0, 26, 90, 52)))
@@ -1024,6 +1099,8 @@ if __name__ == "__main__":
     assert BT_SLOT == 74 and bt_field(3, "st") == (3, 2, 1), "BattleTiles.FIELDS"
     form, _ = starter_form()
     names = [next(iter(c)) for c in form["controls"]]
+    names += [next(iter(x)) for c in form["controls"] if next(iter(c)).startswith(("page", "details")) for x in next(iter(c.values()))["controls"]]
+    assert sum(1 for n in names if n.startswith("page")) == -(-STARTER_MAX // 3 // STARTER_PAGE), "a panel a page"
     assert len(names) == len(set(names)), "control names are unique (toggle state is looked up by name)"
     assert sum(1 for n in names if n.startswith("sb")) == STARTER_MAX, "one I-choose-you button per starter"
     assert HUD_SLOT == 85 and hud_field(1, "lv") == (1, 3, 4), "PartyPanel.FIELDS' layout"

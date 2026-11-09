@@ -339,8 +339,16 @@ public final class BattleUi {
         }
         boolean trapped = !r.getActive().isEmpty() && r.getActive().getFirst().getTrapped();
         List<Forms.Opt> opts = new ArrayList<>(List.of(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.fight"), "menu_fight", this::openFight),
-                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true)),
-                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.capture"), "menu_bag", this::openBag), new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.run"), "menu_run", () -> run(trapped))));
+                new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.switch"), "menu_switch", () -> openSwitch(true))));
+        // as Cobblemon's BattleGeneralActionSelection: Capture and Run only in a singles battle against a wild Pokémon,
+        // Forfeit (after its confirmation) in any other (PvP showed Catch / Run on a real Bedrock client)
+        PokemonBattle bt = battle(player);
+        if (bt != null && bt.isPvW() && bt.getFormat().getBattleType().getPokemonPerSide() == 1) {
+            // Bedrock as Cobblemon's Catch: no bag, its prompt, and the player throws a ball themselves (medicine and battle
+            // items are used from the hotbar, through Cobblemon's own item use); vanilla Java's held camera keeps the bag
+            opts.add(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.capture"), "menu_bag", Clients.bedrock(player) ? this::catchPrompt : this::openBag));
+            opts.add(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.run"), "menu_run", () -> run(trapped)));
+        } else opts.add(new Forms.Opt(Lang.t(player, "cobblemon.battle.ui.forfeit"), "menu_forfeit", this::forfeit));
         if (trapped) opts.remove(1);
         form(1, opts);
     }
@@ -422,6 +430,14 @@ public final class BattleUi {
         form(3, opts);
     }
 
+    /** Forfeit, after Cobblemon's confirmation; No (or closing) goes back to the menu. */
+    private void forfeit() {
+        Forms.send(player, Lang.t(player, "cobblemon.battle.ui.forfeit"), Lang.t(player, "cobblemon.battle.ui.forfeit_confirmation"),
+                List.of(new Forms.Opt(Lang.t(player, "cobblemon.ui.generic.yes"), "none", () -> {}),
+                        new Forms.Opt(Lang.t(player, "cobblemon.ui.generic.no"), "none", () -> {})),
+                i -> { if (i == 0) respond(new com.cobblemon.mod.common.battles.ForfeitActionResponse()); else reveal(); });
+    }
+
     /**
      * Run. Cobblemon asks the player to walk away from the wild Pokémon (run_prompt), which a player in a form can't do,
      * so outside Java's battle screen a wild battle is fled at once, as Cobblemon's checkFlee does once far enough.
@@ -447,6 +463,11 @@ public final class BattleUi {
      * its Pokémon and goes through Cobblemon's own BagItemLike, which takes the turn or says why not. Nothing usable,
      * a refused item, Back or closing: the battle menu again.
      */
+    /** Cobblemon's Catch: the menu closes and says to throw a Poké Ball (tapping the Pokémon brings the menu back). */
+    private void catchPrompt() {
+        player.sendSystemMessage(Component.literal(Lang.t(player, "cobblemon.battle.throw_pokeball_prompt")));
+    }
+
     private void openBag() {
         PokemonBattle b = battle(player);
         BattleActor a = actor();

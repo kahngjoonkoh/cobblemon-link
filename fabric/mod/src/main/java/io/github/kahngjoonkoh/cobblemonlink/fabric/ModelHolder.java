@@ -115,6 +115,12 @@ public class ModelHolder extends ElementHolder {
 
     public float scale() { return scale; }
 
+    /** A bone's height above the entity in blocks, as last posed; NaN without one (Cobblemon seats riders at locator_seat_1). */
+    public float boneY(String name) {
+        for (int i = 0; i < world.length; i++) if (model.bones()[i].name().equals(name)) return world[i].m31();
+        return Float.NaN;
+    }
+
     @Override
     public void tick() {
         super.tick();

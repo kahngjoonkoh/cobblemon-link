@@ -33,6 +33,19 @@ public record GeyserUtilsPayload(byte[] json) implements CustomPacketPayload {
                 .getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
+    /**
+     * The scale and the Java entity's own box (width, height in blocks): the carrier's pig box (0.9) was all a Bedrock
+     * player could tap, so a Pokémon or NPC only answered a tap at its feet (a real 26.60 client). Bedrock grows the
+     * box with the scale, so it goes in unscaled.
+     */
+    public static GeyserUtilsPayload size(int id, float scale, float width, float height) {
+        float s = scale <= 0 ? 1 : scale;
+        return new GeyserUtilsPayload(("{\"@class\":\"me.zimzaza4.geyserutils.common.packet.CustomEntityDataPacket\",\"entityId\":" + id
+                + ",\"height\":[\"java.lang.Float\"," + height / s + "],\"width\":[\"java.lang.Float\"," + width / s
+                + "],\"scale\":[\"java.lang.Float\"," + scale + "],\"color\":null,\"variant\":null}")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 }

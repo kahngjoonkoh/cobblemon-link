@@ -121,7 +121,10 @@ final class Social {
                     () -> AcceptTradeRequestHandler.INSTANCE.handle(new AcceptTradeRequestPacket(n.getRequestID()), p.server, p), () -> {});
         });
         else if (payload instanceof TradeStartedPacket || payload instanceof TradeUpdatedPacket || payload instanceof TradeAcceptanceChangedPacket)
-            p.server.execute(() -> trade(p, false));
+            p.server.execute(() -> {
+                if (payload instanceof TradeStartedPacket) { OPEN.remove(p.getUUID()); PENDING.remove(p.getUUID()); } // a new trade: no form of an old one is open
+                trade(p, false);
+            });
         // both accepted: Cobblemon's client plays its animation, then asks to go ahead
         else if (payload instanceof TradeProcessStartedPacket) p.server.execute(() -> {
             ActiveTrade t = TradeManager.INSTANCE.getActiveTrade(p.getUUID());
@@ -131,7 +134,11 @@ final class Social {
         });
         else if (payload instanceof TradeCompletedPacket || payload instanceof TradeCancelledPacket) p.server.execute(() -> {
             SHOWN.remove(p.getUUID());
+            if (payload instanceof TradeCancelledPacket) PENDING.remove(p.getUUID());
             if (!Clients.bedrock(p)) p.closeContainer();
+            // as Cobblemon's screen: a finished swap leaves the trade open for the next one; Bedrock gets it as it is now
+            // (its old form showed both offers accepted)
+            else if (payload instanceof TradeCompletedPacket) trade(p, true);
         });
     }
 
@@ -185,7 +192,15 @@ final class Social {
                     ChangeTradeAcceptanceHandler.INSTANCE.handle(new ChangeTradeAcceptancePacket(theirs.getPokemon().getUuid(), !iAccepted), p.server, p)));
         opts.add(new Forms.Opt(Lang.t(p, "cobblemonlink.trade.cancel"), "none", () -> CancelTradeHandler.INSTANCE.handle(new CancelTradePacket(), p.server, p)));
         if (Clients.bedrock(p)) {
-            Forms.send(p, Lang.t(p, "cobblemonlink.trade.title", name), status, opts, i -> { if (i >= 0) opts.get(i).action().run(); });
+            // one trade form at a time: Bedrock stacks a new form over an open one (the old one shows through and comes
+            // back when the top one closes), and the server can't close it. An update waits for the open form's answer;
+            // meanwhile a line above the hotbar says what changed
+            if (!OPEN.add(p.getUUID())) {
+                PENDING.add(p.getUUID());
+                p.displayClientMessage(net.minecraft.network.chat.Component.literal(status.replace('\n', ' ')), true);
+                return;
+            }
+            Forms.send(p, Lang.t(p, "cobblemonlink.trade.title", name), status, opts, i -> answered(p, () -> { if (i >= 0) opts.get(i).action().run(); }));
             return;
         }
         Chest c = new Chest(3, Lang.t(p, "cobblemonlink.trade.title", name));
@@ -198,6 +213,16 @@ final class Social {
             c.set(12 + i, Chest.icon(icon, o.text(), List.of()), o.action());
         }
         c.open(p);
+    }
+
+    /** Bedrock players with a trade form (or the offer picker) open, and those with an update waiting for it. */
+    private static final java.util.Set<java.util.UUID> OPEN = java.util.concurrent.ConcurrentHashMap.newKeySet(), PENDING = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** A trade form was answered: its action, then the update that waited, if any (and the trade is still on). */
+    private static void answered(ServerPlayer p, Runnable action) {
+        OPEN.remove(p.getUUID());
+        action.run();
+        if (PENDING.remove(p.getUUID()) && !OPEN.contains(p.getUUID())) trade(p, true);
     }
 
     private static String describe(ServerPlayer p, Pokemon m) { return m == null ? "-" : BattleUi.name(m) + " " + Lang.t(p, "cobblemon.ui.lv") + " " + m.getLevel(); }
@@ -216,7 +241,8 @@ final class Social {
                     () -> UpdateTradeOfferHandler.INSTANCE.handle(new UpdateTradeOfferPacket(new kotlin.Pair<>(m.getUuid(), new PartyPosition(s))), p.server, p)));
         }
         if (Clients.bedrock(p)) {
-            Forms.send(p, Lang.t(p, "cobblemonlink.trade.offer"), "", opts, i -> { if (i >= 0) opts.get(i).action().run(); else trade(p, true); });
+            OPEN.add(p.getUUID());
+            Forms.send(p, Lang.t(p, "cobblemonlink.trade.offer"), "", opts, i -> answered(p, () -> { if (i >= 0) opts.get(i).action().run(); else PENDING.add(p.getUUID()); }));
             return;
         }
         Chest c = new Chest(1, Lang.t(p, "cobblemonlink.trade.offer"));

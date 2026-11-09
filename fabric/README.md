@@ -16,17 +16,17 @@ Feature by feature, against the Paper version: [PARITY.md](PARITY.md). How it wa
 | | Version | Why |
 |---|---|---|
 | Minecraft (server, Cobblemon players, vanilla Java players) | **1.21.1** | Every Cobblemon release since December 2024 is 1.21.1 only |
-| Cobblemon | **1.8.2** (Fabric) | the latest release; Modrinth version `GJ2a1b8O` |
+| Cobblemon | **1.8.4** (Fabric) | the latest release; Modrinth version `PdOzYHKU` |
 | Fabric loader / Fabric API / Fabric Language Kotlin | 0.19.5 / 0.116.17+1.21.1 / latest | as Cobblemon needs |
 | PolyMc | 5.7.0 master `a3eaae6` (built by `tools/setup.sh`) | shows Cobblemon's items, blocks and registries to clients without the mod; no 1.21.1 release exists |
 | Polymer | 0.9.19+1.21.1 | resource pack hosting and virtual entities (the Java models) |
 | Floodgate (Fabric) | 2.2.4-b38 | the last 1.21.1 build; Bedrock players without Java accounts |
-| Geyser standalone | 2.12.0-b1265 | Bedrock 26.30–26.52; it speaks the latest Java protocol |
+| Geyser standalone | 2.12.1-b1295 | Bedrock 26.40–26.62; it speaks the latest Java protocol (26.3) |
 | ViaProxy | 3.4.14 | Geyser's Java version → 1.21.1 |
-| GeyserUtils + GeyserModelEngine extension | the Paper version's builds (the extension patched to write compact JSON) | Cobblemon's models on Bedrock |
+| GeyserUtils + GeyserModelEngine extension | GeyserUtils with its event-loop fix (`deps-2026-11-09`); the Paper version's extension (patched to write compact JSON) | Cobblemon's models on Bedrock |
 
-Bedrock's NetherNet transport (from 2026-10-27) needs a newer Geyser and its NetherNet port: update the Geyser pin
-then.
+Bedrock's NetherNet transport (26.60+, from 2026-10-27) runs beside RakNet: Geyser listens for it on the Bedrock port
+over TCP and on its WebRTC port (`WEBRTC_PORT`, 19134/udp).
 
 ## Who sees what
 

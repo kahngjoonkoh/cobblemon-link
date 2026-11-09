@@ -22,6 +22,9 @@ from build_ui import STARTER_LEFT_CUTS, STARTER_LEFT_ROWS, cut_columns, cut_rows
 STARTERS = ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil', 'totodile', 'treecko', 'torchic', 'mudkip',
             'turtwig', 'chimchar', 'piplup', 'snivy', 'tepig', 'oshawott', 'chespin', 'fennekin', 'froakie', 'rowlet',
             'litten', 'popplio', 'grookey', 'scorbunny', 'sobble', 'sprigatito', 'fuecoco', 'quaxly']
+# the Fabric product shows Cobblemon's own starter list, whose 1.8.4 "Special" category adds these two (Hisui reuses
+# Rowlet, Cyndaquil and Oshawott): without them their tiles were Bedrock's missing-texture squares
+CARDS = STARTERS + ['pikachu', 'eevee']
 TYPES = ['normal', 'fire', 'water', 'grass', 'electric', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic',
          'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']  # types.png order (textureXMultiplier)
 CROP = (1, 13, 129, 138)  # x0, y0, x1, y1 of the 239x197 panel: the window, its frame and the type row
@@ -91,7 +94,7 @@ def main(res, out):
     os.makedirs(f'{out}/cards', exist_ok=True)
     os.makedirs(f'{out}/cards_full', exist_ok=True)
     os.makedirs(f'{out}/tiles', exist_ok=True)
-    for name in STARTERS:
+    for name in CARDS:
         d = species[name]
         bb = json.load(open(f'{out}/java/{name}.bbmodel'))
         png = base64.b64decode(bb['textures'][0]['source'].split(',', 1)[1])
@@ -102,7 +105,7 @@ def main(res, out):
         card(gui, bb, png, framing, bases.get(name, 1.0), types).save(f'{out}/cards_full/{name}.png')  # Bedrock's
         # the list's tile: Cobblemon's 25 px tile framing, inside its 1 px frame (23 px), at 4 px a GUI px
         portrait.profile(bb, png, *framing, bases.get(name, 1.0), 4, **portrait.TILE).crop((4, 4, 96, 96)).save(f'{out}/tiles/{name}.png')
-    print(len(STARTERS), 'starter cards and tiles')
+    print(len(CARDS), 'starter cards and tiles')
 
 
 if __name__ == '__main__':

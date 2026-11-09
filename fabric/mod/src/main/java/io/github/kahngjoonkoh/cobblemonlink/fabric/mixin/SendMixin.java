@@ -24,6 +24,9 @@ public class SendMixin {
             at = @At("HEAD"), argsOnly = true)
     private Packet<?> clbridge$filter(Packet<?> packet) {
         if (!((Object) this instanceof ServerGamePacketListenerImpl h) || Clients.modded(h)) return packet;
+        // ponytail: the box is sent once, at spawn. Re-sending it after each entity data (Geyser resets it) raced
+        // GeyserUtils' network-thread handler with Geyser's session thread and kicked players ("Index -1"); re-send it
+        // once GeyserUtils handles its packets on the session's event loop (fabric/PARITY.md, the GeyserUtils patch)
         return clean(packet, h);
     }
 
@@ -56,7 +59,9 @@ public class SendMixin {
             if (t != packet) return t;
         }
         // a thrown Poké Ball is announced before it is in the world: Bedrock gets it a tick later, once we can model it
+        // (only Cobblemon's types: a virtual entity is never in the world, and delaying its spawn past its data lost it)
         if (Clients.bedrock(h.player) && packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) == null
+                && BuiltInRegistries.ENTITY_TYPE.getKey(a.getType()).getNamespace().equals("cobblemon")
                 && io.github.kahngjoonkoh.cobblemonlink.fabric.Mixins.deferSpawn(a.getId())) {
             io.github.kahngjoonkoh.cobblemonlink.fabric.Tasks.next(() -> h.send(a));
             return new ClientboundBundlePacket(List.of());
@@ -69,7 +74,7 @@ public class SendMixin {
             out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(a.getId(), "modelengine:" + holder.model().name())));
             out.add(new ClientboundAddEntityPacket(a.getId(), a.getUUID(), a.getX(), a.getY(), a.getZ(), a.getXRot(), a.getYRot(),
                     net.minecraft.world.entity.EntityType.PIG, 0, net.minecraft.world.phys.Vec3.ZERO, a.getYHeadRot()));
-            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(a.getId(), holder.scale())));
+            out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.size(a.getId(), holder.scale(), ent.getBbWidth(), ent.getBbHeight())));
             out.add(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.anims(a.getId(), holder.bedrockAnims())));
             return new ClientboundBundlePacket(out);
         }
@@ -121,6 +126,18 @@ public class SendMixin {
             scale.setBaseValue(Math.max(0.0625, pe.getBbHeight() * 0.9 / 1.975));
             var size = new ClientboundUpdateAttributesPacket(pe.getId(), List.of(scale));
             return new ClientboundBundlePacket(List.of(stand, look, size, sp));
+        }
+        // Bedrock seats a pig's rider at 0.75 x its box height - 0.35 (Geyser's EntityUtils.updateMountOffset); Java
+        // Cobblemon seats them on the model's locator_seat_1, client-side. While ridden: the box height that puts the
+        // Bedrock rider there (a Java player sits 0.6 below the seat: its riding offset); the real box after
+        if (packet instanceof ClientboundSetPassengersPacket sp && Clients.bedrock(h.player)
+                && h.player.level().getEntity(sp.getVehicle()) instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe
+                && io.github.kahngjoonkoh.cobblemonlink.fabric.Mons.holder(pe.getId()) instanceof io.github.kahngjoonkoh.cobblemonlink.fabric.ModelHolder holder) {
+            float s = holder.scale(), seat = holder.boneY("locator_seat_1");
+            if (Float.isNaN(seat)) seat = pe.getBbHeight() * 0.75f;
+            var size = sp.getPassengers().length == 0 ? GeyserUtilsPayload.size(pe.getId(), s, pe.getBbWidth(), pe.getBbHeight())
+                    : GeyserUtilsPayload.size(pe.getId(), s, pe.getBbWidth(), (seat - 0.6f + 0.35f) / 0.75f * s);
+            return new ClientboundBundlePacket(List.of(new ClientboundCustomPayloadPacket(size), sp));
         }
         // Cobblemon's apricorn boats are Minecraft boats underneath: shown as one (a jungle boat), ridden as one
         if (packet instanceof ClientboundAddEntityPacket a && h.player.level().getEntity(a.getId()) instanceof com.cobblemon.mod.common.entity.boat.CobblemonBoatEntity boat)

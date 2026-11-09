@@ -87,7 +87,9 @@ final class Shoulders {
             EntityAttachment.ofTicking(java, p);
         }
         // Bedrock: the model on a carrier that follows the shoulder
-        SimpleEntityElement pig = new SimpleEntityElement(EntityType.PIG);
+        // a narrow carrier (an allay, 0.35 wide; only Bedrock clients get it): a pig's 0.9-wide box at the shoulder
+        // covered the owner's crosshair, so every tap hit the carrier (a real 26.60 client could not use its wheel)
+        SimpleEntityElement pig = new SimpleEntityElement(EntityType.ALLAY);
         pig.setNoGravity(true);
         pig.setSilent(true);
         ElementHolder bedrock = new ElementHolder() {
@@ -109,6 +111,12 @@ final class Shoulders {
         };
         bedrock.addElement(pig);
         EntityAttachment.ofTicking(bedrock, p);
+        // an attachment reaches the players tracking p, and p never tracks itself: the owner's own Bedrock client
+        // saw no Pokémon on its shoulder (a real 26.60 client; the bot had looked from beside)
+        double rad = Math.toRadians(p.yBodyRot); // its place first: the owner's client kept the spawn offset (feet)
+        pig.setOffset(new Vec3(x * Math.cos(rad), y, x * Math.sin(rad)));
+        pig.setYaw(p.yBodyRot);
+        bedrock.startWatching(p.connection);
         return new Drawn(key, java, bedrock);
     }
 }

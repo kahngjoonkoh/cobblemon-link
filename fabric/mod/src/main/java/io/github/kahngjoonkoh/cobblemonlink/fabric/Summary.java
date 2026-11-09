@@ -95,7 +95,7 @@ public final class Summary {
         for (int k = 0; k < 6; k++) {
             int kk = k;
             Pokemon pm = k < party.size() ? party.get(k) : null;
-            o.add(pm == null ? new Forms.Opt("", "none", stay) : new Forms.Opt("Lv" + pm.getLevel() + (k == i ? "*" : ""),
+            o.add(pm == null ? new Forms.Opt("", "none", stay) : new Forms.Opt(Lang.t(p, "cobblemon.ui.lv.number", pm.getLevel()) + (k == i ? "*" : "") + (pm.isFainted() ? "!" : ""),
                     Models.has(look(pm)) ? "body/" + look(pm) : "none", () -> {
                         PICKED.remove(p.getUUID());
                         open(p, kk, tab);
@@ -116,6 +116,22 @@ public final class Summary {
             if (!evo.isEmpty()) evo.start(evo.iterator().next());
             open(p, i, tab);
         }));
+        // Cobblemon's party card (PartySlotWidget) for each slot: its name (42 + k), its HP bar (48 + k: the texture of
+        // that width and colour) and its ball, with "m" / "f" for the gender icon (54 + k); build_bedrock_ui.py sum_card
+        for (int k = 0; k < 6; k++) {
+            Pokemon pm = k < party.size() ? party.get(k) : null;
+            o.add(new Forms.Opt(pm == null ? "" : BattleUi.name(pm), "none", stay));
+        }
+        for (int k = 0; k < 6; k++) {
+            Pokemon pm = k < party.size() ? party.get(k) : null;
+            o.add(new Forms.Opt(pm == null ? "" : pm.isFainted() ? "f" : k == i ? "s" : "n", // the card's art (sum_card)
+                    pm == null ? "none" : hpBar(pm.getCurrentHealth(), pm.getMaxHealth()), stay));
+        }
+        for (int k = 0; k < 6; k++) {
+            Pokemon pm = k < party.size() ? party.get(k) : null;
+            o.add(pm == null ? new Forms.Opt("", "none", stay) : new Forms.Opt(pm.getGender() == Gender.MALE ? "m" : pm.getGender() == Gender.FEMALE ? "f" : "",
+                    "ball/" + pm.getCaughtBall().getName().getPath(), stay));
+        }
         String title = BattleUi.name(m) + (m.getShiny() ? " ★" : "") + Forms.MARK + 6;
         Forms.send(p, title, "", o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
     }
@@ -142,6 +158,13 @@ public final class Summary {
             }
         }
         open(p, i, MOVES);
+    }
+
+    /** Cobblemon's card HP bar (37 px, RenderHelper.getDepletableRedGreen): green over half, yellow over a fifth, red. */
+    static String hpBar(int hp, int max) {
+        float r = max <= 0 ? 0 : Math.clamp((float) hp / max, 0, 1);
+        int w = Math.round(r * 37);
+        return w == 0 ? "none" : "summary/hp/" + (r > 0.5f ? "g" : r > 0.2f ? "y" : "r") + w;
     }
 
     static String look(Pokemon m) { return Models.look(m.getSpecies().getResourceIdentifier().getPath(), m.getAspects()); }

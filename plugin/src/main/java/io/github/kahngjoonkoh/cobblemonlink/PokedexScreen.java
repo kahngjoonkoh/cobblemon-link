@@ -78,7 +78,7 @@ final class PokedexScreen {
             }
             String sp = here.get(k);
             boolean sn = d.seen.contains(sp);
-            o.add(new Battle.Opt(String.format("%04d", pl.dex.get(sp).dex) + (d.caught.contains(sp) ? "c" : "") + (sp.equals(sel) ? "*" : ""),
+            o.add(new Battle.Opt("§r" + String.format("%04d", pl.dex.get(sp).dex) + (d.caught.contains(sp) ? "c" : "") + (sp.equals(sel) ? "*" : ""),
                     sn ? picture(sp) : "pokedex/unknown", () -> open(pl, p, pg, sp)));
         }
         String entry = caught ? s.desc == null ? "" : s.desc : seen ? "Catch it to read its Pokédex entry." : "";

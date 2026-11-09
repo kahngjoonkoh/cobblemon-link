@@ -18,7 +18,7 @@ services:
       EULA: "TRUE"               # you must accept the Minecraft EULA yourself before running
       TYPE: PAPER
       VERSION: "26.3"
-      PAPER_BUILD: "190"
+      PAPER_BUILD: "244"
       MEMORY: ${MEMORY:-3G}
       USE_AIKAR_FLAGS: "TRUE"        # G1 tuned for Minecraft's allocation pattern
       JVM_XX_OPTS: "-XX:+UseCompactObjectHeaders"   # JDK 25 (JEP 519): smaller objects, less GC and cache traffic

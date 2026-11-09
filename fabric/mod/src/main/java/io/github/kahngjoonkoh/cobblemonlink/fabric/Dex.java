@@ -163,7 +163,7 @@ public final class Dex {
         o.add(new Forms.Opt((pg + 1) + "/" + pages, "none", () -> chooseRegion(p, () -> bedrock(p, 0, null))));
         // the picture: the chosen form / gender; tapping it shows the next one
         Variant look = variant(p, sel);
-        o.add(new Forms.Opt(Lang.t(p, "cobblemon.ui.info.pokedex_number") + String.format(" %04d", sel.getNationalPokedexNumber()),
+        o.add(new Forms.Opt("§r" + String.format("%04d", sel.getNationalPokedexNumber()),  // the number alone, as Cobblemon (the label fits 4 digits)
                 seen ? (Models.has(look.look()) ? "body/" + look.look() : picture(sel)) : "pokedex/unknown", () -> {
                     VARIANT.merge(p.getUUID(), 1, Integer::sum);
                     bedrock(p, pg, sel);
@@ -180,7 +180,8 @@ public final class Dex {
             }
             Species sp = here.get(i);
             var kk = knowledge(p, sp);
-            o.add(new Forms.Opt(String.format("%04d", sp.getNationalPokedexNumber()) + (kk == PokedexEntryProgress.OWNED ? "c" : "") + (sp == sel ? "*" : ""),
+            // "§r" first: Bedrock reads an all-digit "0001" as the number 1, so the pack's "has c" test and the number label failed
+            o.add(new Forms.Opt("§r" + String.format("%04d", sp.getNationalPokedexNumber()) + (kk == PokedexEntryProgress.OWNED ? "c" : "") + (sp == sel ? "*" : ""),
                     kk != PokedexEntryProgress.UNREGISTERED ? picture(sp) : "pokedex/unknown", () -> { VARIANT.put(p.getUUID(), 0); bedrock(p, pg, sp); }));
         }
         String entry = caught ? Starters.desc(p, sel.getResourceIdentifier().getPath()) : seen ? Lang.t(p, "cobblemonlink.dex.catch_to_read") : "";

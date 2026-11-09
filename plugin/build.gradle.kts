@@ -1,7 +1,7 @@
 plugins { java }
 
 group = "io.github.kahngjoonkoh"
-version = "1.1.9"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
@@ -10,10 +10,10 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.3.build.190-stable")
-    compileOnly("io.github.toxicity188:bettermodel-bukkit-api:3.5.1")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.244-stable")
+    compileOnly("io.github.toxicity188:bettermodel-bukkit-api:3.6.0")
     compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT") // Bedrock battle forms; optional at runtime
-    testImplementation("io.papermc.paper:paper-api:26.3.build.190-stable") // Adventure + Gson for IconsTest
+    testImplementation("io.papermc.paper:paper-api:26.3.build.244-stable") // Adventure + Gson for IconsTest
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

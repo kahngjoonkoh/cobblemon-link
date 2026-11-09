@@ -130,7 +130,8 @@ public final class Lang {
             out.append(f.substring(at));
         } else if (c.getContents() instanceof TranslatableContents t) { // Minecraft's key, a mod's text in its arguments
             Object[] args = t.getArgs().clone();
-            for (int i = 0; i < args.length; i++) if (args[i] instanceof Component ac) args[i] = resolve(ac);
+            // a number argument as text: Bedrock showed "Changed the block at (0), (1), (2)" for raw ints (26.60 client)
+            for (int i = 0; i < args.length; i++) args[i] = args[i] instanceof Component ac ? resolve(ac) : Component.literal(String.valueOf(args[i]));
             out = Component.translatableWithFallback(t.getKey(), t.getFallback(), args);
         } else {
             out = MutableComponent.create(c.getContents());
@@ -160,7 +161,7 @@ public final class Lang {
     private static boolean needs(Component c) {
         if (c.getContents() instanceof TranslatableContents t) {
             if (EN.containsKey(t.getKey())) return true;
-            for (Object a : t.getArgs()) if (a instanceof Component ac && needs(ac)) return true;
+            for (Object a : t.getArgs()) if (!(a instanceof Component) || needs((Component) a)) return true;
         }
         for (Component s : c.getSiblings()) if (needs(s)) return true;
         return false;

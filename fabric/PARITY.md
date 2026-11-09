@@ -3,7 +3,7 @@
 Every user-facing feature of `plugin/` (the Paper product, including the uncommitted work in the main checkout on
 2026-10-20: party HUD, Bedrock form fixes, 3D Poké Balls, battle animations), and where the Fabric product stands.
 
-On Fabric the game itself is **real Cobblemon 1.8.2**: spawning, battles (Showdown inside Cobblemon), catching,
+On Fabric the game itself is **real Cobblemon 1.8.4** (1.8.2 until 2026-11-08): spawning, battles (Showdown inside Cobblemon), catching,
 EXP, evolution, storage and the Pokédex are Cobblemon's own. The Fabric work is the bridge that shows all of it to
 players without the mod. Players with the Cobblemon mod see Cobblemon itself.
 
@@ -43,7 +43,7 @@ Gating lives in `Config.Level` (tested in `ConfigTest`). Evidence: `evidence/lev
 | Pack versions ≤ 65535 | Reuses the main checkout's fix (uncommitted there); our items pack keeps it too | 🟡 |
 | Cobblemon item icons in the Bedrock inventory (Paper: the Poké Ball) | `tools/bedrock_items.py`: Geyser custom item mappings for PolyMc's stand-ins (595 items) + an icon pack | ✅ `b7-bedrock-item-icons-bot.log` |
 | Battle forms (menu, moves, switch, catch, run) + HP boss bars, prompt, `/battle` | Floodgate forms with the Paper titles (MARK 1-3), answers sent as Cobblemon's Showdown responses | ✅ `b1-bedrock-battle-bot.log` (a won battle) |
-| Starter form, `/starter` | Cobblemon's StarterHandler (its starter packet opens the form, `chooseStarter` takes the pick) | ✅ `b3-bedrock-starter-bot.log` |
+| Starter form, `/starter` | ✅ pages, Special (Pikachu, Eevee), pick; the chosen starter stays shown on every page and its name and number fit their tabs (owner's choice, as Cobblemon) | `r26-bedrock-starter-page1.png`, `r26-bedrock-starter-kept-across-pages.png`, `r26-bedrock-starter-title-fits.png`, `-chosen` |
 | Summary form (tabs, nickname, move order + benched moves, send out, lead, to PC, Evolve), `/party` | Cobblemon Pokémon API | ✅ `b4-bedrock-summary-bot.log` |
 | PC form + box settings (move/swap, sort, filter, release, name, wallpaper) | Cobblemon `PCStore`, opened by Cobblemon (PC block or `/pc`) | ✅ `b5-bedrock-pc-bot.log` (opened with `/pc`; the PC block path not tried) |
 | Pokédex form, `/pokedex` | Cobblemon Pokédex records | ✅ `b6-bedrock-pokedex-bot.log` |
@@ -128,7 +128,7 @@ entities), and whether players without the mod can see and use it. Bedrock first
 | Fishing with Poké Rods (bobber, bites, reeling) | ✅ | ✅ | Cobblemon's fishing runs; its bobber sent as Minecraft's hook owned by the angler (the client drops a hook without one), no name tag (`c8-java-poke-rod-bobber.png`, `c8-bedrock-bobber-bot.log`); ⬜ the Poké Ball-coloured bobber model |
 | Healing machine, PC, pasture, display case, fossil analyzer, restoration tank, monitor, TM machine, campfire pot blocks | ✅ | ✅ | `Furniture`: Cobblemon's block models over a barrier stand-in (`PolyEntry`), following the block state; Java an item display (`f1-java-machine-blocks.png`, `f1-java-pasture-two-halves.png`, vs `f1-cobblemon-client-reference.png`), Bedrock a GeyserModelEngine model from `tools/bedrock_blocks.py` (`f2-bedrock-machine-blocks.log`); clicking the Bedrock model uses the block (`f3-bedrock-click-pc-model.log`). ⬜ the block-entity extras (healing machine's balls, display case item, tank fluid) |
 | Pasture block screen | ✅ | ✅ | `Pasture`: on Cobblemon's `OpenPasturePacket`, the pastured Pokémon, recall one / all, put one out from the linked PC, through Cobblemon's pasture handlers; Bedrock forms (`c3-bedrock-pasture-bot.log`: out and back), Java chests (`c3-java-pasture-chest.png`) |
-| Fossils and the resurrection machine | ✅ | ✅ | the machine's parts and states are Cobblemon's block models (analyzer scanning, monitor screens, tank on/off); `Fossils`: what Cobblemon's client draws in the tank, from the server's state: an embryo through its three stages, then the fossil's own fetus, growing as the revive runs (19 models from `tools/npc_models.py`, `fossil_<geometry>`; Java `c24-java-fossil-embryo.png`, `c24-java-fossil-fetus.png`, Bedrock `c24-bedrock-fossil-tank.log`); the fossils put in lie on the analyzer; a Poké Ball on the tank claims the revived Pokémon (`c24-java-fossil-claimed.png`). ponytail: a straight growth, not Cobblemon's curves; no tank fluid level |
+| Fossils and the resurrection machine | ✅ built by hand (analyzer, monitor on top, tank beside), fossil in, apples in the tank, the Pokémon grows in the tank, monitor green (timer shortened server-side for the test) | `r26-bedrock-fossil-machine-formed.png`, `r26-bedrock-fossil-running.png`, `r26-bedrock-fossil-revived.png` |
 | Berries, apricorns, mints, saplings, gem clusters (blocks and growth) | ✅ | ✅ | Berry bushes, apricorns and mints drawn with Cobblemon's own models by growth stage (`Furniture`, multipart blockstates too) over a walk-through stand-in, with a click box for Java (`c14-java-berry-bushes.png`, `c14-bedrock-plants-bot.log`); growth and harvesting are Cobblemon's. flowers and fruit on a grown bush at Cobblemon's growth points, from its berry geometries (`Berries`: Java item models made at startup, `c14-java-berry-fruit.png`; Bedrock `clberry_*` models, `c14-bedrock-berry-fruit.log`); no berry has a leaf tint in 1.8.2. saplings (and potted), gem and tumblestone clusters and buds the same way (`c14-java-clusters.png`, `c14-bedrock-saplings-clusters.log`) |
 | Campfire pot cooking, Poké Snacks, seasonings | ✅ | ✅ | `Menus`: Cobblemon's cooking pot menu shown as a chest with its slots renumbered both ways (grid, seasonings, result, a lid button through Cobblemon's lid handler); the pot drawn on Minecraft's campfire (`Furniture`). Java `c4-java-cooking-pot-*.png`, `c4-java-pot-on-campfire.png`; Bedrock `c4-bedrock-cooking-pot-bot.log`. ⬜ cooking progress bar, Poké Snack block visuals |
 | Apricorn boats, signs, gilded chests | ✅ | ✅ | Apricorn boats (and chest boats) shown and ridden as Minecraft's (oak) boats — `c15-java-apricorn-boats.png`, `c15-java-boat-ride.log`; Bedrock through Geyser the same packets. Apricorn / saccharine signs as Minecraft's jungle / cherry signs keeping their text, gilded chests in Cobblemon's own look: its Bedrock chest geometry in each of the 7 colours, turned by facing, as an item display on Java and a `clb_<colour>_gilded_chest` model on Bedrock, still opening as the Gilded Chest (`Furniture`, `Berries.model`, `c21-java-gilded-chests.png`, `c21-java-gilded-chest-open.png`, `c21-bedrock-gilded-chests.log`). Signs and boats keep the nearest Minecraft wood: the client draws them from its own wood textures, and retexturing those would change every real jungle / cherry / oak sign and boat too. Sign text also right after its chunk loads (`c15-java-sign-after-join.png`) |
@@ -158,3 +158,94 @@ Java (vanilla 1.21.1 client) and Bedrock (bot through Geyser), evidence `evidenc
 Fixed on the way: the wheel was unreachable with a Poké Ball in hand; the battle UI lingered ~2 s after a catch; the
 Java rider saw the inside of their mount's head (now only the head is hidden from them); Sneak gets off a ride;
 requests and answers face the other player; the vanilla test client needed a bigger heap (1600 MB).
+
+## Real Bedrock client (26.60.4, Cobblemon 1.8.4, 2026-11-08)
+
+The unmodified Bedrock 26.60 client (mcpelauncher on toby, signed in, no add-ons) on the Fabric test server; every
+check is a screenshot of that client, `evidence/r26-*`. The protocol bot passed rows this client showed broken, so a
+row counts here only with a screenshot.
+
+| Row | Status | Screenshot (`evidence/`) |
+|---|---|---|
+| Bedrock joins (Geyser + Floodgate) | ✅ RakNet (NetherNet finds no path from toby and falls back) | `r26-bedrock-join-hud-models.png` |
+| Models: every look, species scale | ✅ Mudkip, Pikachu, Zubat, Rattata, Arcanine, Charmeleon | `r26-bedrock-send-out-model.png`, `r26-bedrock-battle-menu.png` |
+| idle / walk / battle_idle | ✅ | `r26-bedrock-walk-animation.png`, `r26-bedrock-battle-zubat-anim-a.png` |
+| Tap or hit a wild Pokémon starts a battle | ✅ | `r26-bedrock-battle-menu.png` |
+| Battle: menu, moves, a turn, switch, run | ✅ | `r26-bedrock-battle-moves.png`, `-turn`, `-switch`, `-switched`, `-run` |
+| Catch (prompt, ball, caught, HUD) | ✅ as Cobblemon's Catch (owner's choice): no bag list; the menu closes with Cobblemon's "Throw a Poké Ball at your opponent to capture it." and the player throws a ball themselves. One ball, one throw: Bedrock sends a tap and a use-item, and the second ball was refused with "It's not your turn to act."; a short cooldown after the tap's throw stops it | `r26-bedrock-catch-prompt.png`, `r26-bedrock-catch-thrown.png`, `r26-bedrock-catch-caught.png`, `r26-bedrock-caught-party-hud.png` |
+| Battle items and medicine in battle | ✅ as Cobblemon: holding one, tap your own Pokémon in the battle (its attemptItemInteraction): X Attack "Attack rose sharply", the turn taken, one used. Our tap-to-reopen-the-menu no longer catches that tap | `r26-bedrock-battle-item-x-attack.png` |
+| Cobblemon item icons | ✅ | `r26-bedrock-item-icon-ultra-ball.png` |
+| Starter form, `/starter` | ✅ pages, Special (Pikachu, Eevee), pick | `r26-bedrock-starter-page1.png`, `-select`, `-special-page`, `-eevee`, `-chosen` |
+| Summary: Info, Moves, Stats | ✅; the party as Cobblemon 1.8.4's cards (owner's choice): the caught ball, the Pokémon, "Lv. 50" bottom right, name, gender and HP bar, the viewed one in the selected art; a big Pokémon no longer covers its level | `r26-bedrock-summary-info.png`, `-moves`, `-stats`, `r26-bedrock-summary-party-cards.png`, `-switch.png`, vs `r26-java-cobblemon-summary-party.png` |
+| Summary: send out, lead, to PC, nickname | ✅ | `r26-bedrock-send-out-model.png`, `r26-bedrock-summary-lead.png`, `-to-pc.png`, `-nickname-form.png`, `-nicknamed.png` |
+| Summary: Evolve | ✅ Charmander → Charmeleon | `r26-bedrock-summary-evolve-button.png`, `r26-bedrock-evolved.png` |
+| Using items on a Pokémon | ✅ Rare Candy, party picker | `r26-bedrock-item-use-party-picker.png`, `r26-bedrock-rare-candy-level-up.png` |
+| PC: select, move to a box, release (Yes / No) | ✅ | `r26-bedrock-pc-selected.png`, `-moved-to-box`, `-release-button`, `-release-confirm`, `-released` |
+| PC block opens the PC | ✅ | `r26-bedrock-pc-block.png` |
+| Pokédex form, `/pokedex` | ✅ | `r26-bedrock-pokedex.png` |
+| Party HUD (portraits, names) | ✅ | `r26-bedrock-caught-party-hud.png`, `r26-bedrock-summary-nicknamed.png` |
+| Interaction wheel (only Cobblemon's choices) | ✅ Pidgey: Shoulder; Arcanine: Ride | `r26-bedrock-wheel-pidgey.png`, `r26-bedrock-wheel-arcanine-ride.png` |
+| Pokémon on your shoulder | ✅ follows the player | `r26-bedrock-shoulder.png`, `r26-bedrock-shoulder-turned.png` |
+| Riding | ✅ moves; the rider's view: row below | `r26-bedrock-ride-mounted.png`, `r26-bedrock-ride-moved.png` |
+| Shiny looks and sparkles | ✅ | `r26-bedrock-shiny-sparkles.png` |
+| NPCs: model and dialogue | ✅ | `r26-bedrock-npc-model.png`, `r26-bedrock-npc-dialogue.png`, `-dialogue-2` |
+| Machine blocks drawn (healing machine, PC, TM machine) | ✅ | `r26-bedrock-machine-blocks.png` |
+| Healing machine heals the party | ✅ | `r26-bedrock-fainted-hud.png`, `r26-bedrock-healing-machine.png`, `r26-bedrock-healed-hud.png` |
+| Fainted Pokémon: forced switch, HUD | ✅ | `r26-bedrock-battle-fainted-switch-move-anim.png`, `r26-bedrock-fainted-hud.png` |
+| 3D Poké Ball: thrown, the Pokémon drawn in, breaks free | ✅ | `r26-bedrock-pokeball-throw-sheet.png`, `-thrown`, `-broke-free` |
+| Fishing: Poké Rod cast, bobber, bite starts a battle | ✅ | `r26-bedrock-fishing-bobber.png`, `r26-bedrock-fishing-goldeen-battle.png` |
+| PC: sort, filter, box name and wallpaper | ✅ | `r26-bedrock-pc-sorted.png`, `-filter-form`, `-filtered`, `-box-settings`, `-box-renamed-wallpaper` |
+| Pokédex scanner (tap a Pokémon holding a Pokédex) | ✅ | `r26-bedrock-pokedex-scanner.png` |
+| Berries, apricorns, mints, saplings (models) | ✅ | `r26-bedrock-berries-apricorns-pot-chat-fixed.png` |
+| Campfire pot cooking menu | ✅ (chest layout, as decided) | `r26-bedrock-cooking-pot.png` |
+| Pasture: block, form, put out from the PC | ✅ | `r26-bedrock-pasture-form.png`, `-pick`, `-block` |
+| Starter prompt (action bar) | ✅ | `r26-bedrock-starter-prompt.png` |
+| Cobblemon's languages per player | ✅ Cobblemon's text in German; our own ~100 strings only have en / ko | `r26-bedrock-language-german.png` |
+| Apricorn boats (ride, paddle) | ✅ ridden as a boat; placing from the item didn't on this try | `r26-bedrock-apricorn-boat.png` |
+| Toasts / advancements | ✅ "Advancement Made! Consult the Fossil" | `r26-bedrock-fossil-machine-toast.png` |
+| Vanilla chat with numbers | ✅ fixed (was "Changed the block at (0), (1), (2)") | `r26-bedrock-chat-numbers-before-fix.png`, `r26-bedrock-berries-apricorns-pot-chat-fixed.png` |
+| Display case: put an item in, show it | ✅ tapping it puts the held item in, takes it out, or swaps, by Cobblemon's own handler; the item shows inside. The case's model carrier now has a tiny box (GeyserUtils size, safe with the patched GeyserUtils), so the tap reaches the case. The item is a dropped-item entity that can't be picked up (Geyser draws no item displays): no gravity, since Geyser runs an item's gravity itself. Bedrock spins it, where Cobblemon holds it still (`r26-java-cobblemon-display-case-diamond.png`). Found on the way: Bedrock's spawn delay for thrown Poké Balls also delayed every virtual entity past its data; now only Cobblemon's types | `r26-bedrock-display-case-apple.png`, `r26-bedrock-display-case-taken-out.png`, `r26-bedrock-display-case-diamond.png` |
+| Apricorn trees (no more note blocks) | ✅ leaves, logs and coloured apricorns (red, blue); leaf colour matches Java Cobblemon (`r26-java-cobblemon-apricorn-leaves.png`) | `r26-bedrock-apricorn-trees.png`, `r26-bedrock-apricorn-fruit-machines.png` |
+| PvP challenge, Bedrock vs Java Cobblemon | ✅ request (Java sees Cobblemon's own Battle Request), battle on both clients, win and advancement; Bedrock also accepts Java's challenge, and has Cobblemon's Forfeit with its confirmation (fixed: it showed Catch / Run) | `r26-bedrock-challenge-from-java.png`, `r26-bedrock-pvp-forfeit-tile.png`, `r26-bedrock-pvp-forfeit-confirm.png`, `r26-bedrock-pvp-forfeited.png`, `r26-bedrock-player-menu-java.png`, `r26-java-battle-request-from-bedrock.png`, `r26-bedrock-pvp-vs-java.png`, `r26-java-pvp-vs-bedrock.png`, `r26-bedrock-pvp-won.png` |
+| Trading, Bedrock vs Java | ✅ with the patched GeyserUtils (its packets on the session's event loop): Bedrock asks, Java accepts in Cobblemon's own screen, both offer (Caterpie ↔ Arcanine), both accept, the Pokémon swap and both get Take Good Care!; no kick. After a swap the trade stays open, as Cobblemon's screen does. One trade form at a time: Bedrock stacked each update's form over the open one, and the server can't close a form. So an update waits for the open form's answer, with a line above the hotbar saying what changed; closing or answering the form shows the current trade (`r26-bedrock-trade-update-notice.png`, `r26-bedrock-trade-refreshed.png`, `r26-bedrock-trade-after-swap.png`) | `r26-bedrock-trade-offers.png`, `r26-java-trade-offers-from-bedrock.png`, `r26-bedrock-trade-done.png`, `r26-java-trade-done.png` |
+| Riding: rider's view | ✅ seated where Cobblemon seats a Java rider: on the model's `locator_seat_1`, a player's riding offset (0.6) below it. Geyser seats a pig's rider at 0.75 × its box height, so while ridden the box height is set to put the seat there, and the real box comes back on dismount (tapping works again). First person now matches real Cobblemon on Java: the mane fills the middle, the sky and trees above. ⬜ Cobblemon's riding stamina bar | `r26-bedrock-ride-seat-first-person.png`, `r26-bedrock-ride-seat-third-person.png`, `r26-bedrock-ride-dismounted-tap.png`, vs `r26-java-cobblemon-ride-first-person.png` |
+| Sounds | ✅ taken as covered (owner, 2026-11-09; a phone check is still a todo): not checkable on this test client: with a PulseAudio null sink its audio stream runs unmuted but carries only silence, even for vanilla sounds (the launcher's emulated FMOD output); needs a phone. The sounds the server plays (cries, Poké Ball, evolution, shiny, fishing, PC, blocks) are in the Bedrock pack under both spellings. The ones Java Cobblemon's client makes itself (move impacts, wing flaps, riding loops: 411 files, 224 events) never reach Bedrock; owner to decide whether the server should play them | — |
+| Wild spawning (Cobblemon's spawner) | ➖ many species around spawn | `r26-bedrock-send-out-model.png` |
+
+Fixed for this client: every form field read button 0 ("Info*" everywhere: a `panel` ignores `collection_name`, now
+`collection_panel`); every form button answered "closed" (`collection_details` belongs in the button's own bindings);
+the starter drew all its pages at once (a page panel follows its page toggle) and had no Pikachu / Eevee tiles
+(Cobblemon 1.8.4's Special starters); Pokédex numbers were read as numbers ("0258" → 258: they start with `§r`); the
+Fabric compose file mounted models and UI from `./data` whatever `DATA` said (no models at all); the Summary's small
+buttons cut their text; the wheel offered Shoulder and Ride to every Pokémon (now only Cobblemon's choices); the
+owner never saw the Pokémon on their own shoulder, and its 0.9-wide pig carrier swallowed every tap (an allay carrier
+now, shown to the owner too); a Pokémon or NPC only answered a tap at its feet (its carrier now takes the Java
+entity's box, sent again after each entity data, which resets it); a stale Polymer pack after the Cobblemon upgrade
+(setup.sh makes a new one when the Cobblemon jar is newer).
+
+Known on this client, not fixed: Geyser can't read the server's command list ("Index 63 out of bounds for length 62",
+`ClientboundCommandsPacket`: an argument type ViaProxy numbers past 26.3's 62), so Bedrock gets no command suggestions;
+commands still work. A rare kick "Index -1 out of bounds for length 33" from Geyser's Java side (seen 3 times: an NPC
+teleport, a fishing reel, a join); Its trace: `GeyserEntityDataManager.put` (Index -1 of 33). Sending GeyserUtils box sizes (height/width) for furniture carriers made it happen on every join, so the Pokémon/NPC box size sent since the NPC fix is the likely cause of the earlier rare kicks too; to settle before release. Root cause: GeyserUtils handles our `geyserutils:main` packets on the downstream network thread (`packetReceived` → `handleCustomPacket`), racing Geyser's session-thread entity data (an unsynchronised fastutil map); fix: wrap it in `session.ensureInEventLoop(...)` (one line, patch + mirror like the extension's). Earlier guess: an entity property update naming a property Geyser has not registered for that entity, so likely one of our GeyserModelEngine `anim<n>` bundles reaching an entity whose model has fewer properties, or a carrier before its custom entity is set.
+
+Owner's UI decisions (2026-11-09): Catch as Cobblemon (built, ✅); starter details kept across pages and the title
+fitted (built, ✅); Summary party slots as Cobblemon 1.8.4's cards (built, ✅; ponytail: HP bar in 3 colours, not Cobblemon's gradient).
+## Final analysis (2026-11-09, v1.2.0)
+
+Every row of the real-client table above is ✅ on the unmodified Bedrock 26.60 client against Cobblemon 1.8.4, with
+its screenshots in `evidence/r26-*`; Sounds is taken as covered by the owner until a phone check. Also checked against
+Cobblemon 1.8.4 itself (its screens, blocks and items), these were in no row:
+
+| Gap | Bedrock | Vanilla Java | Note |
+|---|---|---|---|
+| Summary **Marks** tab (Cobblemon 1.8.4's 4th tab: a Pokémon's marks, 168 icons) | ⬜ | ⬜ | new in Cobblemon; a UI layout, so a mock-up first |
+| Riding stamina bar | ⬜ | ⬜ | Cobblemon shows it while riding |
+| Animation sounds Cobblemon's client plays itself (move impacts, wing flaps, riding loops) | ⬜ | ⬜ | the server never sends them; 411 files, 224 events |
+| TM machine and the move-learning prompt on the 26.60 client | 🟡 | ✅ | ✅ in the earlier bot / regression passes, not re-run on 26.60 |
+| Decorative and plant blocks (lectern, disc shelf, plaques, eject button, magnet, sweet incense, type gems, Galarica wreath, coin pouch and relics, roots, medicinal plants) | 🟡 | 🟡 | drawn through PolyMc / the block packs; not each checked on 26.60 |
+| Command suggestions | ⬜ | ✅ | Geyser can't read the commands packet ("Index 63 of 62", open) |
+| Our own ~100 strings | 🟡 | 🟡 | English and Korean only; Cobblemon's text is in all 29 languages |
+| Display case | ✅ | ⬜ | vanilla Java's drawing is new and untested; a Java Cobblemon player's click on a case was ignored once, unexplained |
+| HP bar colours on the Summary cards | 🟡 | — | three colours, not Cobblemon's gradient |
+| Display case item | 🟡 | — | Bedrock spins it (a dropped item); Cobblemon holds it still |
+| Creative / admin editors (NPC, behaviour, habitat, config screens) | ➖ | ➖ | tools for mod players; not needed |

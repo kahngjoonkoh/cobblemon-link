@@ -23,11 +23,11 @@ phone, a friend on plain Java and a friend with the Cobblemon mod can catch, bat
 
 | | **cobblemon-link** (Fabric) | **cobblemon-link-plugin** (Paper) |
 |---|---|---|
-| What runs the game | The real Cobblemon 1.8.2, with our server-side mod beside it | Our Paper plugin, rebuilding Cobblemon's gameplay from its own data and battle engine |
+| What runs the game | The real Cobblemon 1.8.4, with our server-side mod beside it | Our Paper plugin, rebuilding Cobblemon's gameplay from its own data and battle engine |
 | Cobblemon-mod players (Java 1.21.1) | ✅ the full Cobblemon experience | ➖ |
 | Vanilla Java | ✅ Java 1.21.1, a server-drawn "taster", from `off` to `full` (a server setting) | ✅ Java 26.3, the main way to play |
 | Bedrock | ✅ through Geyser + ViaProxy, as close to Cobblemon as we can make it | ✅ through Geyser |
-| Server | Minecraft 1.21.1 · Fabric · Cobblemon 1.8.2 · PolyMc · Polymer · Floodgate · Geyser standalone · ViaProxy | Paper 26.3 (build 190) · Cobblemon data from `main` at [`910551e`](https://gitlab.com/cable-mc/cobblemon/-/commit/910551ee70bd2853532ea782a20420fef475ce4b) (after 1.8.2) · Geyser · Floodgate · BetterModel |
+| Server | Minecraft 1.21.1 · Fabric · Cobblemon 1.8.4 · PolyMc · Polymer · Floodgate · Geyser standalone · ViaProxy | Paper 26.3 (build 244) · Cobblemon data from 1.8.4 ([`b79dbcc`](https://gitlab.com/cable-mc/cobblemon/-/commit/b79dbcca802e10fb7eda89c568a874f7891a2d28)) · Geyser · Floodgate · BetterModel |
 | Pick it if | you want real Cobblemon, and mod players with everyone else | your players won't install mods, or you want the newest Minecraft |
 | Feature by feature | [fabric/PARITY.md](fabric/PARITY.md) | [PARITY.md](PARITY.md) |
 | Folder | [`fabric/`](fabric) | [`plugin/`](plugin), [`server/`](server), [`sim/`](sim) |
@@ -71,7 +71,7 @@ tools/setup.sh                 # pinned, hash-checked downloads; models and pack
 docker compose up -d           # first boot: Cobblemon, configs, the Floodgate key (a few minutes)
 docker compose down && tools/setup.sh && docker compose up -d
 ```
-- **Java:** `<host>:25565`. Use Minecraft 1.21.1, with or without the Cobblemon 1.8.2 mod.
+- **Java:** `<host>:25565`. Use Minecraft 1.21.1, with or without the Cobblemon 1.8.4 mod.
 - **Bedrock:** `<host>:19132`.
 - **Settings:** the vanilla Java level and others, in [fabric/README.md](fabric/README.md).
 
@@ -154,20 +154,26 @@ bench/     load benchmarks          docs/     screenshots, evidence, the Fabric 
   Bedrock, on both products.
   - The tested builds are mirrored with their licences on the
     [`deps-2026-10-15`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-15) release.
-  - The Paper plugin comes from our public fork
-    ([`1.0.9-cl.2`](https://github.com/kahngjoonkoh/GeyserModelEngine/releases/tag/1.0.9-cl.2)): upstream plus its open
-    [PR #76](https://github.com/GeyserExtensionists/GeyserModelEngine/pull/76).
+  - The Paper plugin is upstream's build with
+    [PR #76](https://github.com/GeyserExtensionists/GeyserModelEngine/pull/76) merged (packet-flood fix), downloaded
+    from upstream's `latest` release and pinned by hash.
   - The Geyser extension is patched so phones load a much smaller Bedrock pack: compact JSON, identical animations and
     geometry shared between models, and no bone-tint layers
     ([`deps-2026-10-22`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-10-22),
     `server/patches/geysermodelengineextension-1.0.9-cl.patch`).
+  - The Fabric product's GeyserUtils is upstream's with one fix, so Bedrock players aren't kicked at random ("Index
+    -1"): its packets are handled on the session's event loop
+    ([`deps-2026-11-09`](https://github.com/kahngjoonkoh/cobblemon-link/releases/tag/deps-2026-11-09),
+    `server/patches/geyserutils-1.0-event-loop.patch`). It's sent upstream as
+    [GeyserUtils#44](https://github.com/GeyserExtensionists/GeyserUtils/pull/44); the mirror goes once that's merged.
 - **[PokeDemo](https://modrinth.com/plugin/pokedemo)** ([source](https://github.com/nn2048/PokedemoProject),
   GPL-3.0) inspired the Paper approach and was studied for ideas only. No PokeDemo code or assets are included.
 - **[Paper](https://papermc.io)**, **[Fabric](https://fabricmc.net)** and
   **[itzg/minecraft-server](https://github.com/itzg/docker-minecraft-server)** run the servers.
 
 Runtime dependencies are downloaded by the setup scripts, pinned by hash, and not redistributed. The exceptions are
-PolyMc (built from source; its source is at the link above) and the mirrored GeyserModelEngine/GeyserUtils builds.
+PolyMc (built from source; its source is at the link above) and the mirrored GeyserUtils builds and GeyserModelEngine
+extension.
 
 ## License
 

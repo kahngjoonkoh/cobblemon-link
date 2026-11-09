@@ -1,0 +1,38 @@
+From 8733987e77b5fb6288a8ba65d1f143608f53629f Mon Sep 17 00:00:00 2001
+From: Kahngjoon Koh <kahngjoonk@gmail.com>
+Date: Mon, 9 Nov 2026 12:47:06 +0900
+Subject: [PATCH] Handle custom packets on the session's event loop
+
+packetReceived runs on the downstream network thread, so handleCustomPacket
+changed entity metadata while Geyser's session thread was translating
+entity data for the same entity. GeyserEntityDataManager's map isn't
+thread-safe: the race throws ArrayIndexOutOfBoundsException in
+Object2ObjectLinkedOpenHashMap.insert and the Bedrock player is
+disconnected. Run the handler through session.ensureInEventLoop, as
+Geyser's own translators are.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_019GTyhde2B47SPCnqcTfTAC
+---
+ .../java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java     | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java b/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java
+index 41c7abf..c5918ec 100644
+--- a/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java
++++ b/geyser/src/main/java/me/zimzaza4/geyserutils/geyser/GeyserUtils.java
+@@ -481,7 +481,10 @@ public class GeyserUtils implements Extension {
+                     if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {
+                         if (ReflectionUtils.getChannel(payloadPacket).toString().equals(GeyserUtilsChannels.MAIN)) {
+                             CustomPayloadPacket customPacket = packetManager.decodePacket(payloadPacket.getData());
+-                            handleCustomPacket(session, customPacket);
++                            // on the session's event loop, like Geyser's own translators: run here on the network
++                            // thread it raced Geyser's entity updates (ArrayIndexOutOfBoundsException in
++                            // GeyserEntityDataManager.put) and the player was kicked
++                            session.ensureInEventLoop(() -> handleCustomPacket(session, customPacket));
+                         }
+                     }
+                 }
+-- 
+2.53.0
+

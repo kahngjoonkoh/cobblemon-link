@@ -9,9 +9,9 @@ mkdir -p "$D/plugins/Geyser-Spigot/extensions" "$D/plugins/BetterModel/models" \
 
 # name | url | sha256   (ponytail: pinned by hash; bump all three together when upgrading)
 # GeyserModelEngine/GeyserUtils only publish a moving "latest" tag, so the tested builds (MIT)
-# are mirrored on this repo's deps-2026-10-15 release. GeyserModelEngine's Paper plugin comes from our fork
-# (kahngjoonkoh/GeyserModelEngine, branch cobblemon-link-perf): upstream 1.0.9 + its open PR #76
-# (patches/geysermodelengine-1.0.9-pr76.patch), until upstream merges it. Its Geyser extension writes compact JSON
+# are mirrored on this repo's deps-2026-10-15 release. GeyserModelEngine's Paper plugin is upstream's build of
+# b428f68 (PR #76 merged, 2026-11-01), fetched from upstream's moving "latest" tag (ponytail: a HASH MISMATCH means
+# upstream released again; test the new jar, then bump its sha). Its Geyser extension writes compact JSON
 # (patches/geysermodelengineextension-1.0.9-cl.patch, deps-2026-10-22: shares identical
 # animations and geometry between models, no bone tints).
 while IFS='|' read -r name url sha; do
@@ -23,14 +23,14 @@ while IFS='|' read -r name url sha; do
     echo "$sha  $dest" | sha256sum -c --quiet || { echo "HASH MISMATCH: $name" >&2; rm -f "$dest"; exit 1; }
   fi
 done <<'EOF'
-Geyser-Spigot.jar|https://download.geysermc.org/v2/projects/geyser/versions/2.12.0/builds/1256/downloads/spigot|c61720bbea714a704d9b76a2f1e9a7ac91271e48101ec745ccd668fda9514015
+Geyser-Spigot.jar|https://download.geysermc.org/v2/projects/geyser/versions/2.12.1/builds/1295/downloads/spigot|b60ff8f9a007f30823cf40173532a0390e6150cdfc577551f6f37bdd5ccd1528
 floodgate-spigot.jar|https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/spigot|21570aff9ce17d6983928e8552777760e1ede5050026b04c686b0ae112e6fd7e
-bettermodel-3.5.1-SNAPSHOT-527-paper.jar|https://cdn.modrinth.com/data/4h8rX3rt/versions/f2UpZnG8/bettermodel-3.5.1-SNAPSHOT-527-paper.jar|8443cddb7e9b9372eab7c77cb0545b4526f995162e022530694bf96d97ad475f
+bettermodel-3.6.0-paper.jar|https://cdn.modrinth.com/data/4h8rX3rt/versions/fToyVqvi/bettermodel-3.6.0-paper.jar|66b2acc679ffcb81d9d7de686092d3e1daa38dc154da4cdaa9aaabc048a06aba
 packetevents-spigot-2.14.0.jar|https://cdn.modrinth.com/data/HYKaKraK/versions/m78nFxYg/packetevents-spigot-2.14.0.jar|060087c58ec268eae7dd0eb1f17ac3bea1eaadda1693414141ff64e506091bd7
-GeyserModelEngine-1.0.9.jar|https://github.com/kahngjoonkoh/GeyserModelEngine/releases/download/1.0.9-cl.2/GeyserModelEngine-1.0.9-cl.2.jar|05ef67be2957c1be5872f31a3c8702fe9956bf20101f8b950e159049a6f0b3b6
-geyserutils-spigot.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-spigot-1.0-SNAPSHOT.jar|b39677308d320c00be2a5bf8058296f39789b836cfb448d0c13437b2ecbdec43
+GeyserModelEngine-1.0.9.jar|https://github.com/GeyserExtensionists/GeyserModelEngine/releases/download/latest/GeyserModelEngine-1.0.9.jar|05ef67be2957c1be5872f31a3c8702fe9956bf20101f8b950e159049a6f0b3b6
+geyserutils-spigot.jar|https://github.com/GeyserExtensionists/GeyserUtils/releases/download/latest/geyserutils-spigot-1.0-SNAPSHOT.jar|1de02334a7449929aa0577876ea2bba12eb5fb314048e9fbc21e4171b09c2542
 Geyser-Spigot/extensions/GeyserModelEngineExtension-1.0.9.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-22/GeyserModelEngineExtension-1.0.9-cl.2.jar|6f4879e5f6a3e43ccd4b29dee9ef961f9988294800a3efd4f9f9f36f4451714f
-Geyser-Spigot/extensions/geyserutils-geyser.jar|https://github.com/kahngjoonkoh/cobblemon-link/releases/download/deps-2026-10-15/geyserutils-geyser-1.0-SNAPSHOT.jar|50120094bd46fefbb1672737540e3a66a483391e062625676805b4bb08e79ea9
+Geyser-Spigot/extensions/geyserutils-geyser.jar|https://github.com/GeyserExtensionists/GeyserUtils/releases/download/latest/geyserutils-geyser-1.0-SNAPSHOT.jar|8ed7b7dbece8341277652d4ee01706913e725cdf19b9664025bbb870299ec12a
 EOF
 
 [ -d ../assets/java ] || { echo "no models in ../assets: run tools/build.sh, or use a release zip" >&2; exit 1; }
@@ -39,6 +39,7 @@ jar=
 for f in ../plugin/cobblemon-link-plugin.jar ../plugin/build/libs/cobblemon-link-plugin-*.jar; do [ -f "$f" ] && { jar=$f; break; }; done
 [ -n "$jar" ] || { echo "no plugin jar: run tools/build.sh, or use a release zip" >&2; exit 1; }
 rm -f "$D"/plugins/cobblemon-link*.jar
+find "$D"/plugins -maxdepth 1 -name "bettermodel-*.jar" ! -name "bettermodel-3.6.0-paper.jar" -delete  # one BetterModel only
 cp "$jar" "$D/plugins/cobblemon-link-plugin.jar"
 mkdir -p "$D/plugins/CobblemonLink"
 cp ../assets/gamedata.json ../assets/items.json ../assets/recipes.json ../assets/tms.json "$D/plugins/CobblemonLink/"
@@ -108,6 +109,6 @@ set_key "$B" version-check false     # no "new BetterModel release" notice in pl
 # Pokémon (pig carriers) tracked to 80 blocks: Cobblemon's own range; untracked models stop animating
 [ -f "$D/spigot.yml" ] && sed -i '/entity-tracking-range:/,/display:/ s/^\(\s*\)animals: .*/\1animals: 80/' "$D/spigot.yml"
 [ -f "$D/server.properties" ] && sed -i 's/^pause-when-empty-seconds=.*/pause-when-empty-seconds=60/' "$D/server.properties"
-# GeyserModelEngine (PR #76 build): per-model loop at the server tick instead of every 20 ms
+# GeyserModelEngine (PR #76, upstream since b428f68): per-model loop at the server tick instead of every 20 ms
 G2="$D/plugins/GeyserModelEngine/config.yml"
 [ -f "$G2" ] && ! grep -q "entity-update-period" "$G2" && sed -i 's/^\(\s*\)entity-position-update-period: .*/&\n\1entity-update-period: 50 # ms/' "$G2"

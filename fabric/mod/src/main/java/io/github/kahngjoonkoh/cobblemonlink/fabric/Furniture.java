@@ -37,6 +37,13 @@ import org.joml.Quaternionf;
  * ponytail: each chunk scanned once as it loads (a palette check first), so a world full of chunks costs little.
  */
 public final class Furniture {
+    /** ItemEntity's item (private): its only static entity data field. In its own class: loaded on first use. */
+    static final class ItemData { @SuppressWarnings("unchecked")
+    static final net.minecraft.network.syncher.EntityDataAccessor<ItemStack> ITEM_DATA = java.util.Arrays.stream(net.minecraft.world.entity.item.ItemEntity.class.getDeclaredFields())
+            .filter(f -> java.lang.reflect.Modifier.isStatic(f.getModifiers()) && f.getType() == net.minecraft.network.syncher.EntityDataAccessor.class)
+            .findFirst().map(f -> { try { f.setAccessible(true); return (net.minecraft.network.syncher.EntityDataAccessor<ItemStack>) f.get(null); } catch (Exception e) { throw new IllegalStateException(e); } })
+            .orElseThrow(); }
+
     static final List<String> BLOCKS = List.of("healing_machine", "pc", "pasture", "display_case", "fossil_analyzer",
             "restoration_tank", "monitor", "tm_machine", "campfire_pot_red", "campfire_pot_blue", "campfire_pot_green",
             "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black", "campfire", "soul_campfire",
@@ -291,6 +298,8 @@ public final class Furniture {
         final List<ItemDisplayElement> items = new ArrayList<>();
         final List<SimpleEntityElement> pigs = new ArrayList<>();
         final Map<Integer, String> gme = new HashMap<>(); // pig id -> GeyserModelEngine model
+        // carriers whose box would take the block's taps (the display case: Bedrock never sends a tap on it), shrunk
+        final java.util.Set<Integer> tiny = new java.util.HashSet<>();
         String shown;
         int ticks;
 
@@ -307,6 +316,7 @@ public final class Furniture {
                     gme.forEach((id, m) -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(id, "modelengine:" + m))));
                     boolean r = super.startWatching(h);
                     scales.forEach((id, sc) -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.scale(id, sc))));
+                    tiny.forEach(id -> h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.size(id, 1, 0.01f, 0.01f))));
                     return r;
                 }
             };
@@ -333,8 +343,9 @@ public final class Furniture {
             List<Fruit> fruit = fruit(level, pos);
             Fossils.Look fossil = Fossils.tank(level, pos);
             List<ItemStack> fossils = Fossils.analyzer(level, pos);
+            ItemStack inCase = level.getBlockEntity(pos) instanceof com.cobblemon.mod.common.block.entity.DisplayCaseBlockEntity dc ? dc.getStack() : ItemStack.EMPTY;
             String key = ms.stream().map(v -> v.model + "@" + v.y).reduce("", String::concat) + fruit + (fossil == null ? "" : fossil.model())
-                    + fossils.stream().map(i -> i.getItem().toString()).toList();
+                    + fossils.stream().map(i -> i.getItem().toString()).toList() + inCase;
             if (key.equals(shown)) {
                 if (fossil != null && inTank != null) { // growing: the same model, a little bigger
                     inTank.setScale(fossil.scale());
@@ -350,6 +361,7 @@ public final class Furniture {
             items.clear();
             pigs.clear();
             gme.clear();
+            tiny.clear();
             scales.clear();
             if (inTank != null) inTank.destroy();
             inTank = null;
@@ -370,6 +382,11 @@ public final class Furniture {
                 for (var h : bedrock.getWatchingPlayers())
                     h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.customEntity(pig.getEntityId(), "modelengine:" + m)));
                 pigs.add(bedrock.addElement(pig));
+                if (BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).getPath().equals("display_case")) {
+                    tiny.add(pig.getEntityId());
+                    for (var h : bedrock.getWatchingPlayers())
+                        h.send(new ClientboundCustomPayloadPacket(GeyserUtilsPayload.size(pig.getEntityId(), 1, 0.01f, 0.01f)));
+                }
             }
             for (Fruit f : fruit) {
                 ItemStack it = Berries.item(f.geo);
@@ -417,6 +434,22 @@ public final class Furniture {
                 item.setModelTransformation(ItemDisplayContext.GROUND);
                 item.setOffset(new net.minecraft.world.phys.Vec3((i - (fossils.size() - 1) / 2.0) * 0.25, 0.05, 0));
                 items.add(java.addElement(item));
+            }
+            if (!inCase.isEmpty()) {
+                // as Cobblemon's DisplayCaseRenderer (its item-model placement for all; ponytail: Pokédex, blocks and
+                // beds sit a little differently there): still, 0.44 up, turned against the case's item direction
+                float turn = level.getBlockState(pos).getValue(com.cobblemon.mod.common.block.DisplayCaseBlock.Companion.getITEM_DIRECTION()).getOpposite().toYRot();
+                ItemDisplayElement item = new ItemDisplayElement(inCase.copy());
+                item.setModelTransformation(ItemDisplayContext.GROUND);
+                item.setOffset(new net.minecraft.world.phys.Vec3(0, 0.44 - 0.5, 0));
+                item.setLeftRotation(new Quaternionf().rotateY((float) Math.toRadians(-turn)));
+                items.add(java.addElement(item));
+                // Bedrock: Geyser draws no item displays, so a dropped item that can't be picked up (Bedrock spins it)
+                SimpleEntityElement drop = new SimpleEntityElement(EntityType.ITEM);
+                drop.setNoGravity(true); // Geyser runs an item's gravity itself between server updates, and this one gets none
+                drop.getDataTracker().set(ItemData.ITEM_DATA, inCase.copy());
+                drop.setOffset(new net.minecraft.world.phys.Vec3(0, -0.2, 0)); // Bedrock draws a dropped item raised
+                pigs.add(bedrock.addElement(drop));
             }
         }
 
