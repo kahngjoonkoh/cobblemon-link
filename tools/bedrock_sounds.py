@@ -2,11 +2,11 @@
 """Cobblemon's sounds for Bedrock players: a pack with Cobblemon's .ogg files and sound_definitions.json, so the
 sounds the server plays by name (Sounds.java: cries, the Poké Ball's) reach them through Geyser. Both spellings of a
 name are defined, "cobblemon:pokemon.pikachu.cry" and "pokemon.pikachu.cry", as Geyser may pass either.
-ponytail: cries and the ball, evolution, shiny, fishing and PC sounds (moves' sounds are client-side animations).
+ponytail: cries and the ball, evolution, shiny, fishing, PC and ride loop sounds (moves' sounds are client-side animations).
 usage: bedrock_sounds.py COBBLEMON_JAR_OR_DIR OUT.mcpack"""
 import hashlib, io, json, os, sys, uuid, zipfile
 
-KEEP = ('pokemon.', 'poke_ball.', 'evolution.', 'shiny', 'fishing.', 'pc.', 'gui.', 'battle.', 'block.', 'item.')
+KEEP = ('pokemon.', 'ride.', 'poke_ball.', 'evolution.', 'shiny', 'fishing.', 'pc.', 'gui.', 'battle.', 'block.', 'item.')
 
 
 def build(src, out):
