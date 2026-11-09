@@ -85,7 +85,13 @@ public class ModelHolder extends ElementHolder {
 
     /** A one-shot animation, if the model has it (true); it replaces the loop on the bones it moves. */
     public boolean play(String name) {
-        if (name.equals("cry") && entity instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe) Sounds.cry(pe);
+        if (entity instanceof com.cobblemon.mod.common.entity.pokemon.PokemonEntity pe) {
+            // in battle a cry is the battle cry where the Pokémon has one (Cobblemon's posers pick it so); its sound
+            // only: our models don't carry that animation. ponytail: add battle_cry to tools/build_models.py's set for the look
+            String sound = name.equals("cry") && battling.getAsBoolean() && !Sounds.effects(pe.getPokemon().getSpecies().getResourceIdentifier().getPath(), "battle_cry").isEmpty() ? "battle_cry" : name;
+            if (sound.equals("cry")) Sounds.cry(pe);
+            Sounds.animation(pe, sound);
+        }
         if (!model.anims().containsKey(name)) return false;
         if (!Config.vanillaJava().moveAnimations()) { // Java gets no one-shots below full; Bedrock always does
             shot = name;

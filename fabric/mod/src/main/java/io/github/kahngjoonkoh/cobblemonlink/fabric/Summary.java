@@ -21,12 +21,14 @@ import net.minecraft.server.level.ServerPlayer;
  * open one), 3-5 the actions ("" when not offered), 6 the Pokémon ("Lv. n", its body picture), 7 gender, 8-9 type
  * icons, 10 the name (tap: nickname), 11-16 the party, 17-40 rows of three (label, value, image), 41 Evolve.
  * The Moves tab lists the 4 moves and then Cobblemon's benched moves; tap one, then another, to swap them.
+ * After the party cards (42-59): 60 the Marks tab, 61 the shown mark (its title, its icon), 62 its description, 63-92
+ * the marks it has (30 a page: "s" the shown one, "n" the rest), 93 the next page, 94-99 the six markings ("0" "1" "2").
  */
 public final class Summary {
-    static final int INFO = 0, MOVES = 1, STATS = 2, EVOLVE = 17 + 3 * 8;
+    static final int INFO = 0, MOVES = 1, STATS = 2, MARKS = 3, EVOLVE = 17 + 3 * 8, MARK_SLOTS = 30;
     private static final String[] TABS = {"Info", "Moves", "Stats"};
     private static final Stats[] STATS_ORDER = {Stats.HP, Stats.ATTACK, Stats.DEFENCE, Stats.SPECIAL_ATTACK, Stats.SPECIAL_DEFENCE, Stats.SPEED};
-    private static final java.util.Map<java.util.UUID, Integer> PICKED = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, Integer> PICKED = new java.util.HashMap<>(), PAGE = new java.util.HashMap<>();
 
     private Summary() {}
 
@@ -132,8 +134,92 @@ public final class Summary {
             o.add(pm == null ? new Forms.Opt("", "none", stay) : new Forms.Opt(pm.getGender() == Gender.MALE ? "m" : pm.getGender() == Gender.FEMALE ? "f" : "",
                     "ball/" + pm.getCaughtBall().getName().getPath(), stay));
         }
+        marks(p, m, i, tab, o, stay);
         String title = BattleUi.name(m) + (m.getShiny() ? " ★" : "") + Forms.MARK + 6;
         Forms.send(p, title, "", o, c -> { if (c >= 0 && c < o.size()) o.get(c).action().run(); });
+    }
+
+    /** Cobblemon 1.8.4's Marks tab (MarksWidget) and the markings under the Pokémon (MarkingsWidget): holders 60-99. */
+    private static void marks(ServerPlayer p, Pokemon m, int i, int tab, List<Forms.Opt> o, Runnable stay) {
+        o.add(new Forms.Opt("Marks" + (tab == MARKS ? "*" : ""), "summary/tab_marks", () -> {
+            PICKED.remove(p.getUUID());
+            open(p, i, MARKS);
+        }));
+        boolean on = tab == MARKS;
+        var active = m.getActiveMark();
+        var name = Component.literal(BattleUi.name(m));
+        o.add(new Forms.Opt(!on ? "" : active == null ? name.getString() : titled(p, active, name), active == null || !on ? "none" : markTexture(active), stay));
+        o.add(new Forms.Opt(on && active != null ? Lang.t(p, "cobblemon.mark." + active.getIdentifier().getPath() + ".desc") : "", "none", stay));
+        List<com.cobblemon.mod.common.api.mark.Mark> have = new ArrayList<>(m.getMarks());
+        have.sort(java.util.Comparator.comparingInt(com.cobblemon.mod.common.api.mark.Mark::getSortOrder)
+                .thenComparing(k -> k.getIdentifier() == null ? "" : k.getIdentifier().toString()));
+        int pages = Math.max(1, (have.size() + MARK_SLOTS - 1) / MARK_SLOTS), page = Math.min(PAGE.getOrDefault(p.getUUID(), 0), pages - 1);
+        for (int k = 0; k < MARK_SLOTS; k++) {
+            int at = page * MARK_SLOTS + k;
+            var mk = on && at < have.size() ? have.get(at) : null;
+            o.add(mk == null ? new Forms.Opt("", "none", stay) : new Forms.Opt(mk.equals(active) ? "s" : "n", markTexture(mk), () -> {
+                m.setActiveMark(mk); // Cobblemon's SetActiveMarkPacket handler does the same for a mark it has
+                open(p, i, MARKS);
+            }));
+        }
+        o.add(new Forms.Opt(on && pages > 1 ? (page + 1) + "/" + pages : "", "none", () -> {
+            PAGE.put(p.getUUID(), (page + 1) % pages); // ponytail: Cobblemon scrolls; a tap on its scroll bar turns the page
+            open(p, i, MARKS);
+        }));
+        List<Integer> markings = new ArrayList<>(m.getMarkings());
+        while (markings.size() < 6) markings.add(0);
+        for (int k = 0; k < 6; k++) {
+            int kk = k;
+            o.add(new Forms.Opt(String.valueOf(markings.get(k)), "none", () -> { // none, blue, red, none... as Cobblemon's click
+                List<Integer> next = new ArrayList<>(markings);
+                next.set(kk, (next.get(kk) + 1) % 3);
+                m.setMarkings(next);
+                open(p, i, tab);
+            }));
+        }
+    }
+
+    /** "Eevee the Alpha", the title in the mark's colour (the nearest of Bedrock's text colours). */
+    static String titled(ServerPlayer p, com.cobblemon.mod.common.api.mark.Mark mk, Component name) {
+        String t = Lang.resolve(p, mk.getTitle(Component.literal("\u0000"))).getString(), n = name.getString();
+        int at = t.indexOf('\u0000');
+        String colour = nearest(mk.getTitleColour());
+        return at < 0 ? colour + t : t.substring(0, at) + n + colour + t.substring(at + 1).replace("\u0000", n);
+    }
+
+    private static final int[] PALETTE = {0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+            0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
+
+    static String nearest(String hex) {
+        if (hex == null || hex.isEmpty()) return "";
+        int c = Integer.parseInt(hex.replace("#", ""), 16), best = 15;
+        long bd = Long.MAX_VALUE;
+        for (int k = 0; k < 16; k++) {
+            int q = PALETTE[k];
+            long d = sq((c >> 16 & 255) - (q >> 16 & 255)) + sq((c >> 8 & 255) - (q >> 8 & 255)) + sq((c & 255) - (q & 255));
+            if (d < bd) { bd = d; best = k; }
+        }
+        return "§" + "0123456789abcdef".charAt(best);
+    }
+
+    private static long sq(int v) { return (long) v * v; }
+
+    /** cobblemon:textures/gui/mark/mark_alpha.png -> the UI pack's "mark/mark_alpha". */
+    static String markTexture(com.cobblemon.mod.common.api.mark.Mark mk) {
+        String path = mk.getTexture().getPath();
+        return "mark/" + path.substring(path.lastIndexOf('/') + 1).replace(".png", "");
+    }
+
+    /**
+     * The moves Cobblemon's move swap offers besides the 4 known: benched ones, then the level-up moves it learned
+     * with no room (Cobblemon 1.8.4 doesn't bench those; they are relearnable, and its Summary lists them).
+     */
+    static List<com.cobblemon.mod.common.api.moves.MoveTemplate> others(Pokemon m) {
+        java.util.LinkedHashSet<com.cobblemon.mod.common.api.moves.MoveTemplate> out = new java.util.LinkedHashSet<>();
+        m.getBenchedMoves().forEach(b -> out.add(b.getMoveTemplate()));
+        m.getRelearnableMoves().forEach(out::add);
+        m.getMoveSet().getMoves().forEach(mv -> out.remove(mv.getTemplate()));
+        return new ArrayList<>(out);
     }
 
     /** Moves tab: the first tap picks a move, the second swaps it there (Cobblemon's move swap, benched moves too). */
@@ -144,27 +230,19 @@ public final class Summary {
             p.sendSystemMessage(Component.literal(Lang.t(p, "cobblemonlink.summary.swap_hint")));
         } else if (first != row) {
             List<Move> moves = m.getMoveSet().getMoves();
-            List<com.cobblemon.mod.common.api.moves.BenchedMove> bench = new ArrayList<>();
-            m.getBenchedMoves().forEach(bench::add);
+            var others = others(m);
             if (first < 4 && row < 4) m.getMoveSet().swapMove(first, row);
-            else if (Math.min(first, row) < moves.size() && Math.max(first, row) >= 4 && Math.max(first, row) - 4 < bench.size()) {
-                // a known move for a benched one: Cobblemon's BenchMovePacket handler does the same
-                int known = Math.min(first, row);
-                var benched = bench.get(Math.max(first, row) - 4).getMoveTemplate();
-                var old = moves.get(known);
-                m.getBenchedMoves().remove(benched);
-                m.getBenchedMoves().add(new com.cobblemon.mod.common.api.moves.BenchedMove(old.getTemplate(), old.getRaisedPpStages()));
-                m.getMoveSet().setMove(known, benched.create());
-            }
+            else if (Math.min(first, row) < moves.size() && Math.max(first, row) >= 4 && Math.max(first, row) - 4 < others.size())
+                // a known move for a benched or relearnable one, as Cobblemon's move swap (BenchMoveHandler)
+                m.exchangeMove(moves.get(Math.min(first, row)).getTemplate(), others.get(Math.max(first, row) - 4));
         }
         open(p, i, MOVES);
     }
 
-    /** Cobblemon's card HP bar (37 px, RenderHelper.getDepletableRedGreen): green over half, yellow over a fifth, red. */
+    /** Cobblemon's card HP bar (37 px): one picture a width, coloured by tools/build_bedrock_ui.py's hp_rgb (its gradient). */
     static String hpBar(int hp, int max) {
-        float r = max <= 0 ? 0 : Math.clamp((float) hp / max, 0, 1);
-        int w = Math.round(r * 37);
-        return w == 0 ? "none" : "summary/hp/" + (r > 0.5f ? "g" : r > 0.2f ? "y" : "r") + w;
+        int w = max <= 0 ? 0 : Math.round(Math.clamp((float) hp / max, 0, 1) * 37);
+        return w == 0 ? "none" : "summary/hp/" + w;
     }
 
     static String look(Pokemon m) { return Models.look(m.getSpecies().getResourceIdentifier().getPath(), m.getAspects()); }
@@ -187,13 +265,14 @@ public final class Summary {
                             mv.getCurrentPp() + "/" + mv.getMaxPp(), "pc/type/" + mv.getType().getName().toLowerCase(Locale.ROOT)});
                 }
                 int k = 4;
-                for (var b : m.getBenchedMoves()) {
+                for (var t : others(m)) {
                     if (k >= 8) break;
-                    rows.add(new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(p, b.getMoveTemplate().getDisplayName()).getString(),
-                            Lang.t(p, "cobblemonlink.summary.benched"), "pc/type/" + b.getMoveTemplate().getElementalType().getName().toLowerCase(Locale.ROOT)});
+                    rows.add(new String[]{(picked != null && picked == k ? "> " : "") + Lang.resolve(p, t.getDisplayName()).getString(),
+                            Lang.t(p, "cobblemonlink.summary.benched"), "pc/type/" + t.getElementalType().getName().toLowerCase(Locale.ROOT)});
                     k++;
                 }
             }
+            case MARKS -> {} // its own holders (marks())
             case STATS -> {
                 for (int k = 0; k < 6; k++) {
                     Stat s = STATS_ORDER[k];

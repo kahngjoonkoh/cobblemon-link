@@ -10,7 +10,8 @@ class LangTest {
         assertEquals("de_de", Lang.code("de_DE"));
         assertEquals("en_us", Lang.code((String) null));
         assertEquals("Zurück (test)", Lang.lookup("xx_test", "cobblemonlink.back")); // the player's language
-        assertEquals("Back", Lang.lookup("de_de", "cobblemonlink.back")); // no such file / key: en_us
+        assertEquals("Back", Lang.lookup("xx_none", "cobblemonlink.back")); // no such file: en_us
+        assertEquals("Zurück", Lang.lookup("de_de", "cobblemonlink.back")); // ours in German
         assertEquals("no.such.key", Lang.lookup("de_de", "no.such.key"));
     }
 

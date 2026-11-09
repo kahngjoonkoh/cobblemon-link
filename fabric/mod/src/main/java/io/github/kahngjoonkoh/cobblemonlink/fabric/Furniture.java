@@ -47,14 +47,29 @@ public final class Furniture {
     static final List<String> BLOCKS = List.of("healing_machine", "pc", "pasture", "display_case", "fossil_analyzer",
             "restoration_tank", "monitor", "tm_machine", "campfire_pot_red", "campfire_pot_blue", "campfire_pot_green",
             "campfire_pot_white", "campfire_pot_yellow", "campfire_pot_pink", "campfire_pot_black", "campfire", "soul_campfire",
-            "gilded_chest", "black_gilded_chest", "blue_gilded_chest", "green_gilded_chest", "pink_gilded_chest", "white_gilded_chest", "yellow_gilded_chest");
+            "gilded_chest", "black_gilded_chest", "blue_gilded_chest", "green_gilded_chest", "pink_gilded_chest", "white_gilded_chest", "yellow_gilded_chest",
+            // Cobblemon's shaped decorations (stone or dirt on a real 26.60 client before); ponytail: its building cubes,
+            // slabs and stairs (gems, tumblestone, bales) want real Bedrock custom blocks, not a model each
+            "lectern", "disc_shelf", "eject_button", "magnet", "relic_coin_pouch", "relic_coin_sack",
+            "white_plaque", "orange_plaque", "magenta_plaque", "light_blue_plaque", "yellow_plaque", "lime_plaque", "pink_plaque", "gray_plaque",
+            "light_gray_plaque", "cyan_plaque", "purple_plaque", "blue_plaque", "brown_plaque", "green_plaque", "red_plaque", "black_plaque");
 
     /** Cobblemon's campfires: Minecraft's campfire stands in (PolyEntry), the pot on it is ours. */
     static final List<String> CAMPFIRES = List.of("campfire", "soul_campfire");
 
+    /** Cobblemon's small decorations PolyMc has no spare state for (it shows stone): 1.8's placed items (potions,
+     * held items, up to 4), teacups, pots, orbs, ring target... Drawn like the plants. Also read by setup.sh. */
+    static final java.util.Set<String> DECOR = readDecor();
+
+    private static java.util.Set<String> readDecor() {
+        try (var in = Furniture.class.getClassLoader().getResourceAsStream("cobblemonlink-decor.txt")) {
+            return java.util.Set.copyOf(new String(in.readAllBytes(), StandardCharsets.UTF_8).lines().filter(l -> !l.isBlank()).toList());
+        } catch (Exception e) { throw new IllegalStateException(e); }
+    }
+
     /** Cobblemon's plants and crystals (berry bushes, apricorns, mints, saplings, gem and tumblestone clusters): drawn the same way, over a stand-in you can walk through. */
     static boolean plant(String id) {
-        return id.endsWith("_berry") || id.endsWith("_apricorn") || id.endsWith("_mint") || id.contains("sapling")
+        return DECOR.contains(id) || id.endsWith("_berry") || id.endsWith("_apricorn") || id.endsWith("_mint") || id.contains("sapling")
                 || id.endsWith("_cluster") || id.contains("budding_") || id.endsWith("_leaf_litter")
                 || id.equals("revival_herb") || id.equals("pomohana") || id.equals("galarica_wreath");
     }

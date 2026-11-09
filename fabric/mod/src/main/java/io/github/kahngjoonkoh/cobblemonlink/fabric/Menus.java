@@ -135,8 +135,24 @@ public final class Menus {
                     new com.cobblemon.mod.common.net.messages.client.ui.SetActiveTMPacket(next), p.server, p);
         }));
         buttons.put(8, new Button(() -> Chest.icon(Items.LIME_DYE, Lang.t(p, "cobblemonlink.tm.start"), List.of()),
-                () -> com.cobblemon.mod.common.client.net.gui.SetTMMachineContainerDataPacketHandler.INSTANCE.handle(
-                        new com.cobblemon.mod.common.net.messages.client.ui.SetTMMachineContainerDataPacket(1, 1), p.server, p)));
+                () -> {
+                    com.cobblemon.mod.common.client.net.gui.SetTMMachineContainerDataPacketHandler.INSTANCE.handle(
+                            new com.cobblemon.mod.common.net.messages.client.ui.SetTMMachineContainerDataPacket(1, 1), p.server, p);
+                    // the machine crafts on its own ticks and the chest kept showing the ingredients (a real 26.60
+                    // client), and the open menu never shows the result Cobblemon puts in the block: once it's there,
+                    // the machine is opened again (as a player reopening it sees it); checked each second, 6 s at most
+                    var be = tm.getTmMachineEntity();
+                    int[] tries = {0};
+                    if (be != null) Tasks.until(() -> {
+                        if (p.containerMenu != tm || ++tries[0] > 6) return true;
+                        if (be.getItem(0).isEmpty()) return false;
+                        var pos = be.getBlockPos();
+                        p.closeContainer();
+                        p.level().getBlockState(pos).useWithoutItem(p.level(), p,
+                                new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(pos), net.minecraft.core.Direction.UP, pos, false));
+                        return true;
+                    });
+                }));
     }
 
     private static final ItemStack FILLER = Chest.icon(Items.GRAY_STAINED_GLASS_PANE, " ", List.of());

@@ -50,6 +50,8 @@ if [ "${1:-}" = --zip ] || [ "${1:-}" = --zip-only ]; then
   cp -r README.md LICENSE COBBLEMON_COMMIT assets "dist/$name/"
   cp -r fabric/README.md fabric/PARITY.md fabric/docker-compose.yml fabric/tools "dist/$name/fabric/"
   cp fabric/mods-extra/cobblemon-link-[0-9]*.jar fabric/mods-extra/PolyMc-*.jar "dist/$name/fabric/mods-extra/"
-  cp tools/geo2bb.py tools/bedrock_blocks.py tools/bedrock_sounds.py "dist/$name/tools/"
+  # fabric/tools/setup.sh calls these (build_poly_blocks imports build_custom_blocks; v1.2.0's zip missed both)
+  cp tools/geo2bb.py tools/bedrock_blocks.py tools/bedrock_sounds.py tools/build_poly_blocks.py tools/build_custom_blocks.py "dist/$name/tools/"
+  find "dist/$name" -name __pycache__ -prune -exec rm -rf {} +
   zipit "$name"
 fi

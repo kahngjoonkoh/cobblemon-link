@@ -25,5 +25,8 @@ public final class Tasks {
     /** At the end of this tick (server thread), whatever is running now. */
     public static void next(Runnable r) { NEXT.add(r); }
 
+    /** After this many ticks (server thread). */
+    public static void after(int ticks, Runnable r) { if (ticks <= 0) r.run(); else next(() -> after(ticks - 1, r)); }
+
     public static void until(BooleanSupplier done) { if (!done.getAsBoolean()) PENDING.add(done); }
 }

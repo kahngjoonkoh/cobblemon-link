@@ -13,6 +13,13 @@ from PIL import Image
 from build_ui import TYPES, TYPE_RGB, tint, hp_colour
 
 
+
+def hp_rgb(ratio):
+    """Cobblemon's party-slot HP colour (RenderHelper.getDepletableRedGreen, yellow 0.5, red 0.2; tinted x0.8, blue 0.27)."""
+    r = 2 - 2 * ratio if ratio > 0.2 else 1
+    g = 1 if ratio > 0.5 else ratio / 0.5 if ratio > 0.2 else 0
+    return tuple(round(min(1, c) * 255) for c in (r * 0.8, g * 0.8, 0.27))
+
 def short(name):
     """A look's name in a Bedrock texture path: Bedrock warns about paths of 80+ characters (some platforms fail), so
     long ones are cut to 31 characters plus 8 of their SHA-1 (Ui.bedrockName does the same)."""
@@ -391,7 +398,8 @@ def summary_form():
     (image, 'Lv. n'), 7 gender, 8-9 types, 11-16 the party, 17 on: rows of label, value, image."""
     title = [{"binding_name": "#title_text"}]
     c = [{"base": image("summary/base", (331, 161))},
-         {"main": image("summary/info_base", (134, 148), (77, 12), 2)},
+         at(SUM_MARKS, {"main": image("summary/info_base", (134, 148), (77, 12), 2, SUM_T + [visible("((#t - '*') = #t)")])}),
+         at(SUM_MARKS, {"marks": image("summary/marks_base", (134, 148), (77, 12), 2, SUM_T + [visible("(not ((#t - '*') = #t))")])}),
          {"party_bg": image("summary/party_bg", (114, 113), (216, 24), 2)},
          pc_image(6, (9, 35), (60, 60), 3), pc_text(6, (6, 4), (40, 9), 1.0, "left"),
          pc_text(7, (69, 14), (8, 9), 1.0, "left"),
@@ -404,6 +412,7 @@ def summary_form():
                 [{s_: image(t_, (26, 13))} for s_, t_ in (("default", "pc/exit"), ("hover", "pc/exit_hover"), ("pressed", "pc/exit_hover"))])]
     for k, name in enumerate(("info", "moves", "stats")):
         c.append(pc_button(k, (78 + 31 * k, -1), (39, 13), f"summary/tab_{name}", states=False))
+    c += sum_marks()
     for k, (x, w) in enumerate(((217, 30), (249, 24), (275, 24))):
         c.append(pc_button(3 + k, (x, 139), (w, 11), None, "#t", (0, 3), scale=0.5))  # "Send out" fits 30 px at half size
     c.append(pc_button(10, (12, 13), (56, 11), None))  # the name: a tap renames, as Cobblemon's nickname field
@@ -414,12 +423,44 @@ def summary_form():
         (lx, ly), (vx, vy) = sum_row(r, "info")
         c.append(at(SUM_ROWS + 3 * r, label("#form_button_text", (lx, ly), (45, 7), 0.5, "left", BUTTON_TEXT, layer=5)))
         c.append(at(SUM_ROWS + 3 * r + 1, label("#form_button_text", (vx, vy), (80, 7), 0.5, "left", BUTTON_TEXT, layer=5)))
+        # the row as a button (its label holder): a tap picks a move on the Moves tab, then a second swaps it
+        # (Summary.pickMove); before, the rows were text only and a tap on a real 26.60 client did nothing
+        c.append(pc_button(SUM_ROWS + 3 * r, (lx - 3, ly - 3), (126, 12), None))
     return {"type": "panel", "size": [331, 161], "anchor_from": "center", "anchor_to": "center",
             "collection_name": "form_buttons",  # at() items read the form's buttons by index
             "bindings": title + [visible(f"(not ((#title_text - '{MARK}6') = #title_text))")], "controls": c}
 
 
 SUM_NAME, SUM_HP, SUM_BALL = 42, 48, 54  # Summary.java: per party slot k, its name, HP bar and ball (+ "m"/"f") holders
+SUM_MARKS = 60  # Summary.marks(): 60 the tab, 61 the shown mark, 62 its description, 63-92 the slots, 93 the page, 94-99 markings
+SUM_T = [{"binding_type": "collection", "binding_collection_name": "form_buttons", "binding_name": "#form_button_text",
+          "binding_name_override": "#t"}]
+
+
+def sum_marks():
+    """Cobblemon 1.8.4's Marks tab (MarksWidget on summary_marks_base, at the Info panel's place) and its markings
+    (MarkingsWidget, under the Pokémon): the shown mark's icon (12, 12) and description (38, 11), "<name> the <title>"
+    on the bar at y 37, a 6 x 5 grid of 16 px slots from (9, 48), 20 across and 19 down (measured on Cobblemon's own
+    screen); the markings 6 px, 7 apart from (29, 102), grey / blue / red. ponytail: a tap on the scroll strip turns
+    the page, where Cobblemon scrolls."""
+    X, Y = 77, 12
+    c = [pc_button(SUM_MARKS, (78 + 31 * 3, -1), (39, 13), "summary/tab_marks", states=False),
+         pc_image(SUM_MARKS + 1, (X + 12, Y + 12), (16, 16), 4),
+         at(SUM_MARKS + 1, label("#form_button_text", (X, Y + 37), (134, 7), 0.5, "center", BUTTON_TEXT, layer=5)),
+         at(SUM_MARKS + 2, label("#form_button_text", (X + 38, Y + 11), (86, 20), 0.5, "left", BUTTON_TEXT, layer=5)),
+         pc_button(SUM_MARKS + 33, (X + 127, Y + 46), (7, 98), None),
+         at(SUM_MARKS + 33, label("#form_button_text", (X + 84, Y + 142), (40, 5), 0.5, "right", BUTTON_TEXT, layer=5))]
+    for k in range(30):
+        i, x, y = SUM_MARKS + 3 + k, X + 9 + 20 * (k % 6), Y + 48 + 19 * (k // 6)
+        c += [at(i, {f"mslot{k}": image("summary/mark_slot", (16, 16), (x, y), 3, SUM_T + [visible("(#t = 'n')")])}),
+              at(i, {f"msel{k}": image("summary/mark_slot_sel", (16, 16), (x, y), 3, SUM_T + [visible("(#t = 's')")])}),
+              pc_image(i, (x, y), (16, 16), 4), pc_button(i, (x, y), (16, 16), None)]
+    for k in range(6):
+        i, x, y = SUM_MARKS + 34 + k, 29 + 7 * k, 102
+        c += [at(i, {f"marking{k}_{st}": image(f"summary/marking{k}_{st}", (6, 6), (x, y), 4, SUM_T + [visible(f"(#t = '{st}')")])})
+              for st in range(3)]
+        c.append(pc_button(i, (x - 1, y - 1), (8, 8), None))
+    return c
 
 
 def sum_card(i, x, y):
@@ -463,6 +504,17 @@ def summary_art(gui, png):
     png("summary/base", base)
     png("summary/info_base", o("summary_info_base"))
     png("summary/moves_base", o("summary_moves_base"))
+    png("summary/marks_base", o("summary_marks_base"))
+    ms = o("summary_mark_slot")  # two states stacked: idle, then the shown mark
+    png("summary/mark_slot", ms.crop((0, 0, 16, 16)))
+    png("summary/mark_slot_sel", ms.crop((0, 16, 16, 32)))
+    for k in range(6):  # each marking: 2 columns (idle, hover) x 3 rows (none, blue, red) of 12 px
+        m = o(f"icon_marking_{k}")
+        for st in range(3):
+            png(f"summary/marking{k}_{st}", m.crop((0, 12 * st, 12, 12 * st + 12)))
+    import glob as _gm
+    for f in sorted(_gm.glob(f"{gui}/mark/*.png")):  # every mark's icon (Summary.markTexture)
+        png("mark/" + os.path.basename(f)[:-4], Image.open(f).convert("RGBA"))
     png("summary/party_bg", o("summary_party_background"))
     slot = o("summary_party_slot")  # two states stacked: idle, then selected
     png("summary/slot", slot.crop((0, 0, 46, 27)))
@@ -474,14 +526,13 @@ def summary_art(gui, png):
     import glob as _g
     for f in sorted(_g.glob(f"{gui}/ball/*.png")):  # the caught ball: its top frame
         png("ball/" + os.path.basename(f)[:-4], Image.open(f).convert("RGBA").crop((0, 0, 18, 22)))
-    for c, rgb in (("g", (98, 204, 105)), ("y", (232, 202, 61)), ("r", (219, 67, 52))):  # ponytail: 3 colours, not Cobblemon's gradient
-        for w in range(1, 38):
-            bar = Image.new("RGBA", (37, 1), (0, 0, 0, 0))
-            bar.paste(Image.new("RGBA", (w, 1), rgb + (255,)), (0, 0))
-            png(f"summary/hp/{c}{w}", bar)
+    for w in range(1, 38):  # one per width: the width is the HP ratio, so its colour is Cobblemon's gradient too
+        bar = Image.new("RGBA", (37, 1), (0, 0, 0, 0))
+        bar.paste(Image.new("RGBA", (w, 1), hp_rgb(w / 37) + (255,)), (0, 0))
+        png(f"summary/hp/{w}", bar)
     png("summary/evolve", o("summary_evolve_button").crop((0, 0, 54, 15)))
     png("summary/evolve_hover", o("summary_evolve_button").crop((0, 15, 54, 30)))
-    for name in ("info", "moves", "stats"):
+    for name in ("info", "moves", "stats", "marks"):
         tab = o("summary_tab")
         tab.alpha_composite(o(f"summary_tab_icon_{name}").resize((9, 9), Image.NEAREST), (15, 2))
         png(f"summary/tab_{name}", tab)
@@ -1031,6 +1082,7 @@ def build(gui, out):
     form, hud = server_form(), hud_screen()
     assert not malformed(form) and not malformed(hud), "every control entry is {name: control}"
     hud_check(hud)
+    assert hp_rgb(1) == (0, 204, 69) and hp_rgb(0.3) == (255, 122, 69) and hp_rgb(0.1) == (204, 0, 69), "Cobblemon's HP colours"
     import re  # Bedrock's '%.Ns' cut reads two digits of N: nothing longer than 99 anywhere
     for doc in (form, hud):
         assert not re.search(r"%\.\d{3,}s", json.dumps(doc)), "a 3-digit cut"
